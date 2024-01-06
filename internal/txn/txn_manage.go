@@ -123,39 +123,16 @@ func NewTxnManager(filename string) Manager {
 	return tm
 }
 
-func (tm *txnManager) inc() {
+func (tm *txnManager) incr() {
 	tm.tidSeq++
 	buf := make([]byte, 8)
 	writeTID(buf, tm.tidSeq)
 
 	// 写入并同步文件
-	var err error
-	_, err = tm.tidFile.WriteAt(buf, 0)
-	if err != nil {
-		panic(err)
-	}
-	err = tm.tidFile.Sync()
-	if err != nil {
-		panic(err)
-	}
+	tm.write(buf, 0)
 }
 
-func (tm *txnManager) sync(tid TID, state byte) {
-	off := pos(tid)
-
-	// 写入并同步文件
-	var err error
-	_, err = tm.tidFile.WriteAt([]byte{state}, off)
-	if err != nil {
-		return
-	}
-	err = tm.tidFile.Sync()
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (tm *txnManager) state(tid TID, state byte) bool {
+func (tm *txnManager) state(tid TID) byte {
 	off := pos(tid)
 
 	// 读取对应位置状态
@@ -164,16 +141,29 @@ func (tm *txnManager) state(tid TID, state byte) bool {
 	if err != nil {
 		panic(err)
 	}
-	return buf[0] == state
+	return buf[0]
 }
 
-func (tm *txnManager) Close() {
-	var err error
+func (tm *txnManager) update(tid TID, state byte) {
+	off := pos(tid)
+
+	// 写入并同步文件
+	tm.write([]byte{state}, off)
+}
+
+func (tm *txnManager) write(buf []byte, off int64) {
+	_, err := tm.tidFile.WriteAt(buf, off)
+	if err != nil {
+		panic(err)
+	}
 	err = tm.tidFile.Sync()
 	if err != nil {
 		panic(err)
 	}
-	err = tm.tidFile.Close()
+}
+
+func (tm *txnManager) Close() {
+	err := tm.tidFile.Close()
 	if err != nil {
 		panic(err)
 	}
@@ -184,36 +174,36 @@ func (tm *txnManager) Begin() TID {
 	defer tm.lock.Unlock()
 
 	tid := tm.tidSeq
-	tm.inc()
-	tm.sync(tid, Active)
+	tm.incr()
+	tm.update(tid, Active)
 	return tid
 }
 
 func (tm *txnManager) Abort(tid TID) {
-	tm.sync(tid, Aborted)
+	tm.update(tid, Aborted)
 }
 
 func (tm *txnManager) Commit(tid TID) {
-	tm.sync(tid, Committed)
+	tm.update(tid, Committed)
 }
 
 func (tm *txnManager) IsActive(tid TID) bool {
 	if tid == Super {
 		return false
 	}
-	return tm.state(tid, Active)
+	return tm.state(tid) == Active
 }
 
 func (tm *txnManager) IsCommitted(tid TID) bool {
 	if tid == Super {
 		return true
 	}
-	return tm.state(tid, Committed)
+	return tm.state(tid) == Committed
 }
 
 func (tm *txnManager) IsAborted(tid TID) bool {
 	if tid == Super {
 		return false
 	}
-	return tm.state(tid, Aborted)
+	return tm.state(tid) == Aborted
 }
