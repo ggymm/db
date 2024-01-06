@@ -5,6 +5,7 @@ import "encoding/binary"
 type TID uint64
 
 const (
+	Super   = 0
 	TIDSize = 8
 )
 

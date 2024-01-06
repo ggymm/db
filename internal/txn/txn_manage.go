@@ -8,9 +8,9 @@ import (
 )
 
 const (
-	Active    = 0 // 事务正在进行中
-	Committed = 1 // 事务已经提交
-	Aborted   = 2 // 事务已经终止
+	Active    byte = 0 // 事务正在进行中
+	Committed byte = 1 // 事务已经提交
+	Aborted   byte = 2 // 事务已经终止
 
 	Suffix = ".tid" // tid 文件后缀
 
@@ -68,9 +68,9 @@ func open(tm *txnManager) {
 	tid := readTID(buf)
 
 	// 获取 tid 对应的状态位置
-	end := pos(tid)
+	off := pos(tid)
 	stat, _ := file.Stat()
-	if end != stat.Size() {
+	if off != stat.Size() {
 		panic(ErrBadTIDFile)
 	}
 
@@ -96,18 +96,17 @@ func create(tm *txnManager) {
 	if err != nil {
 		panic(err)
 	}
-	tm.tidFile = file
 
 	// 写入文件头
 	buf := make([]byte, HeaderLen)
 	writeTID(buf, 1) // tid 从 1 开始
-	_, err = file.WriteAt(buf, 1)
+	_, err = file.WriteAt(buf, 0)
 	if err != nil {
 		panic(err)
 	}
 
 	// 构造结构体
-	tm.tidSeq = 0
+	tm.tidSeq = 1
 	tm.tidFile = file
 }
 
@@ -116,7 +115,7 @@ func NewTxnManager(filename string) Manager {
 	tm.filename = filename + Suffix
 
 	// 判断文件是否存在
-	if utils.IsExist(filename) {
+	if utils.IsExist(tm.filename) {
 		open(tm)
 	} else {
 		create(tm)
@@ -124,30 +123,97 @@ func NewTxnManager(filename string) Manager {
 	return tm
 }
 
-func (tm *txnManager) Close() {
+func (tm *txnManager) inc() {
+	tm.tidSeq++
+	buf := make([]byte, 8)
+	writeTID(buf, tm.tidSeq)
 
+	// 写入并同步文件
+	var err error
+	_, err = tm.tidFile.WriteAt(buf, 0)
+	if err != nil {
+		panic(err)
+	}
+	err = tm.tidFile.Sync()
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (tm *txnManager) sync(tid TID, state byte) {
+	off := pos(tid)
+
+	// 写入并同步文件
+	var err error
+	_, err = tm.tidFile.WriteAt([]byte{state}, off)
+	if err != nil {
+		return
+	}
+	err = tm.tidFile.Sync()
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (tm *txnManager) state(tid TID, state byte) bool {
+	off := pos(tid)
+
+	// 读取对应位置状态
+	buf := make([]byte, 1)
+	_, err := tm.tidFile.ReadAt(buf, off)
+	if err != nil {
+		panic(err)
+	}
+	return buf[0] == state
+}
+
+func (tm *txnManager) Close() {
+	var err error
+	err = tm.tidFile.Sync()
+	if err != nil {
+		panic(err)
+	}
+	err = tm.tidFile.Close()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (tm *txnManager) Begin() TID {
-	return 0
+	tm.lock.Lock()
+	defer tm.lock.Unlock()
+
+	tid := tm.tidSeq
+	tm.inc()
+	tm.sync(tid, Active)
+	return tid
 }
 
 func (tm *txnManager) Abort(tid TID) {
-
+	tm.sync(tid, Aborted)
 }
 
 func (tm *txnManager) Commit(tid TID) {
-
+	tm.sync(tid, Committed)
 }
 
 func (tm *txnManager) IsActive(tid TID) bool {
-	return false
+	if tid == Super {
+		return false
+	}
+	return tm.state(tid, Active)
 }
 
 func (tm *txnManager) IsCommitted(tid TID) bool {
-	return false
+	if tid == Super {
+		return true
+	}
+	return tm.state(tid, Committed)
 }
 
 func (tm *txnManager) IsAborted(tid TID) bool {
-	return false
+	if tid == Super {
+		return false
+	}
+	return tm.state(tid, Aborted)
 }
