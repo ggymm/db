@@ -2,9 +2,14 @@ package txn
 
 import (
 	"db/pkg/utils"
+	"errors"
 	"os"
 	"path/filepath"
 	"sync"
+)
+
+var (
+	ErrBadTIDFile = errors.New("bad TID File")
 )
 
 const (
@@ -19,7 +24,8 @@ const (
 )
 
 type Manager interface {
-	Close()         // 关闭事务管理器
+	Close() // 关闭事务管理器
+
 	Begin() TID     // 开启一个事务
 	Abort(tid TID)  // 取消一个事务
 	Commit(tid TID) // 提交一个事务
