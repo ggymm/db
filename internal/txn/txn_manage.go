@@ -1,6 +1,7 @@
 package txn
 
 import (
+	"db/pkg/utils"
 	"os"
 	"sync"
 )
@@ -45,10 +46,26 @@ type txnManager struct {
 	tidFile *os.File
 }
 
-func NewTxnManager(path string) *Manager {
+func NewTxnManager(filename string) Manager {
+	tm := new(txnManager)
 	// 判断文件是否存在
+	if utils.IsExist(filename) {
+		// 打开文件
+		file, err := os.OpenFile(filename, os.O_RDWR, 0666)
+		if err != nil {
+			panic(err)
+		}
+		tm.tidFile = file
+	} else {
+		// 创建文件
+		file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+		if err != nil {
+			panic(err)
+		}
+		tm.tidFile = file
+	}
 
-	return nil
+	return tm
 }
 
 func (tm *txnManager) check() {

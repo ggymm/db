@@ -5,5 +5,4 @@ type Server struct {
 }
 
 func NewServer() {
-
 }
