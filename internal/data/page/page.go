@@ -8,11 +8,18 @@ type Page interface {
 
 	No() uint32
 	Data() []byte
-	Dirty()
+	Dirty() bool
+
+	SetNo(no uint32)
+	SetData(data []byte)
+	SetDirty(dirty bool)
+
 	Release()
 }
 
-// 保存在内存中的页面结构
+// page 是页面的结构
+// 保存在数据文件中，固定大小
+// 读取和写入时，通过 no 确定数据位置
 type page struct {
 	lock sync.Mutex
 
@@ -46,8 +53,20 @@ func (p *page) Data() []byte {
 	return p.data
 }
 
-func (p *page) Dirty() {
-	p.dirty = true
+func (p *page) Dirty() bool {
+	return p.dirty
+}
+
+func (p *page) SetNo(no uint32) {
+	p.no = no
+}
+
+func (p *page) SetData(data []byte) {
+	p.data = data
+}
+
+func (p *page) SetDirty(dirty bool) {
+	p.dirty = dirty
 }
 
 func (p *page) Release() {

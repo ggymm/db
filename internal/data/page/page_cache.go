@@ -1,7 +1,6 @@
 package page
 
 import (
-	"db/pkg/utils"
 	"errors"
 	"os"
 	"path/filepath"
@@ -9,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"db/internal/cache"
+	"db/pkg/utils"
 )
 
 var (
@@ -114,12 +114,25 @@ func pos(no uint32) int64 {
 }
 
 // 将页内容刷新到磁盘
-func (c *pageCache) flush(p *Page) {
+func (c *pageCache) flush(p Page) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 
+	// 写入数据
+	_, err := c.file.WriteAt(p.Data(), pos(p.No()))
+	if err != nil {
+		panic(err)
+	}
+
+	// 刷新文件
+	err = c.file.Sync()
+	if err != nil {
+		panic(err)
+	}
 }
 
-func (c *pageCache) release(p *Page) {
-
+func (c *pageCache) release(p Page) {
+	c.cache.Release(uint64(p.No()))
 }
 
 // Obtain 需要支持并发
@@ -130,7 +143,7 @@ func (c *pageCache) obtainForCache(key uint64) (any, error) {
 
 	no := uint32(key)
 
-	// 读取对应位置数据
+	// 读取数据
 	buf := make([]byte, Size)
 	_, err := c.file.ReadAt(buf, pos(no))
 	if err != nil {
@@ -142,9 +155,10 @@ func (c *pageCache) obtainForCache(key uint64) (any, error) {
 // Release 需要是同步方法
 // 释放缓存，需要将 Page 对象内存刷新到磁盘
 func (c *pageCache) releaseForCache(data any) {
-	p := data.(*Page)
+	p := data.(Page)
 	if p.Dirty() {
-
+		c.flush(p)
+		p.SetDirty(false)
 	}
 }
 
@@ -155,8 +169,9 @@ func (c *pageCache) Close() {
 func (c *pageCache) NewPage(data []byte) uint32 {
 	no := atomic.AddUint32(&c.no, 1)
 
-	NewPage(no, data, c)
-
+	// 创建页面
+	p := NewPage(no, data, c)
+	c.flush(p)
 	return no
 }
 
@@ -165,7 +180,7 @@ func (c *pageCache) GetPage(no uint32) (Page, error) {
 	if err != nil {
 		return nil, err
 	}
-	return data.(*page), nil
+	return data.(Page), nil
 }
 
 func (c *pageCache) PageNum() uint32 {
@@ -173,7 +188,14 @@ func (c *pageCache) PageNum() uint32 {
 }
 
 func (c *pageCache) PageFlush(p Page) {
+	c.flush(p)
 }
 
 func (c *pageCache) PageTruncate(maxNo uint32) {
+	size := pos(maxNo + 1)
+	err := c.file.Truncate(size)
+	if err != nil {
+		panic(err)
+	}
+	c.no = maxNo
 }
