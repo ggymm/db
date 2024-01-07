@@ -49,8 +49,8 @@ type Manager interface {
 type txnManager struct {
 	lock sync.Mutex
 
-	tidSeq   TID
-	tidFile  *os.File
+	seq      TID
+	file     *os.File
 	filename string
 }
 
@@ -81,14 +81,14 @@ func open(tm *txnManager) {
 	}
 
 	// 构造结构体
-	tm.tidSeq = tid
-	tm.tidFile = file
+	tm.seq = tid
+	tm.file = file
 }
 
 func create(tm *txnManager) {
 	filename := tm.filename
 
-	// 判断文件夹是否存在
+	// 判断父文件夹是否存在
 	dir := filepath.Dir(filename)
 	if !utils.IsExist(dir) {
 		err := os.MkdirAll(dir, os.ModePerm)
@@ -112,8 +112,8 @@ func create(tm *txnManager) {
 	}
 
 	// 构造结构体
-	tm.tidSeq = 1
-	tm.tidFile = file
+	tm.seq = 1
+	tm.file = file
 }
 
 func NewTxnManager(filename string) Manager {
@@ -130,9 +130,9 @@ func NewTxnManager(filename string) Manager {
 }
 
 func (tm *txnManager) incr() {
-	tm.tidSeq++
+	tm.seq++
 	buf := make([]byte, 8)
-	writeTID(buf, tm.tidSeq)
+	writeTID(buf, tm.seq)
 
 	// 写入并同步文件
 	tm.write(buf, 0)
@@ -143,7 +143,7 @@ func (tm *txnManager) state(tid TID) byte {
 
 	// 读取对应位置状态
 	buf := make([]byte, 1)
-	_, err := tm.tidFile.ReadAt(buf, off)
+	_, err := tm.file.ReadAt(buf, off)
 	if err != nil {
 		panic(err)
 	}
@@ -158,18 +158,18 @@ func (tm *txnManager) update(tid TID, state byte) {
 }
 
 func (tm *txnManager) write(buf []byte, off int64) {
-	_, err := tm.tidFile.WriteAt(buf, off)
+	_, err := tm.file.WriteAt(buf, off)
 	if err != nil {
 		panic(err)
 	}
-	err = tm.tidFile.Sync()
+	err = tm.file.Sync()
 	if err != nil {
 		panic(err)
 	}
 }
 
 func (tm *txnManager) Close() {
-	err := tm.tidFile.Close()
+	err := tm.file.Close()
 	if err != nil {
 		panic(err)
 	}
@@ -179,7 +179,7 @@ func (tm *txnManager) Begin() TID {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
 
-	tid := tm.tidSeq
+	tid := tm.seq
 	tm.incr()
 	tm.update(tid, Active)
 	return tid

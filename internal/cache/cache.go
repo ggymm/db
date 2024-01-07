@@ -33,9 +33,9 @@ type Option struct {
 type cache struct {
 	lock sync.Mutex
 
-	ops *Option
+	ops   *Option
+	count uint32
 
-	count  uint32
 	refs   map[uint64]uint32
 	cache  map[uint64]any
 	obtain map[uint64]bool
