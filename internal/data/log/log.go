@@ -195,7 +195,7 @@ func (l *logger) next() ([]byte, bool, error) {
 		return nil, false, nil
 	}
 
-	// 读取数据
+	// 读取日志数据
 	log := make([]byte, OffData+size)
 	_, err = l.file.ReadAt(log, l.pos)
 	if err != nil {
