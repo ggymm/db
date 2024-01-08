@@ -146,10 +146,30 @@ func NewLog(filename string) Logger {
 	}
 
 	// 校验日志文件
-	err := l.check()
+	l.Rewind()
+	var checksum uint32
+	for {
+		log, next, err := l.next()
+		if err != nil {
+			panic(err)
+		}
+		if next == false {
+			break
+		}
+		checksum = calcChecksum(checksum, log)
+	}
+	if checksum != l.checksum {
+		panic(ErrBadLogFile)
+	}
+	err := l.file.Truncate(l.pos)
 	if err != nil {
 		panic(err)
 	}
+	_, err = l.file.Seek(l.pos, 0)
+	if err != nil {
+		panic(err)
+	}
+	l.Rewind()
 	return l
 }
 
@@ -173,8 +193,8 @@ func (l *logger) next() ([]byte, bool, error) {
 	}
 
 	// 读取数据
-	buf = make([]byte, OffData+size)
-	_, err = l.file.ReadAt(buf, l.pos)
+	log := make([]byte, OffData+size)
+	_, err = l.file.ReadAt(log, l.pos)
 	if err != nil {
 		return nil, false, err
 	}
@@ -184,18 +204,14 @@ func (l *logger) next() ([]byte, bool, error) {
 		cs1 uint32
 		cs2 uint32
 	)
-	cs1 = calcChecksum(0, buf[OffData:])
-	binary.LittleEndian.PutUint32(buf[OffChecksum:], cs2)
+	cs1 = calcChecksum(0, log[OffData:])
+	binary.LittleEndian.PutUint32(log[OffChecksum:], cs2)
 	if cs1 != cs2 {
 		return nil, false, nil
 	}
 
-	l.pos += int64(len(buf))
-	return buf, true, nil
-}
-
-func (l *logger) check() error {
-	return nil
+	l.pos += int64(len(log))
+	return log, true, nil
 }
 
 func (l *logger) Close() {
@@ -216,7 +232,7 @@ func (l *logger) Log(data []byte) {
 	}
 
 	// 计算新的 checksum
-	l.checksum = calcChecksum(l.checksum, data)
+	l.checksum = calcChecksum(l.checksum, log)
 	buf := make([]byte, Checksum)
 	binary.LittleEndian.PutUint32(buf, l.checksum)
 	_, err = l.file.WriteAt(buf, 0)
@@ -239,7 +255,7 @@ func (l *logger) Next() ([]byte, bool) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
-	data, next, err := l.next()
+	log, next, err := l.next()
 	if err != nil {
 		panic(err)
 	}
@@ -247,7 +263,7 @@ func (l *logger) Next() ([]byte, bool) {
 	if next == false {
 		return nil, false
 	}
-	return data[OffData:], false
+	return log[OffData:], false
 }
 
 func (l *logger) Rewind() {
