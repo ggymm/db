@@ -1,11 +1,12 @@
 package txn
 
 import (
-	"db/pkg/utils"
 	"errors"
 	"os"
 	"path/filepath"
 	"sync"
+
+	"db/pkg/utils"
 )
 
 // 管理 tid 文件

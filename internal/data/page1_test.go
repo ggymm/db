@@ -1,8 +1,9 @@
 package data
 
 import (
-	"db/internal/data/page"
 	"testing"
+
+	"db/internal/data/page"
 )
 
 func Test_Page1(t *testing.T) {

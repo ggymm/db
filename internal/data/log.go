@@ -1,12 +1,13 @@
 package data
 
 import (
-	"db/pkg/utils"
 	"encoding/binary"
 	"errors"
 	"os"
 	"path/filepath"
 	"sync"
+
+	"db/pkg/utils"
 )
 
 // 日志文件的读写
