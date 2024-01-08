@@ -6,9 +6,23 @@ import (
 	"db/internal/data/page"
 )
 
+// 普通页 处理函数
+// 页面结构如下：
+//         0 ~ 1 字节：FSO（Free Space Offset）
+//         2 ~ N 字节：数据
+// 使用 uint16 存储 FSO（最大可支持 64k 页面大小）
+
 const (
 	Header = 2
 )
+
+func parseFSO(data []byte) uint16 {
+	return binary.LittleEndian.Uint16(data[0:Header])
+}
+
+func updateFSO(data []byte, off uint16) {
+	binary.LittleEndian.PutUint16(data[0:Header], off)
+}
 
 func InitPageX() []byte {
 	data := make([]byte, page.Size)
@@ -17,7 +31,7 @@ func InitPageX() []byte {
 }
 
 func MaxFree() int {
-	return int(page.Size - Header)
+	return page.Size - Header
 }
 
 func ParseFSO(p page.Page) uint16 {
@@ -50,12 +64,4 @@ func RecoverInsert(p page.Page, off uint16, data []byte) {
 func RecoverUpdate(p page.Page, off uint16, data []byte) {
 	p.SetDirty(true)
 	copy(p.Data()[off:], data)
-}
-
-func parseFSO(data []byte) uint16 {
-	return binary.LittleEndian.Uint16(data[0:Header])
-}
-
-func updateFSO(data []byte, off uint16) {
-	binary.LittleEndian.PutUint16(data[0:Header], off)
 }
