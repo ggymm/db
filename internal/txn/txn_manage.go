@@ -8,6 +8,18 @@ import (
 	"sync"
 )
 
+// 管理 tid 文件
+//
+// 事务ID(tid) 起始为 1 按顺序递增
+//
+// 每个事务有三种状态
+//         0. active     事务正在进行中
+//         1. committed  事务已经提交
+//         2. aborted    事务已经终止
+//
+// tid 文件起始位置为 8 type，存储 tid 序列号
+// tid 文件中每个事务使用 1 byte 存储其状态，位移为 (tid - 1) + HeaderLen
+
 var (
 	ErrBadTIDFile = errors.New("bad TID File")
 )
@@ -35,17 +47,6 @@ type Manager interface {
 	IsAborted(tid TID) bool   // 判断事务是否已经取消
 }
 
-// txnManager 用于管理 tid 文件
-//
-// 事务ID(tid) 起始为 1 按顺序递增
-//
-// 每个事务有三种状态
-// 0. active     事务正在进行中
-// 1. committed  事务已经提交
-// 2. aborted    事务已经终止
-//
-// tid 文件起始位置为 8 type，存储 tid 序列号
-// tid 文件中每个事务使用 1 byte 存储其状态，位移为 (tid - 1) + HeaderLen
 type txnManager struct {
 	lock sync.Mutex
 
@@ -80,7 +81,7 @@ func open(tm *txnManager) {
 		panic(ErrBadTIDFile)
 	}
 
-	// 构造结构体
+	// 字段信息
 	tm.seq = tid
 	tm.file = file
 }
@@ -88,7 +89,7 @@ func open(tm *txnManager) {
 func create(tm *txnManager) {
 	filename := tm.filename
 
-	// 判断父文件夹是否存在
+	// 创建父文件夹
 	dir := filepath.Dir(filename)
 	if !utils.IsExist(dir) {
 		err := os.MkdirAll(dir, os.ModePerm)
@@ -111,7 +112,7 @@ func create(tm *txnManager) {
 		panic(err)
 	}
 
-	// 构造结构体
+	// 字段信息
 	tm.seq = 1
 	tm.file = file
 }

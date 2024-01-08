@@ -57,7 +57,7 @@ func open(pc *pageCache) {
 	stat, _ := file.Stat()
 	size := stat.Size()
 
-	// 构造结构体
+	// 字段信息
 	pc.no = uint32(size / Size)
 	pc.file = file
 }
@@ -65,7 +65,7 @@ func open(pc *pageCache) {
 func create(pc *pageCache) {
 	filename := pc.filename
 
-	// 判断父文件夹是否存在
+	// 创建父文件夹
 	dir := filepath.Dir(filename)
 	if !utils.IsExist(dir) {
 		err := os.MkdirAll(dir, os.ModePerm)
@@ -80,7 +80,7 @@ func create(pc *pageCache) {
 		panic(err)
 	}
 
-	// 构造结构体
+	// 字段信息
 	pc.no = 0
 	pc.file = file
 }

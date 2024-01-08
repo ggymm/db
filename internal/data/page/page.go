@@ -2,6 +2,11 @@ package page
 
 import "sync"
 
+// 内存中页面的结构
+// no 为编号，读取和写入时，通过 no * pageSize 计算偏移量
+// data 是数据内容
+// dirty 为 true 代表数据被修改过，需要写入文件
+
 type Page interface {
 	Lock()
 	Unlock()
@@ -17,9 +22,6 @@ type Page interface {
 	Release()
 }
 
-// page 是页面的结构
-// 保存在数据文件中，固定大小
-// 读取和写入时，通过 no 确定数据位置
 type page struct {
 	lock sync.Mutex
 
