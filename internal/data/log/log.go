@@ -76,7 +76,7 @@ func open(l *logger) {
 	if err != nil {
 		panic(err)
 	}
-	checksum := binary.LittleEndian.Uint32(buf)
+	checksum := readUint32(buf)
 
 	// 字段信息
 	l.file = file
@@ -103,29 +103,19 @@ func create(l *logger) {
 	}
 
 	// 写入 checksum
-	buf := make([]byte, Checksum)
-	binary.LittleEndian.PutUint32(buf, 0)
-	_, err = file.WriteAt(buf, 0)
-	if err != nil {
-		panic(err)
-	}
-	err = file.Sync()
-	if err != nil {
-		panic(err)
-	}
+	updateChecksum(file, 0)
 
 	// 字段信息
 	l.file = file
 	l.checksum = 0
 }
 
-func wrapLog(data []byte) []byte {
-	buf := make([]byte, OffData+len(data))
-	// 写入 size
-	binary.LittleEndian.PutUint32(buf[OffSize:], uint32(len(data)))
-	// 写入 checksum
-	binary.LittleEndian.PutUint32(buf[OffChecksum:], calcChecksum(0, data))
-	return buf
+func readUint32(buf []byte) uint32 {
+	return binary.LittleEndian.Uint32(buf)
+}
+
+func writeUint32(buf []byte, uint32 uint32) {
+	binary.LittleEndian.PutUint32(buf, uint32)
 }
 
 func calcChecksum(res uint32, data []byte) uint32 {
@@ -133,6 +123,19 @@ func calcChecksum(res uint32, data []byte) uint32 {
 		res = res*Seed + uint32(b)
 	}
 	return res
+}
+
+func updateChecksum(file *os.File, checksum uint32) {
+	buf := make([]byte, Checksum)
+	binary.LittleEndian.PutUint32(buf, checksum)
+	_, err := file.WriteAt(buf, 0)
+	if err != nil {
+		panic(err)
+	}
+	err = file.Sync()
+	if err != nil {
+		panic(err)
+	}
 }
 
 func NewLog(filename string) Logger {
@@ -185,7 +188,7 @@ func (l *logger) next() ([]byte, bool, error) {
 	if err != nil {
 		return nil, false, err
 	}
-	size := binary.LittleEndian.Uint32(buf)
+	size := readUint32(buf)
 
 	// 数据不完整
 	if l.pos+OffData+int64(size) > l.filesize {
@@ -200,12 +203,8 @@ func (l *logger) next() ([]byte, bool, error) {
 	}
 
 	// 校验 checksum 是否正确
-	var (
-		cs1 uint32
-		cs2 uint32
-	)
-	cs1 = calcChecksum(0, log[OffData:])
-	binary.LittleEndian.PutUint32(log[OffChecksum:], cs2)
+	cs1 := calcChecksum(0, log[OffData:])
+	cs2 := readUint32(log[OffChecksum:OffData])
 	if cs1 != cs2 {
 		return nil, false, nil
 	}
@@ -225,24 +224,20 @@ func (l *logger) Log(data []byte) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
-	log := wrapLog(data)
+	log := make([]byte, OffData+len(data))
+	writeUint32(log[OffSize:], uint32(len(data)))
+	writeUint32(log[OffChecksum:], calcChecksum(0, data))
+
+	// 写入文件
+	// 在写入 checksum 时，同步文件内容到磁盘
 	_, err := l.file.Write(log)
 	if err != nil {
 		panic(err)
 	}
 
-	// 计算新的 checksum
+	// 计算并写入新的 checksum
 	l.checksum = calcChecksum(l.checksum, log)
-	buf := make([]byte, Checksum)
-	binary.LittleEndian.PutUint32(buf, l.checksum)
-	_, err = l.file.WriteAt(buf, 0)
-	if err != nil {
-		panic(err)
-	}
-	err = l.file.Sync()
-	if err != nil {
-		panic(err)
-	}
+	updateChecksum(l.file, l.checksum)
 }
 
 func (l *logger) Truncate(size int64) error {
