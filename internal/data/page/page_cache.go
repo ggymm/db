@@ -25,8 +25,9 @@ const (
 type Cache interface {
 	Close()
 
-	NewPage(data []byte) uint32      // 创建新的页面，返回页面编号
-	GetPage(no uint32) (Page, error) // 跟觉页号获取页面
+	NewPage(data []byte) uint32         // 创建新的页面，返回页面编号
+	ObtainPage(no uint32) (Page, error) // 跟觉页号获取页面
+	ReleasePage(p Page)                 // 释放页面
 
 	// 以下方法在 recovery 时使用
 
@@ -38,17 +39,20 @@ type Cache interface {
 type pageCache struct {
 	lock sync.Mutex
 
-	no     uint32      // page 编号
-	file   *os.File    // 文件句柄
-	cache  cache.Cache // 缓存
-	memory int64       // 可以使用的最大内存
+	no    uint32      // page 编号
+	file  *os.File    // 文件句柄
+	cache cache.Cache // 缓存
 
 	filename string // 文件名称
 }
 
-func open(pc *pageCache) {
+func pos(no uint32) int64 {
+	return int64(no-1) * Size
+}
+
+func open(c *pageCache) {
 	// 打开文件
-	file, err := os.OpenFile(pc.filename, os.O_RDWR, 0666)
+	file, err := os.OpenFile(c.filename, os.O_RDWR, 0666)
 	if err != nil {
 		panic(err)
 	}
@@ -58,12 +62,12 @@ func open(pc *pageCache) {
 	size := stat.Size()
 
 	// 字段信息
-	pc.no = uint32(size / Size)
-	pc.file = file
+	c.no = uint32(size / Size)
+	c.file = file
 }
 
-func create(pc *pageCache) {
-	filename := pc.filename
+func create(c *pageCache) {
+	filename := c.filename
 
 	// 创建父文件夹
 	dir := filepath.Dir(filename)
@@ -81,36 +85,31 @@ func create(pc *pageCache) {
 	}
 
 	// 字段信息
-	pc.no = 0
-	pc.file = file
+	c.no = 0
+	c.file = file
 }
 
 func NewCache(memory int64, filename string) Cache {
 	if memory/Size < Limit {
 		panic(ErrMemoryNotEnough)
 	}
-	pc := new(pageCache)
-	pc.memory = memory
-	pc.filename = filename + suffix
+	c := new(pageCache)
+	c.filename = filename + suffix
 
 	// 构造缓存对象
-	pc.cache = cache.NewCache(&cache.Option{
-		Obtain:   pc.obtainForCache,
-		Release:  pc.releaseForCache,
+	c.cache = cache.NewCache(&cache.Option{
+		Obtain:   c.obtainForCache,
+		Release:  c.releaseForCache,
 		MaxCount: uint32(memory / Size),
 	})
 
 	// 判断文件是否存在
-	if utils.IsExist(pc.filename) {
-		open(pc)
+	if utils.IsExist(c.filename) {
+		open(c)
 	} else {
-		create(pc)
+		create(c)
 	}
-	return pc
-}
-
-func pos(no uint32) int64 {
-	return int64(no-1) * Size
+	return c
 }
 
 // 将页内容刷新到磁盘
@@ -131,11 +130,7 @@ func (c *pageCache) flush(p Page) {
 	}
 }
 
-func (c *pageCache) release(p Page) {
-	c.cache.Release(uint64(p.No()))
-}
-
-// Obtain 需要支持并发
+// obtainForCache 需要支持并发
 // 缓存中不存在时，从磁盘中获取，并且包装成 Page 对象
 func (c *pageCache) obtainForCache(key uint64) (any, error) {
 	c.lock.Lock()
@@ -152,7 +147,7 @@ func (c *pageCache) obtainForCache(key uint64) (any, error) {
 	return NewPage(no, buf, c), nil
 }
 
-// Release 需要是同步方法
+// releaseForCache 需要是同步方法
 // 释放缓存，需要将 Page 对象内存刷新到磁盘
 func (c *pageCache) releaseForCache(data any) {
 	p := data.(Page)
@@ -175,12 +170,16 @@ func (c *pageCache) NewPage(data []byte) uint32 {
 	return no
 }
 
-func (c *pageCache) GetPage(no uint32) (Page, error) {
+func (c *pageCache) ObtainPage(no uint32) (Page, error) {
 	data, err := c.cache.Obtain(uint64(no))
 	if err != nil {
 		return nil, err
 	}
 	return data.(Page), nil
+}
+
+func (c *pageCache) ReleasePage(p Page) {
+	c.cache.Release(uint64(p.No()))
 }
 
 func (c *pageCache) PageNum() uint32 {

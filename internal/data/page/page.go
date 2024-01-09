@@ -3,6 +3,7 @@ package page
 import "sync"
 
 // 内存中页面的结构
+//
 // no 为编号，读取和写入时，通过 no * pageSize 计算偏移量
 // data 是数据内容
 // dirty 为 true 代表数据被修改过，需要写入文件
@@ -72,5 +73,5 @@ func (p *page) SetDirty(dirty bool) {
 }
 
 func (p *page) Release() {
-	// p.cache.Release()
+	p.cache.ReleasePage(p)
 }

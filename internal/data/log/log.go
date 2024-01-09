@@ -11,13 +11,19 @@ import (
 )
 
 // 日志文件的读写
+//
 // 日志文件结构如下：
-// [checksum] [Log1] [Log2] [Log3] ... [BadTail]
+// +----------------+----------------+----------------+----------------+
+// |    checksum    |      log1      |      logN      |    bad tail    |
+// +----------------+----------------+----------------+----------------+
+// 日志文件的前 4 byte 为 checksum，后面是日志数据
 //
 // 每条日志的结构如下：
-// [size] uint32 （4byte）
-// [checksum] uint32 （4byte）
-// [data] size
+// +----------------+----------------+----------------+
+// |     size       |    checksum    |      data      |
+// +----------------+----------------+----------------+
+// |    4 byte      |     4 byte     |      size      |
+// +----------------+----------------+----------------+
 //
 // 每次插入数据，更新日志文件的 checksum
 
@@ -36,7 +42,7 @@ const (
 	suffix = ".log"
 )
 
-type Logger interface {
+type Log interface {
 	Close()
 
 	Log(data []byte)
@@ -66,8 +72,8 @@ func open(l *logger) {
 
 	// 读取 filesize 和 checksum
 	stat, _ := file.Stat()
-	filesize := stat.Size()
-	if filesize < 4 {
+	size := stat.Size()
+	if size < 4 {
 		panic(ErrBadLogFile)
 	}
 
@@ -76,12 +82,12 @@ func open(l *logger) {
 	if err != nil {
 		panic(err)
 	}
-	checksum := readUint32(buf)
+	cs := readUint32(buf)
 
 	// 字段信息
 	l.file = file
-	l.filesize = filesize
-	l.checksum = checksum
+	l.filesize = size
+	l.checksum = cs
 }
 
 func create(l *logger) {
@@ -138,7 +144,7 @@ func updateChecksum(file *os.File, checksum uint32) {
 	}
 }
 
-func NewLog(filename string) Logger {
+func NewLog(filename string) Log {
 	l := new(logger)
 	l.filename = filename + suffix
 
@@ -161,8 +167,8 @@ func NewLog(filename string) Logger {
 // 注意，返回的日志数据包含 size 和 checksum
 //
 // 这里分别使用 log 和 data 做区分
-// log 代表整条日志，即包含 size 和 checksum
-// data 代表日志数据，即不包含 size 和 checksum
+// log 代表完整日志数据，即包含 size 和 checksum
+// data 只代表日志数据，即不包含 size 和 checksum
 func (l *logger) next() ([]byte, bool, error) {
 	// 如果要读取的数据超过 filesize，返回 false
 	if l.pos+offData >= l.filesize {
@@ -202,7 +208,7 @@ func (l *logger) next() ([]byte, bool, error) {
 
 func (l *logger) check() error {
 	l.Rewind()
-	var checksum uint32
+	var cs uint32
 	for {
 		log, next, err := l.next()
 		if err != nil {
@@ -211,9 +217,9 @@ func (l *logger) check() error {
 		if next == false {
 			break
 		}
-		checksum = calcChecksum(checksum, log)
+		cs = calcChecksum(cs, log)
 	}
-	if checksum != l.checksum {
+	if cs != l.checksum {
 		return ErrBadLogFile
 	}
 	err := l.file.Truncate(l.pos)

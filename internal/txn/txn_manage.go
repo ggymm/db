@@ -9,7 +9,14 @@ import (
 	"db/pkg/utils"
 )
 
-// 管理 tid 文件
+// 事务管理器
+//
+// 事务管理器文件结构如下：
+// +----------------+----------------+----------------+----------------+
+// |      type      |      tid       |      tid       |      tid       |
+// +----------------+----------------+----------------+----------------+
+// |     8 byte     |    1 byte      |    1 byte      |    1 byte      |
+// +----------------+----------------+----------------+----------------+
 //
 // 事务ID(tid) 起始为 1 按顺序递增
 //
@@ -17,9 +24,6 @@ import (
 //         0. active     事务正在进行中
 //         1. committed  事务已经提交
 //         2. aborted    事务已经终止
-//
-// tid 文件起始位置为 8 type，存储 tid 序列号
-// tid 文件中每个事务使用 1 byte 存储其状态，位移为 (tid - 1) + headerLen
 
 var (
 	ErrBadTIDFile = errors.New("bad TID File")
@@ -36,7 +40,7 @@ const (
 	headerLen = TIDSize // TID 文件头长度
 )
 
-type Manager interface {
+type Manage interface {
 	Close() // 关闭事务管理器
 
 	Begin() TID     // 开启一个事务
@@ -119,7 +123,7 @@ func create(tm *txnManager) {
 	tm.file = file
 }
 
-func NewTxnManager(filename string) Manager {
+func NewTxnManager(filename string) Manage {
 	tm := new(txnManager)
 	tm.filename = filename + suffix
 
