@@ -19,7 +19,7 @@ const (
 	Size  = 1 << 13 // 页面大小 8KB
 	Limit = 10
 
-	Suffix = ".db"
+	suffix = ".db"
 )
 
 type Cache interface {
@@ -38,12 +38,12 @@ type Cache interface {
 type pageCache struct {
 	lock sync.Mutex
 
-	no       uint32
-	file     *os.File
-	memory   int64
-	filename string
+	no     uint32      // page 编号
+	file   *os.File    // 文件句柄
+	cache  cache.Cache // 缓存
+	memory int64       // 可以使用的最大内存
 
-	cache cache.Cache
+	filename string // 文件名称
 }
 
 func open(pc *pageCache) {
@@ -91,7 +91,7 @@ func NewCache(memory int64, filename string) Cache {
 	}
 	pc := new(pageCache)
 	pc.memory = memory
-	pc.filename = filename + Suffix
+	pc.filename = filename + suffix
 
 	// 构造缓存对象
 	pc.cache = cache.NewCache(&cache.Option{

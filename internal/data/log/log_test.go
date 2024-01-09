@@ -1,9 +1,10 @@
 package log
 
 import (
-	"db/pkg/utils"
 	"path/filepath"
 	"testing"
+
+	"db/pkg/utils"
 )
 
 func TestNewLog(t *testing.T) {

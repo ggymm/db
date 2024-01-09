@@ -13,25 +13,25 @@ import (
 // 使用 uint16 存储 FSO（最大可支持 64k 页面大小）
 
 const (
-	Header = 2
+	header = 2
 )
 
 func parseFSO(data []byte) uint16 {
-	return binary.LittleEndian.Uint16(data[0:Header])
+	return binary.LittleEndian.Uint16(data[0:header])
 }
 
 func updateFSO(data []byte, off uint16) {
-	binary.LittleEndian.PutUint16(data[0:Header], off)
+	binary.LittleEndian.PutUint16(data[0:header], off)
 }
 
 func InitPageX() []byte {
 	data := make([]byte, page.Size)
-	updateFSO(data, Header) // 初始化写入 FSO
+	updateFSO(data, header) // 初始化写入 FSO
 	return data
 }
 
 func MaxFree() int {
-	return page.Size - Header
+	return page.Size - header
 }
 
 func ParseFSO(p page.Page) uint16 {

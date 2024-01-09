@@ -19,7 +19,7 @@ import (
 //         2. aborted    事务已经终止
 //
 // tid 文件起始位置为 8 type，存储 tid 序列号
-// tid 文件中每个事务使用 1 byte 存储其状态，位移为 (tid - 1) + HeaderLen
+// tid 文件中每个事务使用 1 byte 存储其状态，位移为 (tid - 1) + headerLen
 
 var (
 	ErrBadTIDFile = errors.New("bad TID File")
@@ -30,10 +30,10 @@ const (
 	Committed byte = 1 // 事务已经提交
 	Aborted   byte = 2 // 事务已经终止
 
-	Suffix = ".tid" // tid 文件后缀
+	suffix = ".tid" // tid 文件后缀
 
-	FieldLen  = 1       // 事务状态字段长度
-	HeaderLen = TIDSize // TID 文件头长度
+	fieldLen  = 1       // 事务状态字段长度
+	headerLen = TIDSize // TID 文件头长度
 )
 
 type Manager interface {
@@ -51,13 +51,14 @@ type Manager interface {
 type txnManager struct {
 	lock sync.Mutex
 
-	seq      TID
-	file     *os.File
-	filename string
+	seq  TID      // 当前事务ID
+	file *os.File // 文件句柄
+
+	filename string // 文件名称
 }
 
 func pos(tid TID) int64 {
-	return HeaderLen + int64(tid-1)*FieldLen
+	return headerLen + int64(tid-1)*fieldLen
 }
 
 func open(tm *txnManager) {
@@ -68,7 +69,7 @@ func open(tm *txnManager) {
 	}
 
 	// 解析文件
-	buf := make([]byte, HeaderLen)
+	buf := make([]byte, headerLen)
 	_, err = file.ReadAt(buf, 0)
 	if err != nil {
 		panic(err)
@@ -106,7 +107,7 @@ func create(tm *txnManager) {
 	}
 
 	// 写入文件头
-	buf := make([]byte, HeaderLen)
+	buf := make([]byte, headerLen)
 	writeTID(buf, 1) // tid 从 1 开始
 	_, err = file.WriteAt(buf, 0)
 	if err != nil {
@@ -120,7 +121,7 @@ func create(tm *txnManager) {
 
 func NewTxnManager(filename string) Manager {
 	tm := new(txnManager)
-	tm.filename = filename + Suffix
+	tm.filename = filename + suffix
 
 	// 判断文件是否存在
 	if utils.IsExist(tm.filename) {
