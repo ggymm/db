@@ -32,8 +32,8 @@ var (
 )
 
 const (
-	seed     = 12321
-	checksum = 4
+	seed        = 12321
+	checksumLen = 4
 
 	offSize     = 0
 	offChecksum = offSize + 4
@@ -60,12 +60,12 @@ type logger struct {
 	filesize int64    // 文件大小
 	checksum uint32
 
-	filename string
+	filepath string
 }
 
 func open(l *logger) {
 	// 打开文件
-	file, err := os.OpenFile(l.filename, os.O_RDWR, 0666)
+	file, err := os.OpenFile(l.filepath, os.O_RDWR, 0666)
 	if err != nil {
 		panic(err)
 	}
@@ -77,24 +77,24 @@ func open(l *logger) {
 		panic(ErrBadLogFile)
 	}
 
-	buf := make([]byte, checksum)
+	buf := make([]byte, checksumLen)
 	_, err = file.ReadAt(buf, 0)
 	if err != nil {
 		panic(err)
 	}
-	cs := readUint32(buf)
+	checksum := readUint32(buf)
 
 	// 字段信息
 	l.file = file
 	l.filesize = size
-	l.checksum = cs
+	l.checksum = checksum
 }
 
 func create(l *logger) {
-	filename := l.filename
+	path := l.filepath
 
 	// 创建父文件夹
-	dir := filepath.Dir(filename)
+	dir := filepath.Dir(path)
 	if !utils.IsExist(dir) {
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
@@ -103,7 +103,7 @@ func create(l *logger) {
 	}
 
 	// 创建文件
-	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		panic(err)
 	}
@@ -132,7 +132,7 @@ func calcChecksum(res uint32, data []byte) uint32 {
 }
 
 func updateChecksum(file *os.File, checksum uint32) {
-	buf := make([]byte, checksum)
+	buf := make([]byte, checksumLen)
 	binary.LittleEndian.PutUint32(buf, checksum)
 	_, err := file.WriteAt(buf, 0)
 	if err != nil {
@@ -144,11 +144,11 @@ func updateChecksum(file *os.File, checksum uint32) {
 	}
 }
 
-func NewLog(filename string) Log {
+func NewLog(path string) Log {
 	l := new(logger)
-	l.filename = filename + suffix
+	l.filepath = filepath.Join(path, suffix)
 
-	if utils.IsExist(l.filename) {
+	if !utils.IsEmpty(l.filepath) {
 		open(l)
 	} else {
 		create(l)
@@ -196,9 +196,9 @@ func (l *logger) next() ([]byte, bool, error) {
 	}
 
 	// 校验 checksum 是否正确
-	cs1 := calcChecksum(0, log[offData:])
-	cs2 := readUint32(log[offChecksum:offData])
-	if cs1 != cs2 {
+	checksum1 := calcChecksum(0, log[offData:])
+	checksum2 := readUint32(log[offChecksum:offData])
+	if checksum1 != checksum2 {
 		return nil, false, nil
 	}
 
@@ -208,7 +208,7 @@ func (l *logger) next() ([]byte, bool, error) {
 
 func (l *logger) check() error {
 	l.Rewind()
-	var cs uint32
+	var checksum uint32
 	for {
 		log, next, err := l.next()
 		if err != nil {
@@ -217,9 +217,9 @@ func (l *logger) check() error {
 		if next == false {
 			break
 		}
-		cs = calcChecksum(cs, log)
+		checksum = calcChecksum(checksum, log)
 	}
-	if cs != l.checksum {
+	if checksum != l.checksum {
 		return ErrBadLogFile
 	}
 	err := l.file.Truncate(l.pos)
@@ -290,5 +290,5 @@ func (l *logger) Next() ([]byte, bool) {
 }
 
 func (l *logger) Rewind() {
-	l.pos = checksum
+	l.pos = checksumLen
 }

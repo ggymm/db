@@ -58,7 +58,7 @@ type txnManager struct {
 	seq  TID      // 当前事务ID
 	file *os.File // 文件句柄
 
-	filename string // 文件名称
+	filepath string // 文件名称
 }
 
 func pos(tid TID) int64 {
@@ -67,7 +67,7 @@ func pos(tid TID) int64 {
 
 func open(tm *txnManager) {
 	// 打开文件
-	file, err := os.OpenFile(tm.filename, os.O_RDWR, 0666)
+	file, err := os.OpenFile(tm.filepath, os.O_RDWR, 0666)
 	if err != nil {
 		panic(err)
 	}
@@ -93,10 +93,10 @@ func open(tm *txnManager) {
 }
 
 func create(tm *txnManager) {
-	filename := tm.filename
+	path := tm.filepath
 
 	// 创建父文件夹
-	dir := filepath.Dir(filename)
+	dir := filepath.Dir(path)
 	if !utils.IsExist(dir) {
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
@@ -105,7 +105,7 @@ func create(tm *txnManager) {
 	}
 
 	// 创建文件
-	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		panic(err)
 	}
@@ -123,12 +123,12 @@ func create(tm *txnManager) {
 	tm.file = file
 }
 
-func NewTxnManager(filename string) Manage {
+func NewManager(path string) Manage {
 	tm := new(txnManager)
-	tm.filename = filename + suffix
+	tm.filepath = filepath.Join(path, suffix)
 
 	// 判断文件是否存在
-	if utils.IsExist(tm.filename) {
+	if !utils.IsEmpty(path) {
 		open(tm)
 	} else {
 		create(tm)

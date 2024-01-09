@@ -1,21 +1,18 @@
 package txn
 
 import (
+	"db/pkg/utils"
 	"math/rand"
 	"path/filepath"
-	"strconv"
 	"sync"
 	"testing"
-	"time"
-
-	"db/pkg/utils"
 )
 
 func TestNewTxnManager(t *testing.T) {
 	base := utils.RunPath()
-	filename := filepath.Join(base, "temp/txn/test", "txn")
+	path := filepath.Join(base, "temp/txn/test")
 
-	tm := NewTxnManager(filename)
+	tm := NewManager(path)
 	t.Log(base)
 	t.Logf("%+v", tm)
 
@@ -24,9 +21,9 @@ func TestNewTxnManager(t *testing.T) {
 
 func TestTxnManager_State(t *testing.T) {
 	base := utils.RunPath()
-	filename := filepath.Join(base, "temp/txn/test", "txn")
+	path := filepath.Join(base, "temp/txn/test")
 
-	tm := NewTxnManager(filename)
+	tm := NewManager(path)
 	t.Log(base)
 	t.Logf("%+v", tm)
 
@@ -48,10 +45,9 @@ func TestTxnManager_State(t *testing.T) {
 // TestTxnManager_StageSync 用于测试事务管理器在并发环境下的行为
 func TestTxnManager_StageSync(t *testing.T) {
 	base := utils.RunPath()
-	filename := filepath.Join(base, "temp/txn/",
-		strconv.FormatInt(time.Now().UnixMilli(), 10))
+	path := filepath.Join(base, "temp/txn/test")
 
-	tm := NewTxnManager(filename)
+	tm := NewManager(path)
 	t.Log(base)
 	t.Logf("%+v", tm)
 

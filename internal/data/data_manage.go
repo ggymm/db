@@ -33,7 +33,7 @@ func create(d *dataManage) {
 
 }
 
-func NewCache(memory int64, filename string, tm txn.Manage) Manage {
+func NewManage(memory int64, filename string, tm txn.Manage) Manage {
 	m := new(dataManage)
 
 	m.log = log.NewLog(filename)
@@ -52,6 +52,8 @@ func NewCache(memory int64, filename string, tm txn.Manage) Manage {
 }
 
 // obtainForCache 需要支持并发
+// 当 dataManage 缓存中没有数据时，需要从 pageCache 缓存中获取数据
+// 此时若 pageCache 缓存中也没有数据，则会从磁盘加载数据
 func (d *dataManage) obtainForCache(key uint64) (any, error) {
 	no, off := parseDataItemId(key)
 	p, err := d.pageCache.ObtainPage(no)

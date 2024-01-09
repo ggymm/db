@@ -43,7 +43,7 @@ type pageCache struct {
 	file  *os.File    // 文件句柄
 	cache cache.Cache // 缓存
 
-	filename string // 文件名称
+	filepath string // 文件名称
 }
 
 func pos(no uint32) int64 {
@@ -52,7 +52,7 @@ func pos(no uint32) int64 {
 
 func open(c *pageCache) {
 	// 打开文件
-	file, err := os.OpenFile(c.filename, os.O_RDWR, 0666)
+	file, err := os.OpenFile(c.filepath, os.O_RDWR, 0666)
 	if err != nil {
 		panic(err)
 	}
@@ -67,10 +67,10 @@ func open(c *pageCache) {
 }
 
 func create(c *pageCache) {
-	filename := c.filename
+	path := c.filepath
 
 	// 创建父文件夹
-	dir := filepath.Dir(filename)
+	dir := filepath.Dir(path)
 	if !utils.IsExist(dir) {
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
@@ -79,7 +79,7 @@ func create(c *pageCache) {
 	}
 
 	// 创建文件
-	file, err := os.OpenFile(filename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
 	if err != nil {
 		panic(err)
 	}
@@ -89,12 +89,12 @@ func create(c *pageCache) {
 	c.file = file
 }
 
-func NewCache(memory int64, filename string) Cache {
+func NewCache(path string, memory int64) Cache {
 	if memory/Size < Limit {
 		panic(ErrMemoryNotEnough)
 	}
 	c := new(pageCache)
-	c.filename = filename + suffix
+	c.filepath = filepath.Join(path, suffix)
 
 	// 构造缓存对象
 	c.cache = cache.NewCache(&cache.Option{
@@ -104,7 +104,7 @@ func NewCache(memory int64, filename string) Cache {
 	})
 
 	// 判断文件是否存在
-	if utils.IsExist(c.filename) {
+	if !utils.IsEmpty(c.filepath) {
 		open(c)
 	} else {
 		create(c)
