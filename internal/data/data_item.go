@@ -2,6 +2,7 @@ package data
 
 import (
 	"db/internal/data/page"
+	"db/internal/txn"
 	"encoding/binary"
 	"sync"
 )
@@ -37,10 +38,11 @@ type Item interface {
 	Id() uint64
 	Data() []byte
 	Page() page.Page
+	Valid() bool
 
 	Before()
 	UnBefore()
-	After()
+	After(tid txn.TID)
 	Release()
 
 	Lock()
@@ -100,51 +102,54 @@ func parseDataItemId(id uint64) (no uint32, off uint16) {
 	return no, off
 }
 
-func (d *dataItem) Id() uint64 {
-	return d.id
+func (item *dataItem) Id() uint64 {
+	return item.id
 }
 
-func (d *dataItem) Data() []byte {
-	return d.data[offData:]
+func (item *dataItem) Data() []byte {
+	return item.data[offData:]
 }
 
-func (d *dataItem) Page() page.Page {
-	return d.page
+func (item *dataItem) Page() page.Page {
+	return item.page
 }
 
-func (d *dataItem) Before() {
-	d.lock.Lock()
-	d.page.SetDirty(true)
-	copy(d.oldData, d.data)
+func (item *dataItem) Valid() bool {
+	return item.data[offFlag] == 0
 }
 
-func (d *dataItem) UnBefore() {
-	copy(d.data, d.oldData)
-	d.lock.Unlock()
+func (item *dataItem) Before() {
+	item.lock.Lock()
+	item.page.SetDirty(true)
+	copy(item.oldData, item.data)
 }
 
-func (d *dataItem) After() {
-	//TODO implement me
-	panic("implement me")
+func (item *dataItem) UnBefore() {
+	copy(item.data, item.oldData)
+	item.lock.Unlock()
 }
 
-func (d *dataItem) Release() {
-	//TODO implement me
-	panic("implement me")
+func (item *dataItem) After(tid txn.TID) {
+	item.dataManage.LogDataItem(tid, item)
+	item.lock.Unlock()
 }
 
-func (d *dataItem) Lock() {
-	d.lock.Lock()
+func (item *dataItem) Release() {
+	item.dataManage.ReleaseDataItem(item)
 }
 
-func (d *dataItem) Unlock() {
-	d.lock.Unlock()
+func (item *dataItem) Lock() {
+	item.lock.Lock()
 }
 
-func (d *dataItem) RLock() {
-	d.lock.RLock()
+func (item *dataItem) Unlock() {
+	item.lock.Unlock()
 }
 
-func (d *dataItem) RUnlock() {
-	d.lock.RUnlock()
+func (item *dataItem) RLock() {
+	item.lock.RLock()
+}
+
+func (item *dataItem) RUnlock() {
+	item.lock.RUnlock()
 }

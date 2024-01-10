@@ -9,6 +9,15 @@ import (
 	"errors"
 )
 
+// 数据管理器
+//
+// 负责管理数据对象（dataItem）读取和写入
+// 数据对象的编辑，通过调用数据对象的 Before 和 After 方法实现
+//
+// 数据管理（dataItem），与 pageCache 都会缓存数据
+// dataManage 是一级缓存，缓存的是 dataItem 对象
+// pageCache 是二级缓存，缓存的是 page 对象
+
 var (
 	ErrInitPage1 = errors.New("init page1 error")
 )
@@ -18,6 +27,9 @@ type Manage interface {
 
 	Read(id uint64) (Item, bool, error)
 	Insert(tid txn.TID, data []byte) (uint64, error)
+
+	LogDataItem(tid txn.TID, item Item)
+	ReleaseDataItem(item Item)
 }
 
 type dataManage struct {
@@ -92,7 +104,6 @@ func NewManage(ops *ops.Option, txn txn.Manage) Manage {
 		MaxCount: 0,
 	})
 
-	// 根据目录是否为空，判断执行 open 还是 create
 	if ops.Open {
 		open(dm)
 	} else {
@@ -129,9 +140,19 @@ func (dm *dataManage) Close() {
 	dm.pageCache.Close()
 }
 
+// Read 读取数据对象，从缓存中读取数据对象
+// 若缓存中没有数据对象，则从 pageCache 缓存中读取数据对象
 func (dm *dataManage) Read(id uint64) (Item, bool, error) {
-	//TODO implement me
-	panic("implement me")
+	data, err := dm.cache.Obtain(id)
+	if err != nil {
+		return nil, false, err
+	}
+	item := data.(Item)
+	if !item.Valid() {
+		item.Release()
+		return nil, false, nil
+	}
+	return item, true, nil
 }
 
 func (dm *dataManage) Insert(tid txn.TID, data []byte) (uint64, error) {
@@ -139,7 +160,7 @@ func (dm *dataManage) Insert(tid txn.TID, data []byte) (uint64, error) {
 	panic("implement me")
 }
 
-func (dm *dataManage) logDataItem(tid txn.TID, item Item) {
+func (dm *dataManage) LogDataItem(tid txn.TID, item Item) {
 	// 包装 update log 数据
 	// dm.log.Log()
 }
