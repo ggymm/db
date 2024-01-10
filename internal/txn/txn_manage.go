@@ -1,6 +1,7 @@
 package txn
 
 import (
+	"db/internal/ops"
 	"errors"
 	"os"
 	"path/filepath"
@@ -123,12 +124,12 @@ func create(tm *txnManager) {
 	tm.file = file
 }
 
-func NewManager(path string) Manage {
+func NewManager(ops *ops.Option) Manage {
 	tm := new(txnManager)
-	tm.filepath = filepath.Join(path, suffix)
+	tm.filepath = filepath.Join(ops.Path, suffix)
 
 	// 判断文件是否存在
-	if utils.IsExist(path) {
+	if ops.Open {
 		open(tm)
 	} else {
 		create(tm)

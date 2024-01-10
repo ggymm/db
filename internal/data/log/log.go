@@ -1,6 +1,7 @@
 package log
 
 import (
+	"db/internal/ops"
 	"encoding/binary"
 	"errors"
 	"os"
@@ -144,11 +145,11 @@ func updateChecksum(file *os.File, checksum uint32) {
 	}
 }
 
-func NewLog(path string) Log {
+func NewLog(ops *ops.Option) Log {
 	l := new(logger)
-	l.filepath = filepath.Join(path, suffix)
+	l.filepath = filepath.Join(ops.Path, suffix)
 
-	if utils.IsExist(l.filepath) {
+	if ops.Open {
 		open(l)
 	} else {
 		create(l)

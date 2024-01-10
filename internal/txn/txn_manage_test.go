@@ -1,6 +1,7 @@
 package txn
 
 import (
+	"db/internal/ops"
 	"db/pkg/utils"
 	"math/rand"
 	"path/filepath"
@@ -8,23 +9,32 @@ import (
 	"testing"
 )
 
-func TestNewTxnManager(t *testing.T) {
+func NewOps() *ops.Option {
 	base := utils.RunPath()
 	path := filepath.Join(base, "temp/txn/test")
 
-	tm := NewManager(path)
-	t.Log(base)
+	if utils.IsExist(path) {
+		return &ops.Option{
+			Open: true,
+			Path: path,
+		}
+	} else {
+		return &ops.Option{
+			Open: false,
+			Path: path,
+		}
+	}
+}
+
+func TestNewTxnManager(t *testing.T) {
+	tm := NewManager(NewOps())
 	t.Logf("%+v", tm)
 
 	tm.Close()
 }
 
 func TestTxnManager_State(t *testing.T) {
-	base := utils.RunPath()
-	path := filepath.Join(base, "temp/txn/test")
-
-	tm := NewManager(path)
-	t.Log(base)
+	tm := NewManager(NewOps())
 	t.Logf("%+v", tm)
 
 	tid := tm.Begin()
@@ -44,11 +54,7 @@ func TestTxnManager_State(t *testing.T) {
 
 // TestTxnManager_StageSync 用于测试事务管理器在并发环境下的行为
 func TestTxnManager_StageSync(t *testing.T) {
-	base := utils.RunPath()
-	path := filepath.Join(base, "temp/txn/test")
-
-	tm := NewManager(path)
-	t.Log(base)
+	tm := NewManager(NewOps())
 	t.Logf("%+v", tm)
 
 	num := 50                        // 协程总数

@@ -1,17 +1,32 @@
 package log
 
 import (
+	"db/internal/ops"
 	"path/filepath"
 	"testing"
 
 	"db/pkg/utils"
 )
 
-func TestNewLog(t *testing.T) {
+func NewOps() *ops.Option {
 	base := utils.RunPath()
-	filename := filepath.Join(base, "temp/dataLog/test")
+	path := filepath.Join(base, "temp/dataLog/test")
 
-	log := NewLog(filename)
+	if utils.IsExist(path) {
+		return &ops.Option{
+			Open: true,
+			Path: path,
+		}
+	} else {
+		return &ops.Option{
+			Open: false,
+			Path: path,
+		}
+	}
+}
+
+func TestNewLog(t *testing.T) {
+	log := NewLog(NewOps())
 	log.Log([]byte("test"))
 }
 

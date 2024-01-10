@@ -1,6 +1,7 @@
 package page
 
 import (
+	"db/internal/ops"
 	"errors"
 	"os"
 	"path/filepath"
@@ -31,7 +32,7 @@ type Cache interface {
 
 	// 以下方法在 recovery 时使用
 
-	PageNum() uint32           // 返回当前缓存的页面数量
+	PageNum() int              // 返回当前缓存的页面数量
 	PageFlush(p Page)          // 刷新页面到磁盘
 	PageTruncate(maxNo uint32) // 截断页面
 }
@@ -39,7 +40,7 @@ type Cache interface {
 type pageCache struct {
 	lock sync.Mutex
 
-	no    uint32      // page 编号
+	num   uint32      // page 总数
 	file  *os.File    // 文件句柄
 	cache cache.Cache // 缓存
 
@@ -62,7 +63,7 @@ func open(c *pageCache) {
 	size := stat.Size()
 
 	// 字段信息
-	c.no = uint32(size / Size)
+	c.num = uint32(size / Size)
 	c.file = file
 }
 
@@ -85,26 +86,26 @@ func create(c *pageCache) {
 	}
 
 	// 字段信息
-	c.no = 0
+	c.num = 0
 	c.file = file
 }
 
-func NewCache(path string, memory int64) Cache {
-	if memory/Size < Limit {
+func NewCache(ops *ops.Option) Cache {
+	if ops.Memory/Size < Limit {
 		panic(ErrMemoryNotEnough)
 	}
 	c := new(pageCache)
-	c.filepath = filepath.Join(path, suffix)
+	c.filepath = filepath.Join(ops.Path, suffix)
 
 	// 构造缓存对象
 	c.cache = cache.NewCache(&cache.Option{
 		Obtain:   c.obtainForCache,
 		Release:  c.releaseForCache,
-		MaxCount: uint32(memory / Size),
+		MaxCount: uint32(ops.Memory / Size),
 	})
 
 	// 判断文件是否存在
-	if utils.IsExist(c.filepath) {
+	if ops.Open {
 		open(c)
 	} else {
 		create(c)
@@ -162,7 +163,7 @@ func (c *pageCache) Close() {
 }
 
 func (c *pageCache) NewPage(data []byte) uint32 {
-	no := atomic.AddUint32(&c.no, 1)
+	no := atomic.AddUint32(&c.num, 1)
 
 	// 创建页面
 	p := NewPage(no, data, c)
@@ -182,8 +183,8 @@ func (c *pageCache) ReleasePage(p Page) {
 	c.cache.Release(uint64(p.No()))
 }
 
-func (c *pageCache) PageNum() uint32 {
-	return c.no
+func (c *pageCache) PageNum() int {
+	return int(c.num)
 }
 
 func (c *pageCache) PageFlush(p Page) {
@@ -196,5 +197,5 @@ func (c *pageCache) PageTruncate(maxNo uint32) {
 	if err != nil {
 		panic(err)
 	}
-	c.no = maxNo
+	c.num = maxNo
 }
