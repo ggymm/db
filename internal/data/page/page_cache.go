@@ -33,7 +33,7 @@ type Cache interface {
 
 	PageNum() uint32           // 返回当前缓存的页面数量
 	PageFlush(p Page)          // 刷新页面到磁盘
-	PageTruncate(maxNo uint32) // TODO
+	PageTruncate(maxNo uint32) // 截断页面
 }
 
 type pageCache struct {
@@ -104,7 +104,7 @@ func NewCache(path string, memory int64) Cache {
 	})
 
 	// 判断文件是否存在
-	if !utils.IsEmpty(c.filepath) {
+	if utils.IsExist(c.filepath) {
 		open(c)
 	} else {
 		create(c)

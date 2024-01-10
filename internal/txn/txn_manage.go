@@ -128,7 +128,7 @@ func NewManager(path string) Manage {
 	tm.filepath = filepath.Join(path, suffix)
 
 	// 判断文件是否存在
-	if !utils.IsEmpty(path) {
+	if utils.IsExist(path) {
 		open(tm)
 	} else {
 		create(tm)

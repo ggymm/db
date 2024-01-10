@@ -148,7 +148,7 @@ func NewLog(path string) Log {
 	l := new(logger)
 	l.filepath = filepath.Join(path, suffix)
 
-	if !utils.IsEmpty(l.filepath) {
+	if utils.IsExist(l.filepath) {
 		open(l)
 	} else {
 		create(l)
