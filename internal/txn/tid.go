@@ -2,17 +2,23 @@ package txn
 
 import "encoding/binary"
 
-type TID uint64
-
 const (
-	Super   = 0
-	TIDSize = 8
+	Super  = 0
+	TIDLen = 8
 )
 
-func readTID(buf []byte) TID {
-	return TID(binary.LittleEndian.Uint64(buf))
+func ReadTID(buf []byte) uint64 {
+	return readTID(buf)
 }
 
-func writeTID(buf []byte, tid TID) {
-	binary.LittleEndian.PutUint64(buf, uint64(tid))
+func WriteTID(buf []byte, tid uint64) {
+	writeTID(buf, tid)
+}
+
+func readTID(buf []byte) uint64 {
+	return binary.LittleEndian.Uint64(buf)
+}
+
+func writeTID(buf []byte, tid uint64) {
+	binary.LittleEndian.PutUint64(buf, tid)
 }

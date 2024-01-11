@@ -19,16 +19,22 @@ import (
 // pageCache 是二级缓存，缓存的是 page 对象
 
 var (
-	ErrInitPage1 = errors.New("init page1 error")
+	ErrBusy         = errors.New("database is busy")
+	ErrInitPage1    = errors.New("init page1 error")
+	ErrDataTooLarge = errors.New("data too large")
+)
+
+const (
+	maxTry = 5
 )
 
 type Manage interface {
 	Close()
 
 	Read(id uint64) (Item, bool, error)
-	Insert(tid txn.TID, data []byte) (uint64, error)
+	Insert(tid uint64, data []byte) (uint64, error)
 
-	LogDataItem(tid txn.TID, item Item)
+	LogDataItem(tid uint64, item Item)
 	ReleaseDataItem(item Item)
 }
 
@@ -64,7 +70,7 @@ func open(dm *dataManage) {
 		if e != nil {
 			panic(e)
 		}
-		dm.pageIndex.Add(p.No(), ParseFree(p))
+		dm.pageIndex.Add(p.No(), calcPageFree(p))
 		p.Release()
 	}
 
@@ -148,21 +154,72 @@ func (dm *dataManage) Read(id uint64) (Item, bool, error) {
 		return nil, false, err
 	}
 	item := data.(Item)
-	if !item.Valid() {
+	if !item.Flag() {
 		item.Release()
 		return nil, false, nil
 	}
 	return item, true, nil
 }
 
-func (dm *dataManage) Insert(tid txn.TID, data []byte) (uint64, error) {
-	//TODO implement me
-	panic("implement me")
+func (dm *dataManage) Insert(tid uint64, data []byte) (uint64, error) {
+	item := wrapDataItem(data)
+	if len(item) > maxPageFree() {
+		return 0, ErrDataTooLarge
+	}
+
+	var (
+		err error
+
+		p    page.Page
+		no   uint32
+		free int
+	)
+
+	// 选择可以插入的 page
+	for i := 0; i < maxTry; i++ {
+		no, free = dm.pageIndex.Select(len(data))
+		if free > 0 {
+			break
+		} else {
+			// 创建新页，等待下次选择
+			newNo := dm.pageCache.NewPage(initPageX())
+			dm.pageIndex.Add(newNo, maxPageFree())
+		}
+	}
+	if no == 0 {
+		return 0, ErrBusy
+	}
+	defer func() {
+		if p == nil {
+			dm.pageIndex.Add(no, free)
+		} else {
+			dm.pageIndex.Add(no, calcPageFree(p))
+		}
+	}()
+
+	// 获取 page
+	p, err = dm.pageCache.ObtainPage(no)
+	if err != nil {
+		return 0, err
+	}
+
+	// 保存日志
+	dm.log.Log(wrapInsertLog(tid, p, data))
+
+	// 保存数据
+	off := insertPageData(p, data)
+
+	// 释放页面
+	p.Release()
+
+	// 返回 item_id
+	return wrapDataItemId(no, off), nil
 }
 
-func (dm *dataManage) LogDataItem(tid txn.TID, item Item) {
+func (dm *dataManage) LogDataItem(tid uint64, item Item) {
 	// 包装 update log 数据
-	// dm.log.Log()
+	data := wrapUpdateLog(tid, item)
+	dm.log.Log(data)
 }
 
 func (dm *dataManage) ReleaseDataItem(item Item) {

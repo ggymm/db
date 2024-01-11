@@ -37,32 +37,32 @@ const (
 
 	suffix = ".tid" // tid 文件后缀
 
-	fieldLen  = 1       // 事务状态字段长度
-	headerLen = TIDSize // TID 文件头长度
+	fieldLen  = 1      // 事务状态字段长度
+	headerLen = TIDLen // 文件头长度
 )
 
 type Manage interface {
 	Close() // 关闭事务管理器
 
-	Begin() TID     // 开启一个事务
-	Abort(tid TID)  // 取消一个事务
-	Commit(tid TID) // 提交一个事务
+	Begin() uint64     // 开启一个事务
+	Abort(tid uint64)  // 取消一个事务
+	Commit(tid uint64) // 提交一个事务
 
-	IsActive(tid TID) bool    // 判断事务是否处于进行中
-	IsCommitted(tid TID) bool // 判断事务是否已经提交
-	IsAborted(tid TID) bool   // 判断事务是否已经取消
+	IsActive(tid uint64) bool    // 判断事务是否处于进行中
+	IsCommitted(tid uint64) bool // 判断事务是否已经提交
+	IsAborted(tid uint64) bool   // 判断事务是否已经取消
 }
 
 type txnManager struct {
 	lock sync.Mutex
 
-	seq  TID      // 当前事务ID
+	seq  uint64   // 当前事务ID
 	file *os.File // 文件句柄
 
 	filepath string // 文件名称
 }
 
-func pos(tid TID) int64 {
+func pos(tid uint64) int64 {
 	return headerLen + int64(tid-1)*fieldLen
 }
 
@@ -146,7 +146,7 @@ func (tm *txnManager) incr() {
 	tm.write(buf, 0)
 }
 
-func (tm *txnManager) state(tid TID) byte {
+func (tm *txnManager) state(tid uint64) byte {
 	off := pos(tid)
 
 	// 读取对应位置状态
@@ -158,7 +158,7 @@ func (tm *txnManager) state(tid TID) byte {
 	return buf[0]
 }
 
-func (tm *txnManager) update(tid TID, state byte) {
+func (tm *txnManager) update(tid uint64, state byte) {
 	off := pos(tid)
 
 	// 写入并同步文件
@@ -183,7 +183,7 @@ func (tm *txnManager) Close() {
 	}
 }
 
-func (tm *txnManager) Begin() TID {
+func (tm *txnManager) Begin() uint64 {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
 
@@ -193,29 +193,29 @@ func (tm *txnManager) Begin() TID {
 	return tid
 }
 
-func (tm *txnManager) Abort(tid TID) {
+func (tm *txnManager) Abort(tid uint64) {
 	tm.update(tid, Aborted)
 }
 
-func (tm *txnManager) Commit(tid TID) {
+func (tm *txnManager) Commit(tid uint64) {
 	tm.update(tid, Committed)
 }
 
-func (tm *txnManager) IsActive(tid TID) bool {
+func (tm *txnManager) IsActive(tid uint64) bool {
 	if tid == Super {
 		return false
 	}
 	return tm.state(tid) == Active
 }
 
-func (tm *txnManager) IsCommitted(tid TID) bool {
+func (tm *txnManager) IsCommitted(tid uint64) bool {
 	if tid == Super {
 		return true
 	}
 	return tm.state(tid) == Committed
 }
 
-func (tm *txnManager) IsAborted(tid TID) bool {
+func (tm *txnManager) IsAborted(tid uint64) bool {
 	if tid == Super {
 		return false
 	}
