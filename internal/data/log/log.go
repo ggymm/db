@@ -134,7 +134,7 @@ func calcChecksum(res uint32, data []byte) uint32 {
 
 func updateChecksum(file *os.File, checksum uint32) {
 	buf := make([]byte, checksumLen)
-	binary.LittleEndian.PutUint32(buf, checksum)
+	writeUint32(buf, checksum)
 	_, err := file.WriteAt(buf, 0)
 	if err != nil {
 		panic(err)
@@ -253,6 +253,7 @@ func (l *logger) Log(data []byte) {
 	log := make([]byte, offData+len(data))
 	writeUint32(log[offSize:], uint32(len(data)))
 	writeUint32(log[offChecksum:], calcChecksum(0, data))
+	copy(log[offData:], data)
 
 	// 写入文件
 	// 在写入 checksum 时，同步文件内容到磁盘

@@ -1,10 +1,10 @@
 package log
 
 import (
-	"db/internal/ops"
 	"path/filepath"
 	"testing"
 
+	"db/internal/ops"
 	"db/pkg/utils"
 )
 
@@ -12,7 +12,7 @@ func NewOps() *ops.Option {
 	base := utils.RunPath()
 	path := filepath.Join(base, "temp/log")
 
-	if utils.IsExist(path) {
+	if !utils.IsEmpty(path) {
 		return &ops.Option{
 			Open: true,
 			Path: path,
@@ -27,7 +27,7 @@ func NewOps() *ops.Option {
 
 func TestNewLog(t *testing.T) {
 	log := NewLog(NewOps())
-	log.Log([]byte("test"))
+	log.Log(utils.RandBytes(60))
 }
 
 func TestLogger_Next(t *testing.T) {
