@@ -10,7 +10,7 @@ import (
 
 func NewOps() *ops.Option {
 	base := utils.RunPath()
-	path := filepath.Join(base, "temp/dataLog/test")
+	path := filepath.Join(base, "temp/log")
 
 	if utils.IsExist(path) {
 		return &ops.Option{

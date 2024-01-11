@@ -5,7 +5,7 @@ import (
 )
 
 func Test_TID(t *testing.T) {
-	var src TID = 128
+	var src uint64 = 128
 	buf := make([]byte, 8)
 	writeTID(buf, src)
 	t.Logf("%+v", buf)

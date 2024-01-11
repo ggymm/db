@@ -9,9 +9,9 @@ import (
 	"testing"
 )
 
-func NewOps() *ops.Option {
+func newOps() *ops.Option {
 	base := utils.RunPath()
-	path := filepath.Join(base, "temp/txn/test")
+	path := filepath.Join(base, "temp/txn")
 
 	if utils.IsExist(path) {
 		return &ops.Option{
@@ -27,14 +27,14 @@ func NewOps() *ops.Option {
 }
 
 func TestNewTxnManager(t *testing.T) {
-	tm := NewManager(NewOps())
+	tm := NewManager(newOps())
 	t.Logf("%+v", tm)
 
 	tm.Close()
 }
 
 func TestTxnManager_State(t *testing.T) {
-	tm := NewManager(NewOps())
+	tm := NewManager(newOps())
 	t.Logf("%+v", tm)
 
 	tid := tm.Begin()
@@ -54,18 +54,18 @@ func TestTxnManager_State(t *testing.T) {
 
 // TestTxnManager_StageSync 用于测试事务管理器在并发环境下的行为
 func TestTxnManager_StageSync(t *testing.T) {
-	tm := NewManager(NewOps())
+	tm := NewManager(newOps())
 	t.Logf("%+v", tm)
 
 	num := 50                        // 协程总数
 	works := 3000                    // 每个协程循环次数
 	curr := 0                        // 当前事务数目
-	temp := make(map[TID]byte)       // 事务状态映射
+	temp := make(map[uint64]byte)    // 事务状态映射
 	lock := new(sync.Mutex)          // 初始化互斥锁
 	waitGroup := new(sync.WaitGroup) // 初始化任务等待组
 	worker := func() {
 		var (
-			tid     TID
+			tid     uint64
 			isBegin = false
 		)
 		for i := 0; i < works; i++ {
@@ -97,7 +97,7 @@ func TestTxnManager_StageSync(t *testing.T) {
 				lock.Lock()
 				// 如果有活跃的事务，进行验证
 				if curr > 0 {
-					tid = TID((rand.Int() % curr) + 1)
+					tid = uint64((rand.Int() % curr) + 1)
 					state := temp[tid]
 					var ok bool
 					switch state {
