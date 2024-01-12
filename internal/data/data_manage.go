@@ -1,12 +1,13 @@
 package data
 
 import (
-	"db/internal/cache"
+	"errors"
+
 	"db/internal/data/log"
 	"db/internal/data/page"
 	"db/internal/ops"
-	"db/internal/txn"
-	"errors"
+	"db/internal/tx"
+	"db/pkg/cache"
 )
 
 // 数据管理器
@@ -39,9 +40,9 @@ type Manage interface {
 }
 
 type dataManage struct {
-	log       log.Log
-	page1     page.Page
-	txnManage txn.Manage
+	log      log.Log
+	page1    page.Page
+	txManage tx.Manage
 
 	pageIndex page.Index
 	pageCache page.Cache
@@ -95,11 +96,11 @@ func create(dm *dataManage) {
 	dm.pageCache.PageFlush(dm.page1)
 }
 
-func NewManage(ops *ops.Option, txn txn.Manage) Manage {
+func NewManage(ops *ops.Option, txm tx.Manage) Manage {
 	dm := new(dataManage)
 
 	dm.log = log.NewLog(ops)
-	dm.txnManage = txn
+	dm.txManage = txm
 
 	dm.pageIndex = page.NewIndex()
 	dm.pageCache = page.NewCache(ops)

@@ -1,4 +1,4 @@
-package txn
+package tx
 
 import "encoding/binary"
 

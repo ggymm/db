@@ -1,4 +1,4 @@
-package txn
+package tx
 
 import (
 	"db/internal/ops"
@@ -11,7 +11,7 @@ import (
 
 func newOps() *ops.Option {
 	base := utils.RunPath()
-	path := filepath.Join(base, "temp/txn")
+	path := filepath.Join(base, "temp/tx")
 
 	if !utils.IsEmpty(path) {
 		return &ops.Option{

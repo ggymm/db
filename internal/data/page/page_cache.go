@@ -1,14 +1,14 @@
 package page
 
 import (
-	"db/internal/ops"
 	"errors"
 	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
 
-	"db/internal/cache"
+	"db/internal/ops"
+	"db/pkg/cache"
 	"db/pkg/utils"
 )
 

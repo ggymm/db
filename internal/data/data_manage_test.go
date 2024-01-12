@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"db/internal/ops"
-	"db/internal/txn"
+	"db/internal/tx"
 	"db/pkg/utils"
 )
 
@@ -25,7 +25,7 @@ func newOps(open bool) *ops.Option {
 
 func TestNewManage(t *testing.T) {
 	o := newOps(false)
-	tm := txn.NewManager(o)
+	tm := tx.NewManager(o)
 	dm := NewManage(o, tm)
 	t.Logf("%+v", dm)
 }
@@ -39,7 +39,7 @@ func TestDataManage_DataHandle(t *testing.T) {
 		return
 	}
 	o := newOps(false)
-	tm := txn.NewManager(o)
+	tm := tx.NewManager(o)
 	dm := NewManage(o, tm)
 	t.Logf("%+v", dm)
 
@@ -99,7 +99,7 @@ func TestDataManage_DataHandleAsync(t *testing.T) {
 	num := 100   // 协程总数
 	work := 1000 // 每个协程循环次数
 
-	tid := txn.Super // 此时不测试事务, 因此使用超级事务
+	tid := tx.Super // 此时不测试事务, 因此使用超级事务
 	id0s := make([]uint64, 0)
 	id1s := make([]uint64, 0)
 

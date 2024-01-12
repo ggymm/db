@@ -2,7 +2,7 @@ package data
 
 import (
 	"db/internal/data/page"
-	"db/internal/txn"
+	"db/internal/tx"
 )
 
 // 数据日志
@@ -37,16 +37,16 @@ const (
 
 func wrapInsertLog(tid uint64, p page.Page, data []byte) []byte {
 	// type: 1; tid: 8; itemId: 8
-	l := typeLen + txn.TIDLen + itemIdLen + len(data)
+	l := typeLen + tx.TIDLen + itemIdLen + len(data)
 	log := make([]byte, l)
 
 	pos := 0
 	log[pos] = InsertLog // type
 
 	pos += typeLen
-	txn.WriteTID(log[pos:], tid) // tid
+	tx.WriteTID(log[pos:], tid) // tid
 
-	pos += txn.TIDLen
+	pos += tx.TIDLen
 	off := parsePageFSO(p)
 	itemId := wrapDataItemId(p.No(), off)
 	writeDataItemId(log[pos:], itemId) // item_id
@@ -58,9 +58,9 @@ func wrapInsertLog(tid uint64, p page.Page, data []byte) []byte {
 
 func parseInsertLog(log []byte) (uint64, uint32, uint16, []byte) {
 	pos := typeLen
-	tid := txn.ReadTID(log[pos:]) // tid
+	tid := tx.ReadTID(log[pos:]) // tid
 
-	pos += txn.TIDLen
+	pos += tx.TIDLen
 	itemId := readDataItemId(log[pos:]) // item_id
 	no, off := parseDataItemId(itemId)
 
@@ -71,16 +71,16 @@ func parseInsertLog(log []byte) (uint64, uint32, uint16, []byte) {
 
 func wrapUpdateLog(tid uint64, item Item) []byte {
 	// type: 1; tid: 8; itemId: 8
-	l := typeLen + txn.TIDLen + itemIdLen + len(item.Data())*2
+	l := typeLen + tx.TIDLen + itemIdLen + len(item.Data())*2
 	log := make([]byte, l)
 
 	pos := 0
 	log[pos] = UpdateLog // type
 
 	pos += typeLen
-	txn.WriteTID(log[pos:], tid) // tid
+	tx.WriteTID(log[pos:], tid) // tid
 
-	pos += txn.TIDLen
+	pos += tx.TIDLen
 	writeDataItemId(log[pos:], item.Id()) // item_id
 
 	pos += itemIdLen
@@ -93,9 +93,9 @@ func wrapUpdateLog(tid uint64, item Item) []byte {
 
 func parseUpdateLog(log []byte) (uint64, uint32, uint16, []byte, []byte) {
 	pos := typeLen
-	tid := txn.ReadTID(log[pos:]) // tid
+	tid := tx.ReadTID(log[pos:]) // tid
 
-	pos += txn.TIDLen
+	pos += tx.TIDLen
 	itemId := readDataItemId(log[pos:]) // item_id
 	no, off := parseDataItemId(itemId)
 

@@ -1,12 +1,12 @@
-package txn
+package tx
 
 import (
-	"db/internal/ops"
 	"errors"
 	"os"
 	"path/filepath"
 	"sync"
 
+	"db/internal/ops"
 	"db/pkg/utils"
 )
 
@@ -53,7 +53,7 @@ type Manage interface {
 	IsAborted(tid uint64) bool   // 判断事务是否已经取消
 }
 
-type txnManager struct {
+type txManager struct {
 	lock sync.Mutex
 
 	seq  uint64   // 当前事务ID
@@ -66,7 +66,7 @@ func pos(tid uint64) int64 {
 	return headerLen + int64(tid-1)*fieldLen
 }
 
-func open(tm *txnManager) {
+func open(tm *txManager) {
 	// 打开文件
 	file, err := os.OpenFile(tm.filepath, os.O_RDWR, 0666)
 	if err != nil {
@@ -93,7 +93,7 @@ func open(tm *txnManager) {
 	tm.file = file
 }
 
-func create(tm *txnManager) {
+func create(tm *txManager) {
 	path := tm.filepath
 
 	// 创建父文件夹
@@ -125,7 +125,7 @@ func create(tm *txnManager) {
 }
 
 func NewManager(ops *ops.Option) Manage {
-	tm := new(txnManager)
+	tm := new(txManager)
 	tm.filepath = filepath.Join(ops.Path, suffix)
 
 	// 判断文件是否存在
@@ -137,7 +137,7 @@ func NewManager(ops *ops.Option) Manage {
 	return tm
 }
 
-func (tm *txnManager) incr() {
+func (tm *txManager) incr() {
 	tm.seq++
 	buf := make([]byte, 8)
 	writeTID(buf, tm.seq)
@@ -146,7 +146,7 @@ func (tm *txnManager) incr() {
 	tm.write(buf, 0)
 }
 
-func (tm *txnManager) state(tid uint64) byte {
+func (tm *txManager) state(tid uint64) byte {
 	off := pos(tid)
 
 	// 读取对应位置状态
@@ -158,14 +158,14 @@ func (tm *txnManager) state(tid uint64) byte {
 	return buf[0]
 }
 
-func (tm *txnManager) update(tid uint64, state byte) {
+func (tm *txManager) update(tid uint64, state byte) {
 	off := pos(tid)
 
 	// 写入并同步文件
 	tm.write([]byte{state}, off)
 }
 
-func (tm *txnManager) write(buf []byte, off int64) {
+func (tm *txManager) write(buf []byte, off int64) {
 	_, err := tm.file.WriteAt(buf, off)
 	if err != nil {
 		panic(err)
@@ -176,14 +176,14 @@ func (tm *txnManager) write(buf []byte, off int64) {
 	}
 }
 
-func (tm *txnManager) Close() {
+func (tm *txManager) Close() {
 	err := tm.file.Close()
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (tm *txnManager) Begin() uint64 {
+func (tm *txManager) Begin() uint64 {
 	tm.lock.Lock()
 	defer tm.lock.Unlock()
 
@@ -193,29 +193,29 @@ func (tm *txnManager) Begin() uint64 {
 	return tid
 }
 
-func (tm *txnManager) Abort(tid uint64) {
+func (tm *txManager) Abort(tid uint64) {
 	tm.update(tid, Aborted)
 }
 
-func (tm *txnManager) Commit(tid uint64) {
+func (tm *txManager) Commit(tid uint64) {
 	tm.update(tid, Committed)
 }
 
-func (tm *txnManager) IsActive(tid uint64) bool {
+func (tm *txManager) IsActive(tid uint64) bool {
 	if tid == Super {
 		return false
 	}
 	return tm.state(tid) == Active
 }
 
-func (tm *txnManager) IsCommitted(tid uint64) bool {
+func (tm *txManager) IsCommitted(tid uint64) bool {
 	if tid == Super {
 		return true
 	}
 	return tm.state(tid) == Committed
 }
 
-func (tm *txnManager) IsAborted(tid uint64) bool {
+func (tm *txManager) IsAborted(tid uint64) bool {
 	if tid == Super {
 		return false
 	}
