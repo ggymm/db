@@ -3,8 +3,8 @@ package txn
 import "encoding/binary"
 
 const (
-	Super  = 0
-	TIDLen = 8
+	Super  uint64 = 0
+	TIDLen        = 8
 )
 
 func ReadTID(buf []byte) uint64 {

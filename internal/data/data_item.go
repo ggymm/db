@@ -23,9 +23,9 @@ import (
 // |    1 byte      |     2 byte     |     * byte     |
 // +----------------+----------------+----------------+
 //
-// flag: 1 byte，标记数据是否合法（0 表示合法，1 表示非法）
-// size: 2 byte，标记 data 的长度
-// data: * byte，数据内容
+// flag：1 byte，标记数据是否合法（0 表示合法，1 表示非法）
+// size：2 byte，标记 data 的长度
+// data：* byte，数据内容
 
 const (
 	offFlag = 0
@@ -85,14 +85,14 @@ func wrapDataItem(data []byte) []byte {
 	buf := make([]byte, len(data)+offData)
 	writeDataItemSize(buf[offSize:], uint16(len(data)))
 	copy(buf[offData:], data)
-	return data
+	return buf
 }
 
 func parseDataItem(p page.Page, off uint16, m Manage) Item {
 	id := wrapDataItemId(p.No(), off)
 
 	data := p.Data()[off:]
-	size := readDataItemSize(data[offSize:])
+	size := readDataItemSize(data[offSize:]) + offData
 	return &dataItem{
 		id:      id,
 		data:    data[:size],

@@ -13,7 +13,7 @@ func newOps() *ops.Option {
 	base := utils.RunPath()
 	path := filepath.Join(base, "temp/txn")
 
-	if utils.IsExist(path) {
+	if !utils.IsEmpty(path) {
 		return &ops.Option{
 			Open: true,
 			Path: path,
@@ -52,13 +52,13 @@ func TestTxnManager_State(t *testing.T) {
 	tm.Close()
 }
 
-// TestTxnManager_StageSync 用于测试事务管理器在并发环境下的行为
-func TestTxnManager_StageSync(t *testing.T) {
+// TestTxnManager_StageAsync 用于测试事务管理器在并发环境下的行为
+func TestTxnManager_StageAsync(t *testing.T) {
 	tm := NewManager(newOps())
 	t.Logf("%+v", tm)
 
 	num := 50                        // 协程总数
-	works := 3000                    // 每个协程循环次数
+	work := 3000                     // 每个协程循环次数
 	curr := 0                        // 当前事务数目
 	temp := make(map[uint64]byte)    // 事务状态映射
 	lock := new(sync.Mutex)          // 初始化互斥锁
@@ -68,7 +68,7 @@ func TestTxnManager_StageSync(t *testing.T) {
 			tid     uint64
 			isBegin = false
 		)
-		for i := 0; i < works; i++ {
+		for i := 0; i < work; i++ {
 			op := rand.Int() % 6
 			if op == 0 {
 				lock.Lock()

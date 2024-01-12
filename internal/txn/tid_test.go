@@ -13,7 +13,7 @@ func Test_TID(t *testing.T) {
 	dst := readTID(buf)
 	t.Logf("%+v", buf)
 
-	t.Logf("src: %+v, dst: %+v", src, dst)
+	t.Logf("src %+v, dst %+v", src, dst)
 	if src == dst {
 		t.Log("TID test pass")
 	} else {

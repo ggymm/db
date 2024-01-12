@@ -162,14 +162,13 @@ func (dm *dataManage) Read(id uint64) (Item, bool, error) {
 }
 
 func (dm *dataManage) Insert(tid uint64, data []byte) (uint64, error) {
-	item := wrapDataItem(data)
-	if len(item) > maxPageFree() {
+	data = wrapDataItem(data)
+	if len(data) > maxPageFree() {
 		return 0, ErrDataTooLarge
 	}
 
 	var (
-		err error
-
+		err  error
 		p    page.Page
 		no   uint32
 		free int

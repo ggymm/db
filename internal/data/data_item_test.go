@@ -11,9 +11,9 @@ func TestDataItem_Id(t *testing.T) {
 	id := wrapDataItemId(no, offset)
 	no1, offset1 := parseDataItemId(id)
 
-	t.Logf("id: %d", id)
-	t.Logf("src no: %d, off: %d", no, offset)
-	t.Logf("dst no: %d, off: %d", no1, offset1)
+	t.Logf("id %d", id)
+	t.Logf("src no %d, off: %d", no, offset)
+	t.Logf("dst no %d, off: %d", no1, offset1)
 	if no != no1 || offset != offset1 {
 		t.Fatal("parseDataItemId/wrapDataItemId error")
 	}
