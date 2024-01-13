@@ -37,8 +37,8 @@ const (
 
 	suffix = ".tid" // tid 文件后缀
 
-	fieldLen  = 1      // 事务状态字段长度
-	headerLen = TIDLen // 文件头长度
+	fieldLen  = 1     // 事务状态字段长度
+	headerLen = IdLen // 文件头长度
 )
 
 type Manage interface {

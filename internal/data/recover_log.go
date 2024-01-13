@@ -37,7 +37,7 @@ const (
 
 func wrapInsertLog(tid uint64, p page.Page, data []byte) []byte {
 	// type: 1; tid: 8; itemId: 8
-	l := typeLen + tx.TIDLen + itemIdLen + len(data)
+	l := typeLen + tx.IdLen + itemIdLen + len(data)
 	log := make([]byte, l)
 
 	pos := 0
@@ -46,7 +46,7 @@ func wrapInsertLog(tid uint64, p page.Page, data []byte) []byte {
 	pos += typeLen
 	tx.WriteTID(log[pos:], tid) // tid
 
-	pos += tx.TIDLen
+	pos += tx.IdLen
 	off := parsePageFSO(p)
 	itemId := wrapDataItemId(p.No(), off)
 	writeDataItemId(log[pos:], itemId) // item_id
@@ -60,7 +60,7 @@ func parseInsertLog(log []byte) (uint64, uint32, uint16, []byte) {
 	pos := typeLen
 	tid := tx.ReadTID(log[pos:]) // tid
 
-	pos += tx.TIDLen
+	pos += tx.IdLen
 	itemId := readDataItemId(log[pos:]) // item_id
 	no, off := parseDataItemId(itemId)
 
@@ -71,7 +71,7 @@ func parseInsertLog(log []byte) (uint64, uint32, uint16, []byte) {
 
 func wrapUpdateLog(tid uint64, item Item) []byte {
 	// type: 1; tid: 8; itemId: 8
-	l := typeLen + tx.TIDLen + itemIdLen + len(item.Data())*2
+	l := typeLen + tx.IdLen + itemIdLen + len(item.Data())*2
 	log := make([]byte, l)
 
 	pos := 0
@@ -80,7 +80,7 @@ func wrapUpdateLog(tid uint64, item Item) []byte {
 	pos += typeLen
 	tx.WriteTID(log[pos:], tid) // tid
 
-	pos += tx.TIDLen
+	pos += tx.IdLen
 	writeDataItemId(log[pos:], item.Id()) // item_id
 
 	pos += itemIdLen
@@ -95,7 +95,7 @@ func parseUpdateLog(log []byte) (uint64, uint32, uint16, []byte, []byte) {
 	pos := typeLen
 	tid := tx.ReadTID(log[pos:]) // tid
 
-	pos += tx.TIDLen
+	pos += tx.IdLen
 	itemId := readDataItemId(log[pos:]) // item_id
 	no, off := parseDataItemId(itemId)
 
