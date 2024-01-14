@@ -1,12 +1,18 @@
 package ver
 
 import (
+	"db/internal/ver/lock"
+	"errors"
+	"sync"
+
 	"db/internal/data"
 	"db/internal/tx"
 	"db/pkg/cache"
-	"errors"
-	"sync"
 )
+
+// 版本管理器
+//
+// 抽象
 
 var (
 	ErrNotFound = errors.New("entry not found")
@@ -28,6 +34,7 @@ type verManage struct {
 	txManage   tx.Manage
 	dataManage data.Manage
 
+	vLock lock.Lock
 	cache cache.Cache
 }
 
@@ -63,7 +70,7 @@ func (vm *verManage) obtainForCache(key uint64) (any, error) {
 // 释放缓存，需要将 Page 对象内存刷新到磁盘
 func (vm *verManage) releaseForCache(data any) {
 	ent := data.(*entry)
-	ent.item.Release() // 将 entry 从内存中释放
+	ent.item.Release() // 将 entry 从内存中彻底释放
 }
 
 func (vm *verManage) Read(tid uint64, itemId uint64) {

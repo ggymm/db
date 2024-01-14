@@ -9,8 +9,9 @@ import "db/internal/tx"
 // level1：repeatableRead（可重复度）
 
 type txCache struct {
-	Err         error
-	Tid         uint64
+	Err error
+
+	Id          uint64
 	Level       int
 	AutoAborted bool
 
@@ -18,12 +19,12 @@ type txCache struct {
 }
 
 // newTxCache
-// tid：事务ID
+// id：事务ID
 // level：隔离级别
 // active：正在执行的事务
-func newTxCache(tid uint64, level int, active map[uint64]*txCache) *txCache {
+func newTxCache(id uint64, level int, active map[uint64]*txCache) *txCache {
 	tc := new(txCache)
-	tc.Tid = tid
+	tc.Id = id
 	tc.Level = level
 	if level > 0 { // 隔离级别
 		tc.snapshot = make(map[uint64]bool)
@@ -51,13 +52,18 @@ func (t *txCache) IsEntryVisible(tm tx.Manage, ent *entry) bool {
 }
 
 // IsEntryVersionSkip 判断是否发生了版本跳跃
+// 两种情况
+// 1. 被更新，此时 max 为 0
+// 2. 被删除，此时 max 为
+// 2.1 在当前事务之后创建的事务
+// 2.2 在当前事务之前未提交的事务
 func (t *txCache) IsEntryVersionSkip(tm tx.Manage, ent *entry) bool {
 	if t.Level == 0 {
 		return false
 	} else {
-		tid := t.Tid
-		maxTid := ent.Max()
-		if maxTid != tid && (maxTid > tid || t.InSnapshot(maxTid)) {
+		tid := t.Id
+		maxId := ent.Max()
+		if tm.IsCommitted(maxId) && (maxId > tid || t.InSnapshot(maxId)) {
 			return true
 		}
 	}
@@ -71,20 +77,20 @@ func (t *txCache) IsEntryVersionSkip(tm tx.Manage, ent *entry) bool {
 // 1. 事务自身创建的数据，且未被删除
 // 2. 事务 min 已经提交
 // 2.1 该数据未被删除 max == 0
-// 2.2 未被其他事务删除并提交 max != tid && max no committed
+// 2.2 被其他事务删除但是没有提交 max != tid && max no committed
 func (t *txCache) ReadCommitted(tm tx.Manage, ent *entry) bool {
-	tid := t.Tid
-	minTid := ent.Min()
-	maxTid := ent.Max()
+	id := t.Id
+	minId := ent.Min()
+	maxId := ent.Max()
 
-	if minTid == tid && maxTid == 0 {
+	if minId == id && maxId == 0 {
 		return true
 	}
-	if tm.IsCommitted(minTid) {
-		if maxTid == 0 {
+	if tm.IsCommitted(minId) {
+		if maxId == 0 {
 			return true
 		}
-		if maxTid != tid && !tm.IsCommitted(maxTid) {
+		if maxId != id && !tm.IsCommitted(maxId) {
 			return true
 		}
 	}
@@ -108,19 +114,19 @@ func (t *txCache) ReadCommitted(tm tx.Manage, ent *entry) bool {
 // 首先保证无法读取，已经被修改（更新或者删除）的数据（2的描述）
 // 其次保证可以读取，已经被删除的数据（2.2的描述）
 func (t *txCache) RepeatableRead(tm tx.Manage, ent *entry) bool {
-	tid := t.Tid
-	minTid := ent.Min()
-	maxTid := ent.Max()
+	id := t.Id
+	minId := ent.Min()
+	maxId := ent.Max()
 
-	if minTid == tid && maxTid == 0 {
+	if minId == id && maxId == 0 {
 		return true
 	}
-	if tm.IsCommitted(minTid) && minTid < tid && !t.InSnapshot(minTid) {
-		if maxTid == 0 {
+	if tm.IsCommitted(minId) && minId < id && !t.InSnapshot(minId) {
+		if maxId == 0 {
 			return true
 		}
-		if maxTid != tid {
-			if !tm.IsCommitted(maxTid) || maxTid > tid || t.InSnapshot(maxTid) {
+		if maxId != id {
+			if !tm.IsCommitted(maxId) || maxId > id || t.InSnapshot(maxId) {
 				return true
 			}
 		}
