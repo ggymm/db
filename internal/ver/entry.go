@@ -33,13 +33,6 @@ type entry struct {
 	manage Manage
 }
 
-func wrapEntry(tid uint64, data []byte) []byte {
-	ent := make([]byte, len(data)+offData)
-	tx.WriteTID(ent, tid)
-	copy(ent[offData:], data)
-	return ent
-}
-
 func (e *entry) Min() uint64 {
 	e.item.RLock()
 	defer e.item.RUnlock()
