@@ -23,28 +23,24 @@ type Lock interface {
 type lock struct {
 	lock sync.Mutex
 
-	keyId     map[uint64]uint64 // 数据 被哪个事务 获取
-	waitIdKey map[uint64]uint64 // 事务 在等待哪个 数据
-
-	keys    map[uint64]*list.List // 事务 已经获取的 数据
-	waitIds map[uint64]*list.List // 数据 被哪些事务 等待
-
-	waitCh map[uint64]chan struct{} // 事务 等待通道
+	keyOwn   map[uint64]uint64        // 数据 被哪个事务 获取
+	waitKey  map[uint64]uint64        // 事务 在等待哪个 数据
+	waitIds  map[uint64]*list.List    // 数据 被哪些事务 等待（用于数据解除占用后，选择下一个事务）
+	currKeys map[uint64]*list.List    // 事务 已经获取的 数据
+	waitLock map[uint64]chan struct{} // 事务 等待通道
 }
 
 func NewLock() Lock {
 	return &lock{
-		keyId:     make(map[uint64]uint64),
-		waitIdKey: make(map[uint64]uint64),
-
-		keys:    make(map[uint64]*list.List),
-		waitIds: make(map[uint64]*list.List),
-
-		waitCh: make(map[uint64]chan struct{}),
+		keyOwn:   make(map[uint64]uint64),
+		waitKey:  make(map[uint64]uint64),
+		waitIds:  make(map[uint64]*list.List),
+		currKeys: make(map[uint64]*list.List),
+		waitLock: make(map[uint64]chan struct{}),
 	}
 }
 
-func inList(data map[uint64]*list.List, key, val uint64) bool {
+func hasItem(data map[uint64]*list.List, key, val uint64) bool {
 	if values, ok := data[key]; ok {
 		e := values.Front()
 		for e != nil {
@@ -57,14 +53,14 @@ func inList(data map[uint64]*list.List, key, val uint64) bool {
 	return false
 }
 
-func putList(data map[uint64]*list.List, key, val uint64) {
+func putItem(data map[uint64]*list.List, key, val uint64) {
 	if _, ok := data[key]; !ok {
 		data[key] = new(list.List)
 	}
 	data[key].PushFront(val)
 }
 
-func removeList(data map[uint64]*list.List, key, val uint64) {
+func removeItem(data map[uint64]*list.List, key, val uint64) {
 	if values, ok := data[key]; ok {
 		e := values.Front()
 		for e != nil {
@@ -80,44 +76,46 @@ func removeList(data map[uint64]*list.List, key, val uint64) {
 }
 
 var (
-	stamp   int
-	idStamp map[uint64]int
+	state   int
+	idState map[uint64]int
 )
 
 // dfs 遍历依赖关系
-// 从 keyId 和 waitIdKey 取出的边
+// 从 keyOwn 和 waitKey 取出的边
 // 是否会构成环，即
-// 是否会出现重复的 id（通过 idStamp 中 id 的取值判断）
+// 是否会出现重复的 id（通过 idState 中 id 的取值判断）
 func (l *lock) dfs(id uint64) bool {
-	stp := idStamp[id]
-	if stp != 0 {
-		if stp == stamp {
-			return true
-		} else if stp < stamp {
-			return false
-		}
-	}
-	idStamp[id] = stamp
-
-	key := l.waitIdKey[id]
-	if key == 0 {
-		return false
-	}
-	id = l.keyId[key]
 	if id == 0 {
 		panic(ErrCheckDeadlock)
 	}
-	return l.dfs(id)
+	if st := idState[id]; st != 0 {
+		if st == state {
+			return true
+		} else if st < state {
+			return false
+		}
+	}
+	idState[id] = state
+
+	// 继续遍历
+	// 遍历属于同一个依赖关系的下一个节点 id
+	// 首先获取当前 id 所等待的 key
+	// 其次获取当前 key 所属的 id （即当前 id 所等待的 id）
+	key := l.waitKey[id]
+	if key == 0 {
+		return false
+	}
+	return l.dfs(l.keyOwn[key]) // 继续遍历 key 所属的 id
 }
 
 func (l *lock) checkDeadlock() bool {
-	stamp = 1
-	idStamp = make(map[uint64]int)
-	for id := range l.keys {
-		if idStamp[id] > 0 {
+	state = 1
+	idState = make(map[uint64]int)
+	for id := range l.currKeys {
+		if idState[id] > 0 {
 			continue
 		}
-		stamp++
+		state++
 		if l.dfs(id) {
 			return true
 		}
@@ -125,8 +123,8 @@ func (l *lock) checkDeadlock() bool {
 	return false
 }
 
-func (l *lock) selectNextTID(key uint64) {
-	delete(l.keyId, key)
+func (l *lock) selectNextId(key uint64) {
+	delete(l.keyOwn, key)
 	txList := l.waitIds[key]
 	if txList == nil {
 		return
@@ -135,13 +133,13 @@ func (l *lock) selectNextTID(key uint64) {
 		e := txList.Front()
 		v := txList.Remove(e)
 		id := v.(uint64)
-		if _, ok := l.waitCh[id]; !ok {
+		if _, ok := l.waitLock[id]; !ok {
 			continue
 		} else {
-			l.keyId[key] = id
-			ch := l.waitCh[id]
-			delete(l.waitCh, id)
-			delete(l.waitIdKey, id)
+			l.keyOwn[key] = id
+			ch := l.waitLock[id]
+			delete(l.waitLock, id)
+			delete(l.waitKey, id)
 			ch <- struct{}{}
 			break
 		}
@@ -163,41 +161,40 @@ func (l *lock) Add(id, key uint64) (bool, chan struct{}) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
-	// 判断 key 是否存在
-	if inList(l.keys, id, key) {
-		// 如果已经获取锁，直接返回成功
+	var success = func() (bool, chan struct{}) {
 		ch := make(chan struct{})
 		go func() {
 			ch <- struct{}{}
 		}()
 		return true, ch
+	}
+
+	// 判断 key 是否已经被当前 id 占用
+	if hasItem(l.currKeys, id, key) {
+		return success()
 	}
 
 	// 判断 key 是否被 其他 id 占用
-	if _, ok := l.keyId[key]; !ok {
+	if _, ok := l.keyOwn[key]; !ok {
 		// 如果没有被占用
-		l.keyId[key] = id        // 添加 key -> id 的依赖关系
-		putList(l.keys, id, key) // 保存 key 到 id 对应的 keys 中
-		ch := make(chan struct{})
-		go func() {
-			ch <- struct{}{}
-		}()
-		return true, ch
+		l.keyOwn[key] = id           // 添加 key -> id 的依赖关系
+		putItem(l.currKeys, id, key) // 添加 id -> key 的占用关系
+		return success()
 	}
 
-	l.waitIdKey[id] = key       // 添加 id -> key 的等待关系
-	putList(l.waitIds, key, id) // 保存 id 到 key 对应的 waitIds 中
+	l.waitKey[id] = key         // 添加 id -> key 的等待关系
+	putItem(l.waitIds, key, id) // 添加 key -> id 的等待关系
 	// 判断是否会出现死锁
 	if l.checkDeadlock() {
 		// 如果出现死锁
-		delete(l.waitIdKey, id)        // 删除 id -> key 的等待关系
-		removeList(l.waitIds, key, id) // 删除 id 从 key 对应的 waitIds 中
+		delete(l.waitKey, id)          // 删除 id -> key 的等待关系
+		removeItem(l.waitIds, key, id) // 删除 key -> id 的等待关系
 		return false, nil              // 获取锁失败
 	}
 
 	// 没有死锁，创建等待通道，等待释放锁
 	ch := make(chan struct{})
-	l.waitCh[id] = ch
+	l.waitLock[id] = ch // 添加 id -> 等待通道 的关系
 	return true, ch
 }
 
@@ -205,18 +202,19 @@ func (l *lock) Remove(id uint64) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
-	vs := l.keys[id]
-	if vs != nil {
-		for vs.Len() > 0 {
-			e := vs.Front()
-			v := vs.Remove(e)
-			l.selectNextTID(v.(uint64))
+	keys := l.currKeys[id]
+	if keys != nil {
+		for keys.Len() > 0 {
+			ele := keys.Front()
+			key := keys.Remove(ele)
+			// 释放一个 key，选择下一个事务
+			l.selectNextId(key.(uint64))
 		}
 	}
 
-	delete(l.waitCh, id)
-	delete(l.keys, id)
-	delete(l.waitIdKey, id)
+	delete(l.waitKey, id)
+	delete(l.currKeys, id)
+	delete(l.waitLock, id)
 }
 
 func (l *lock) String() string {
@@ -244,14 +242,20 @@ func (l *lock) String() string {
 		if len(data) == 0 {
 			return ""
 		}
+		var keys []uint64
+		for key := range data {
+			keys = append(keys, key)
+		}
+		sort.Slice(keys, func(i, j int) bool { return keys[i] < keys[j] })
+
 		var buf bytes.Buffer
-		for key, values := range data {
+		for _, key := range keys {
 			buf.WriteString(fmt.Sprintf("%d: [", key))
-			e := values.Front()
-			for e != nil {
-				buf.WriteString(fmt.Sprintf("%d", e.Value.(uint64)))
-				e = e.Next()
-				if e != nil {
+			item := data[key].Front()
+			for item != nil {
+				buf.WriteString(fmt.Sprintf("%d", item.Value.(uint64)))
+				item = item.Next()
+				if item != nil {
 					buf.WriteString(",")
 				}
 			}
@@ -261,18 +265,17 @@ func (l *lock) String() string {
 	}
 
 	var buf bytes.Buffer
-	buf.WriteString("waitCh(事务 等待通道):\n")
-	for key := range l.waitCh {
+	buf.WriteString("waitLock(事务 等待通道):\n")
+	for key := range l.waitLock {
 		buf.WriteString(fmt.Sprintf("%d\n", key))
 	}
 
-	buf.WriteString("keyId(数据 被哪个事务 获取):\n")
-	buf.WriteString(mapIntString(l.keyId))
-	buf.WriteString("waitIdKey(事务 在等待哪个 数据):\n")
-	buf.WriteString(mapIntString(l.waitIdKey))
-
-	buf.WriteString("keys(事务 已经获取的 数据):\n")
-	buf.WriteString(mapListString(l.keys))
+	buf.WriteString("currKeys(事务 已经获取的 数据):\n")
+	buf.WriteString(mapListString(l.currKeys))
+	buf.WriteString("keyOwn(数据 被哪个事务 获取):\n")
+	buf.WriteString(mapIntString(l.keyOwn))
+	buf.WriteString("waitKey(事务 在等待哪个 数据):\n")
+	buf.WriteString(mapIntString(l.waitKey))
 	buf.WriteString("waitIds(数据 被哪些事务 等待):\n")
 	buf.WriteString(mapListString(l.waitIds))
 	return buf.String()
