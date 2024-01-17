@@ -1,9 +1,8 @@
-package data
+package page
 
 import (
 	"bytes"
 
-	"db/internal/data/page"
 	"db/pkg/utils"
 )
 
@@ -45,21 +44,21 @@ func checkVc(data []byte) bool {
 }
 
 func InitPage1() []byte {
-	data := make([]byte, page.Size)
+	data := make([]byte, Size)
 	setVcOpen(data)
 	return data
 }
 
-func SetVcOpen(p page.Page) {
+func SetVcOpen(p Page) {
 	p.SetDirty(true)
 	setVcOpen(p.Data())
 }
 
-func SetVcClose(p page.Page) {
+func SetVcClose(p Page) {
 	p.SetDirty(true)
 	setVcClose(p.Data())
 }
 
-func CheckVc(p page.Page) bool {
+func CheckVc(p Page) bool {
 	return checkVc(p.Data())
 }

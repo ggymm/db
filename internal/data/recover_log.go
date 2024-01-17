@@ -47,7 +47,7 @@ func wrapInsertLog(tid uint64, p page.Page, data []byte) []byte {
 	tx.WriteTID(log[pos:], tid) // tid
 
 	pos += tx.IdLen
-	off := parsePageFSO(p)
+	off := page.ParsePageFSO(p)
 	itemId := wrapDataItemId(p.No(), off)
 	writeDataItemId(log[pos:], itemId) // item_id
 

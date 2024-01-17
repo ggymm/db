@@ -41,9 +41,9 @@ type Manage interface {
 
 type dataManage struct {
 	log      log.Log
-	page1    page.Page
 	txManage tx.Manage
 
+	page1     page.Page
 	pageIndex page.Index
 	pageCache page.Cache
 
@@ -59,7 +59,7 @@ func open(dm *dataManage) {
 	dm.page1 = page1
 
 	// 根据 page1 校验数据
-	if CheckVc(dm.page1) == false {
+	if page.CheckVc(dm.page1) == false {
 		// 执行恢复操作
 		// TODO
 	}
@@ -71,18 +71,18 @@ func open(dm *dataManage) {
 		if e != nil {
 			panic(e)
 		}
-		dm.pageIndex.Add(p.No(), calcPageFree(p))
+		dm.pageIndex.Add(p.No(), page.CalcPageFree(p))
 		p.Release()
 	}
 
 	// 重新设置 page1 的校验数据
-	SetVcOpen(dm.page1)
+	page.SetVcOpen(dm.page1)
 	dm.pageCache.PageFlush(dm.page1)
 }
 
 func create(dm *dataManage) {
 	// 创建 page1
-	no := dm.pageCache.NewPage(InitPage1())
+	no := dm.pageCache.NewPage(page.InitPage1())
 	if no != 1 {
 		panic(ErrInitPage1)
 	}
@@ -142,7 +142,7 @@ func (dm *dataManage) Close() {
 	dm.log.Close()
 	dm.cache.Close()
 
-	SetVcClose(dm.page1) // 设置 page1 的校验数据
+	page.SetVcClose(dm.page1) // 设置 page1 的校验数据
 	dm.page1.Release()
 	dm.pageCache.Close()
 }
@@ -164,7 +164,7 @@ func (dm *dataManage) Read(id uint64) (Item, bool, error) {
 
 func (dm *dataManage) Insert(tid uint64, data []byte) (uint64, error) {
 	data = wrapDataItem(data)
-	if len(data) > maxPageFree() {
+	if len(data) > page.MaxPageFree() {
 		return 0, ErrDataTooLarge
 	}
 
@@ -182,8 +182,8 @@ func (dm *dataManage) Insert(tid uint64, data []byte) (uint64, error) {
 			break
 		} else {
 			// 创建新页，等待下次选择
-			newNo := dm.pageCache.NewPage(initPageX())
-			dm.pageIndex.Add(newNo, maxPageFree())
+			newNo := dm.pageCache.NewPage(page.InitPageX())
+			dm.pageIndex.Add(newNo, page.MaxPageFree())
 		}
 	}
 	if no == 0 {
@@ -193,7 +193,7 @@ func (dm *dataManage) Insert(tid uint64, data []byte) (uint64, error) {
 		if p == nil {
 			dm.pageIndex.Add(no, free)
 		} else {
-			dm.pageIndex.Add(no, calcPageFree(p))
+			dm.pageIndex.Add(no, page.CalcPageFree(p))
 		}
 	}()
 
@@ -207,7 +207,7 @@ func (dm *dataManage) Insert(tid uint64, data []byte) (uint64, error) {
 	dm.log.Log(wrapInsertLog(tid, p, data))
 
 	// 保存数据
-	off := insertPageData(p, data)
+	off := page.InsertPageData(p, data)
 
 	// 释放页面
 	p.Release()

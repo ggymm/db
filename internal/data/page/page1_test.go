@@ -1,13 +1,11 @@
-package data
+package page
 
 import (
 	"testing"
-
-	"db/internal/data/page"
 )
 
 func Test_Page1(t *testing.T) {
-	p := page.NewPage(1, InitPage1(), nil)
+	p := NewPage(1, InitPage1(), nil)
 
 	// 模拟正常启动
 	SetVcOpen(p)
@@ -25,7 +23,7 @@ func Test_Page1(t *testing.T) {
 }
 
 func Test_Page1_Error(t *testing.T) {
-	p := page.NewPage(1, InitPage1(), nil)
+	p := NewPage(1, InitPage1(), nil)
 
 	// 模拟正常启动
 	SetVcOpen(p)
