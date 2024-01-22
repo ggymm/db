@@ -1,11 +1,12 @@
 package page
 
 import (
-	"db/internal/ops"
-	"db/pkg/utils"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"db/internal/ops"
+	"db/pkg/utils"
 )
 
 func newOps(open bool) *ops.Option {

@@ -1,4 +1,4 @@
-package version
+package ver
 
 // 实际场景描述
 //

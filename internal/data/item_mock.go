@@ -1,8 +1,9 @@
 package data
 
 import (
-	"db/internal/data/page"
 	"sync"
+
+	"db/internal/data/page"
 )
 
 type mockItem struct {

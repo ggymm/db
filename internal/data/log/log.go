@@ -1,13 +1,13 @@
 package log
 
 import (
-	"db/internal/ops"
 	"encoding/binary"
 	"errors"
 	"os"
 	"path/filepath"
 	"sync"
 
+	"db/internal/ops"
 	"db/pkg/utils"
 )
 

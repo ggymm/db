@@ -1,4 +1,4 @@
-package version
+package ver
 
 import "db/internal/tx"
 

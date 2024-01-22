@@ -1,9 +1,10 @@
 package data
 
 import (
-	"db/internal/data/page"
 	"encoding/binary"
 	"sync"
+
+	"db/internal/data/page"
 )
 
 // 数据对象（保存在 page 中的数据对象）

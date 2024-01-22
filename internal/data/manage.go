@@ -40,14 +40,14 @@ type Manage interface {
 }
 
 type dataManage struct {
-	log      log.Log
-	txManage tx.Manage
+	txManage tx.Manage // 用于 recover 操作
 
-	page1     page.Page
-	pageIndex page.Index
-	pageCache page.Cache
+	log       log.Log    // 日志
+	page1     page.Page  // page1
+	pageIndex page.Index // page 索引
+	pageCache page.Cache // page 缓存
 
-	cache cache.Cache
+	cache cache.Cache // item 缓存
 }
 
 func open(dm *dataManage) {
@@ -99,9 +99,9 @@ func create(dm *dataManage) {
 func NewManage(ops *ops.Option, txm tx.Manage) Manage {
 	dm := new(dataManage)
 
-	dm.log = log.NewLog(ops)
 	dm.txManage = txm
 
+	dm.log = log.NewLog(ops)
 	dm.pageIndex = page.NewIndex()
 	dm.pageCache = page.NewCache(ops)
 

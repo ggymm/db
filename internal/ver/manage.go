@@ -1,12 +1,12 @@
 package ver
 
 import (
-	"db/internal/ver/lock"
 	"errors"
 	"sync"
 
 	"db/internal/data"
 	"db/internal/tx"
+	"db/internal/ver/lock"
 	"db/pkg/cache"
 )
 

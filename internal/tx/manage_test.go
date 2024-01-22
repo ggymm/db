@@ -1,12 +1,13 @@
 package tx
 
 import (
-	"db/internal/ops"
-	"db/pkg/utils"
 	"math/rand"
 	"path/filepath"
 	"sync"
 	"testing"
+
+	"db/internal/ops"
+	"db/pkg/utils"
 )
 
 func newOps() *ops.Option {

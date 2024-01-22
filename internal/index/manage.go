@@ -1,17 +1,18 @@
 package index
 
 import (
-	"db/internal/data"
 	"sync"
+
+	"db/internal/data"
 )
 
-type Manage interface {
+type Index interface {
 	Insert(key, nodeId uint64) error
 	Search(key uint64) ([]uint64, error)
 	SearchRange(leftKey, rightKey uint64) ([]uint64, error)
 }
 
-type indexManage struct {
+type index struct {
 	lock     sync.Mutex
 	bootId   uint64
 	bootItem data.Item
@@ -19,14 +20,14 @@ type indexManage struct {
 	dataManage data.Manage
 }
 
-func (i *indexManage) Insert(key, nodeId uint64) error {
+func (i *index) Insert(key, nodeId uint64) error {
 	panic("implement me")
 }
 
-func (i *indexManage) Search(key uint64) ([]uint64, error) {
+func (i *index) Search(key uint64) ([]uint64, error) {
 	panic("implement me")
 }
 
-func (i *indexManage) SearchRange(leftKey, rightKey uint64) ([]uint64, error) {
+func (i *index) SearchRange(leftKey, rightKey uint64) ([]uint64, error) {
 	panic("implement me")
 }
