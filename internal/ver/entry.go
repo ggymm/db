@@ -1,4 +1,4 @@
-package ver
+package version
 
 import (
 	"db/internal/data"

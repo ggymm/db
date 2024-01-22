@@ -1,0 +1,44 @@
+<html lang="zh">
+<head>
+    <meta charset="utf-8"/>
+    <script src="pako_inflate.min.js"></script>
+    <script src="wasm_exec.js"></script>
+    <script src="viz.js"></script>
+    <script src="main.js"></script>
+    <title>B+ Tree Visualization</title>
+</head>
+<body>
+<div id="container">
+    <div id="content-loading">
+        <h3>Loading...</h3>
+    </div>
+    <div id="content" hidden="hidden">
+        <p>
+            <b>maximum degree:</b>
+            <label><input name="maxDegree" value="4" type="radio"> 4</label>
+            <label><input name="maxDegree" value="5" type="radio"> 5</label>
+            <label><input name="maxDegree" value="6" type="radio"> 6</label>
+            <label><input name="maxDegree" value="7" type="radio"> 7</label>
+            <label><input name="maxDegree" value="8" type="radio"> 8</label>
+            <label><input name="maxDegree" value="9" type="radio"> 9</label>
+            <label><input name="maxDegree" value="10" type="radio"> 10</label>
+        </p>
+        <p>
+            <b>key:</b>
+            <label><input name="key" value="1" type="number"/></label>
+            <label><input name="random-new-key" type="checkbox" checked="checked"/> random new key</label>
+        </p>
+        <p>
+            <button id="add-key"><b>✚ Add key</b></button>
+            <button id="delete-key"><b>✖ Delete key</b></button>
+            <button id="undo"><b>◀ Undo</b></button>
+            <button id="redo"><b>▶ Redo</b></button>
+            <button id="reset"><b>↩ Reset</b></button>
+        </p>
+        <p id="tips" style="color:red;"></p>
+        <div id="svg"></div>
+    </div>
+</div>
+<script async defer src="buttons.js"></script>
+</body>
+</html>
