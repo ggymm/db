@@ -8,15 +8,15 @@ import (
 	"sync"
 	"testing"
 
-	"db/internal/ops"
+	"db/internal/opt"
 	"db/internal/tx"
 	"db/pkg/utils"
 )
 
-func newOps(open bool) *ops.Option {
+func newOpt(open bool) *opt.Option {
 	base := utils.RunPath()
 	path := filepath.Join(base, "temp/data")
-	return &ops.Option{
+	return &opt.Option{
 		Open:   open,
 		Path:   path,
 		Memory: (1 << 20) * 64,
@@ -24,7 +24,7 @@ func newOps(open bool) *ops.Option {
 }
 
 func TestNewManage(t *testing.T) {
-	o := newOps(false)
+	o := newOpt(false)
 	tm := tx.NewManager(o)
 	dm := NewManage(o, tm)
 	t.Logf("%+v", dm)
@@ -38,7 +38,7 @@ func TestDataManage_DataHandle(t *testing.T) {
 		t.Fatalf("err %v", err)
 		return
 	}
-	o := newOps(false)
+	o := newOpt(false)
 	tm := tx.NewManager(o)
 	dm := NewManage(o, tm)
 	t.Logf("%+v", dm)
@@ -87,7 +87,7 @@ func TestDataManage_DataHandleAsync(t *testing.T) {
 	}
 
 	// 数据管理
-	dm0 := NewManage(newOps(false), nil)
+	dm0 := NewManage(newOpt(false), nil)
 	t.Logf("%+v", dm0)
 
 	// 模拟数据管理

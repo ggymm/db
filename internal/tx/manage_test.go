@@ -1,26 +1,26 @@
 package tx
 
 import (
+	"db/internal/opt"
 	"math/rand"
 	"path/filepath"
 	"sync"
 	"testing"
 
-	"db/internal/ops"
 	"db/pkg/utils"
 )
 
-func newOps() *ops.Option {
+func newOpt() *opt.Option {
 	base := utils.RunPath()
 	path := filepath.Join(base, "temp/tx")
 
 	if !utils.IsEmpty(path) {
-		return &ops.Option{
+		return &opt.Option{
 			Open: true,
 			Path: path,
 		}
 	} else {
-		return &ops.Option{
+		return &opt.Option{
 			Open: false,
 			Path: path,
 		}
@@ -28,14 +28,14 @@ func newOps() *ops.Option {
 }
 
 func TestNewTxnManager(t *testing.T) {
-	tm := NewManager(newOps())
+	tm := NewManager(newOpt())
 	t.Logf("%+v", tm)
 
 	tm.Close()
 }
 
 func TestTxnManager_State(t *testing.T) {
-	tm := NewManager(newOps())
+	tm := NewManager(newOpt())
 	t.Logf("%+v", tm)
 
 	tid := tm.Begin()
@@ -55,7 +55,7 @@ func TestTxnManager_State(t *testing.T) {
 
 // TestTxnManager_StageAsync 用于测试事务管理器在并发环境下的行为
 func TestTxnManager_StageAsync(t *testing.T) {
-	tm := NewManager(newOps())
+	tm := NewManager(newOpt())
 	t.Logf("%+v", tm)
 
 	num := 50                        // 协程总数

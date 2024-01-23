@@ -1,4 +1,4 @@
-package ops
+package opt
 
 type Option struct {
 	Open   bool

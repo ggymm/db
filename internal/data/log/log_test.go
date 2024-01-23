@@ -4,21 +4,21 @@ import (
 	"path/filepath"
 	"testing"
 
-	"db/internal/ops"
+	"db/internal/opt"
 	"db/pkg/utils"
 )
 
-func NewOps() *ops.Option {
+func newOpt() *opt.Option {
 	base := utils.RunPath()
 	path := filepath.Join(base, "temp/log")
 
 	if !utils.IsEmpty(path) {
-		return &ops.Option{
+		return &opt.Option{
 			Open: true,
 			Path: path,
 		}
 	} else {
-		return &ops.Option{
+		return &opt.Option{
 			Open: false,
 			Path: path,
 		}
@@ -26,7 +26,7 @@ func NewOps() *ops.Option {
 }
 
 func TestNewLog(t *testing.T) {
-	log := NewLog(NewOps())
+	log := NewLog(newOpt())
 	log.Log(utils.RandBytes(60))
 }
 

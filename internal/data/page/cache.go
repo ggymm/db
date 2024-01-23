@@ -1,13 +1,13 @@
 package page
 
 import (
+	"db/internal/opt"
 	"errors"
 	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
 
-	"db/internal/ops"
 	"db/pkg/cache"
 	"db/pkg/utils"
 )
@@ -90,22 +90,22 @@ func create(c *pageCache) {
 	c.file = file
 }
 
-func NewCache(ops *ops.Option) Cache {
-	if ops.Memory/Size < Limit {
+func NewCache(opt *opt.Option) Cache {
+	if opt.Memory/Size < Limit {
 		panic(ErrMemoryNotEnough)
 	}
 	c := new(pageCache)
-	c.filepath = filepath.Join(ops.Path, suffix)
+	c.filepath = filepath.Join(opt.Path, suffix)
 
 	// 构造缓存对象
 	c.cache = cache.NewCache(&cache.Option{
 		Obtain:   c.obtainForCache,
 		Release:  c.releaseForCache,
-		MaxCount: uint32(ops.Memory / Size),
+		MaxCount: uint32(opt.Memory / Size),
 	})
 
 	// 判断文件是否存在
-	if ops.Open {
+	if opt.Open {
 		open(c)
 	} else {
 		create(c)

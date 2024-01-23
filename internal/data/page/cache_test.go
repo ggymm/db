@@ -5,14 +5,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	"db/internal/ops"
+	"db/internal/opt"
 	"db/pkg/utils"
 )
 
-func newOps(open bool) *ops.Option {
+func newOpt(open bool) *opt.Option {
 	base := utils.RunPath()
 	path := filepath.Join(base, "temp/db")
-	return &ops.Option{
+	return &opt.Option{
 		Open:   open,
 		Path:   path,
 		Memory: (1 << 20) * 64,
@@ -29,7 +29,7 @@ func TestNewPage(t *testing.T) {
 		return
 	}
 
-	cache := NewCache(newOps(false))
+	cache := NewCache(newOpt(false))
 	t.Logf("%+v", cache)
 
 	for i := 1; i <= 100; i++ {
@@ -46,7 +46,7 @@ func TestNewPage(t *testing.T) {
 	}
 	cache.Close()
 
-	cache = NewCache(newOps(true))
+	cache = NewCache(newOpt(true))
 	for i := 1; i <= 100; i++ {
 		p, e := cache.ObtainPage(uint32(i))
 		if e != nil {

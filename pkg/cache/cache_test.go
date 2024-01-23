@@ -10,11 +10,11 @@ func TestNewCache(t *testing.T) {
 
 	}
 
-	ops := new(Option)
-	ops.Obtain = obtain
-	ops.Release = release
-	ops.MaxCount = 10
-	c := NewCache(ops)
+	opt := new(Option)
+	opt.Obtain = obtain
+	opt.Release = release
+	opt.MaxCount = 10
+	c := NewCache(opt)
 
 	t.Logf("%+v", c)
 }

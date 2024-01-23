@@ -33,7 +33,7 @@ type Option struct {
 type cache struct {
 	lock sync.Mutex
 
-	ops   *Option
+	opt   *Option
 	count uint32
 
 	refs   map[uint64]uint32
@@ -41,9 +41,9 @@ type cache struct {
 	obtain map[uint64]bool
 }
 
-func NewCache(ops *Option) Cache {
+func NewCache(opt *Option) Cache {
 	return &cache{
-		ops:    ops,
+		opt:    opt,
 		refs:   make(map[uint64]uint32),
 		cache:  make(map[uint64]any),
 		obtain: make(map[uint64]bool),
@@ -54,7 +54,7 @@ func (c *cache) Close() {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 	for k, v := range c.cache {
-		c.ops.Release(v)
+		c.opt.Release(v)
 		delete(c.refs, k)
 		delete(c.cache, k)
 	}
@@ -79,7 +79,7 @@ func (c *cache) Obtain(key uint64) (any, error) {
 		}
 
 		// 如果缓存中的数据已经达到上限，则抛出异常
-		if c.ops.MaxCount > 0 && c.count >= c.ops.MaxCount {
+		if c.opt.MaxCount > 0 && c.count >= c.opt.MaxCount {
 			c.lock.Unlock()
 			return nil, ErrCacheFull
 		}
@@ -92,7 +92,7 @@ func (c *cache) Obtain(key uint64) (any, error) {
 	}
 
 	// 获取数据
-	data, err := c.ops.Obtain(key)
+	data, err := c.opt.Obtain(key)
 	if err != nil {
 		c.lock.Lock()
 		c.count--
@@ -116,7 +116,7 @@ func (c *cache) Release(key uint64) {
 
 	c.refs[key]--
 	if c.refs[key] == 0 {
-		c.ops.Release(c.cache[key])
+		c.opt.Release(c.cache[key])
 		delete(c.refs, key)
 		delete(c.cache, key)
 		c.count--

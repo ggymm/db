@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"db/internal/ops"
+	"db/internal/opt"
 	"db/pkg/utils"
 )
 
@@ -124,12 +124,12 @@ func create(tm *txManager) {
 	tm.file = file
 }
 
-func NewManager(ops *ops.Option) Manage {
+func NewManager(opt *opt.Option) Manage {
 	tm := new(txManager)
-	tm.filepath = filepath.Join(ops.Path, suffix)
+	tm.filepath = filepath.Join(opt.Path, suffix)
 
 	// 判断文件是否存在
-	if ops.Open {
+	if opt.Open {
 		open(tm)
 	} else {
 		create(tm)

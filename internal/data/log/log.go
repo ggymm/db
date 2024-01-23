@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"db/internal/ops"
+	"db/internal/opt"
 	"db/pkg/utils"
 )
 
@@ -145,11 +145,11 @@ func updateChecksum(file *os.File, checksum uint32) {
 	}
 }
 
-func NewLog(ops *ops.Option) Log {
+func NewLog(opt *opt.Option) Log {
 	l := new(logger)
-	l.filepath = filepath.Join(ops.Path, suffix)
+	l.filepath = filepath.Join(opt.Path, suffix)
 
-	if ops.Open {
+	if opt.Open {
 		open(l)
 	} else {
 		create(l)

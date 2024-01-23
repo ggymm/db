@@ -5,7 +5,7 @@ import (
 
 	"db/internal/data/log"
 	"db/internal/data/page"
-	"db/internal/ops"
+	"db/internal/opt"
 	"db/internal/tx"
 	"db/pkg/cache"
 )
@@ -96,14 +96,14 @@ func create(dm *dataManage) {
 	dm.pageCache.PageFlush(dm.page1)
 }
 
-func NewManage(ops *ops.Option, txm tx.Manage) Manage {
+func NewManage(opt *opt.Option, txm tx.Manage) Manage {
 	dm := new(dataManage)
 
 	dm.txManage = txm
 
-	dm.log = log.NewLog(ops)
+	dm.log = log.NewLog(opt)
 	dm.pageIndex = page.NewIndex()
-	dm.pageCache = page.NewCache(ops)
+	dm.pageCache = page.NewCache(opt)
 
 	dm.cache = cache.NewCache(&cache.Option{
 		Obtain:   dm.obtainForCache,
@@ -111,7 +111,7 @@ func NewManage(ops *ops.Option, txm tx.Manage) Manage {
 		MaxCount: 0,
 	})
 
-	if ops.Open {
+	if opt.Open {
 		open(dm)
 	} else {
 		create(dm)
