@@ -44,7 +44,7 @@ func wrapInsertLog(tid uint64, p page.Page, data []byte) []byte {
 	log[pos] = InsertLog // type
 
 	pos += typeLen
-	tx.WriteTID(log[pos:], tid) // tid
+	tx.WriteId(log[pos:], tid) // tid
 
 	pos += tx.IdLen
 	off := page.ParsePageFSO(p)
@@ -58,7 +58,7 @@ func wrapInsertLog(tid uint64, p page.Page, data []byte) []byte {
 
 func parseInsertLog(log []byte) (uint64, uint32, uint16, []byte) {
 	pos := typeLen
-	tid := tx.ReadTID(log[pos:]) // tid
+	tid := tx.ReadId(log[pos:]) // tid
 
 	pos += tx.IdLen
 	itemId := readDataItemId(log[pos:]) // item_id
@@ -78,7 +78,7 @@ func wrapUpdateLog(tid uint64, item Item) []byte {
 	log[pos] = UpdateLog // type
 
 	pos += typeLen
-	tx.WriteTID(log[pos:], tid) // tid
+	tx.WriteId(log[pos:], tid) // tid
 
 	pos += tx.IdLen
 	writeDataItemId(log[pos:], item.Id()) // item_id
@@ -93,7 +93,7 @@ func wrapUpdateLog(tid uint64, item Item) []byte {
 
 func parseUpdateLog(log []byte) (uint64, uint32, uint16, []byte, []byte) {
 	pos := typeLen
-	tid := tx.ReadTID(log[pos:]) // tid
+	tid := tx.ReadId(log[pos:]) // tid
 
 	pos += tx.IdLen
 	itemId := readDataItemId(log[pos:]) // item_id

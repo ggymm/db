@@ -19,7 +19,7 @@ type transaction struct {
 }
 
 // newTransaction
-// id：事务ID
+// id：事务Id
 // level：隔离级别
 // active：正在执行的事务
 func newTransaction(id uint64, level int, active map[uint64]*transaction) *transaction {
@@ -101,7 +101,7 @@ func (t *transaction) ReadCommitted(tm tx.Manage, ent *entry) bool {
 //
 // 可重复读是指一个事务只能读取已经提交的事务产生的数据，且事务开始后，其他事务产生的数据对该事务不可见
 //
-// 使用 snapshot 保存当前事务开始时，处于活跃状态的事务ID
+// 使用 snapshot 保存当前事务开始时，处于活跃状态的事务Id
 // 判断逻辑：
 // 1. 事务自身创建的数据，且未被删除
 // 2. 事务 min 已经提交，并且在当前事务之前 min < tid && min no in snapshot

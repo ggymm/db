@@ -7,7 +7,7 @@ import (
 )
 
 type Index interface {
-	Insert(key, nodeId uint64) error
+	Insert(key, itemId uint64) error
 	Search(key uint64) ([]uint64, error)
 	SearchRange(leftKey, rightKey uint64) ([]uint64, error)
 }
@@ -20,7 +20,9 @@ type index struct {
 	dataManage data.Manage
 }
 
-func (i *index) Insert(key, nodeId uint64) error {
+// Insert
+// 插入 key（字段计算的hash值） 和 itemId（数据项的Id） 的索引关系
+func (i *index) Insert(key, itemId uint64) error {
 	panic("implement me")
 }
 

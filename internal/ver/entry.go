@@ -14,8 +14,8 @@ import (
 // |     8 byte     |     8 byte     |     * byte     |
 // +----------------+----------------+----------------+
 //
-// mix：代表创建该记录的事务ID
-// max：代表删除该记录的事务ID（或者出现新版本）
+// mix：代表创建该记录的事务Id
+// max：代表删除该记录的事务Id（或者出现新版本）
 // data：数据内容
 //
 // 可以理解为，entry 就是 data_item 结构中的数据内容
@@ -37,14 +37,14 @@ func (e *entry) Min() uint64 {
 	e.item.RLock()
 	defer e.item.RUnlock()
 
-	return tx.ReadTID(e.item.DataBody()[offMin:])
+	return tx.ReadId(e.item.DataBody()[offMin:])
 }
 
 func (e *entry) Max() uint64 {
 	e.item.RLock()
 	defer e.item.RUnlock()
 
-	return tx.ReadTID(e.item.DataBody()[offMax:])
+	return tx.ReadId(e.item.DataBody()[offMax:])
 }
 
 func (e *entry) Data() (data []byte) {
@@ -60,5 +60,5 @@ func (e *entry) SetMax(tid uint64) {
 	e.item.Before()
 	defer e.item.After(tid)
 
-	tx.WriteTID(e.item.DataBody()[offMax:], tid)
+	tx.WriteId(e.item.DataBody()[offMax:], tid)
 }

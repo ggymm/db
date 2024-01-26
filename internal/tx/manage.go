@@ -19,7 +19,7 @@ import (
 // |     8 byte     |    1 byte      |    1 byte      |    1 byte      |
 // +----------------+----------------+----------------+----------------+
 //
-// 事务ID(tid) 起始为 1 按顺序递增
+// 事务Id(tid) 起始为 1 按顺序递增
 //
 // 每个事务有三种状态
 //         0. active     事务正在进行中
@@ -27,7 +27,7 @@ import (
 //         2. aborted    事务已经终止
 
 var (
-	ErrBadTIDFile = errors.New("bad TID File")
+	ErrBadIdFile = errors.New("bad Id File")
 )
 
 const (
@@ -56,7 +56,7 @@ type Manage interface {
 type txManager struct {
 	lock sync.Mutex
 
-	seq  uint64   // 当前事务ID
+	seq  uint64   // 当前事务Id
 	file *os.File // 文件句柄
 
 	filepath string // 文件名称
@@ -79,13 +79,13 @@ func open(tm *txManager) {
 	if err != nil {
 		panic(err)
 	}
-	tid := readTID(buf)
+	tid := readId(buf)
 
 	// 获取 tid 对应的状态位置
 	off := pos(tid)
 	stat, _ := file.Stat()
 	if off != stat.Size() {
-		panic(ErrBadTIDFile)
+		panic(ErrBadIdFile)
 	}
 
 	// 字段信息
@@ -113,7 +113,7 @@ func create(tm *txManager) {
 
 	// 写入文件头
 	buf := make([]byte, headerLen)
-	writeTID(buf, 1) // tid 从 1 开始
+	writeId(buf, 1) // tid 从 1 开始
 	_, err = file.WriteAt(buf, 0)
 	if err != nil {
 		panic(err)
@@ -140,7 +140,7 @@ func NewManager(opt *opt.Option) Manage {
 func (tm *txManager) incr() {
 	tm.seq++
 	buf := make([]byte, 8)
-	writeTID(buf, tm.seq)
+	writeId(buf, tm.seq)
 
 	// 写入并同步文件
 	tm.write(buf, 0)

@@ -7,18 +7,18 @@ const (
 	Super uint64 = 0
 )
 
-func ReadTID(buf []byte) uint64 {
-	return readTID(buf)
+func ReadId(buf []byte) uint64 {
+	return readId(buf)
 }
 
-func WriteTID(buf []byte, tid uint64) {
-	writeTID(buf, tid)
+func WriteId(buf []byte, tid uint64) {
+	writeId(buf, tid)
 }
 
-func readTID(buf []byte) uint64 {
+func readId(buf []byte) uint64 {
 	return binary.LittleEndian.Uint64(buf)
 }
 
-func writeTID(buf []byte, tid uint64) {
+func writeId(buf []byte, tid uint64) {
 	binary.LittleEndian.PutUint64(buf, tid)
 }

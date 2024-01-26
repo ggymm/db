@@ -136,7 +136,7 @@ func (vm *verManage) Insert(tid uint64, data []byte) (uint64, error) {
 
 	// 包装成 entry 数据
 	ent := make([]byte, offData+len(data))
-	tx.WriteTID(ent[offMin:], tid)
+	tx.WriteId(ent[offMin:], tid)
 	copy(ent[offData:], data)
 	return vm.dataManage.Insert(tid, ent)
 }
