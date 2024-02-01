@@ -3,6 +3,7 @@ package index
 import (
 	"db/internal/data"
 	"encoding/binary"
+	"math"
 )
 
 // node
@@ -19,7 +20,7 @@ import (
 // sibling: 兄弟节点的 id（itemId）
 // keys
 //  key: 8 bytes（uint64）, 字段的 hash 值
-//  val: 8 bytes（uint64）, 数据的 id（itemId）（如果非叶子节点，则是子节点的 id）
+//  child: 8 bytes（uint64）, 数据的 id（itemId）（如果非叶子节点，则是子节点的 id）
 
 const (
 	offLeaf    = 0
@@ -44,50 +45,116 @@ type node struct {
 	item data.Item
 }
 
-func (n *node) getLeaf() bool {
-	return n.data[offLeaf] == 1
+func getLeaf(data []byte) bool {
+	return data[offLeaf] == 1
 }
 
-func (n *node) setLeaf(leaf bool) {
+func setLeaf(leaf bool, data []byte) {
 	if leaf {
-		n.data[offLeaf] = 1
+		data[offLeaf] = 1
 	} else {
-		n.data[offLeaf] = 0
+		data[offLeaf] = 0
 	}
 }
 
-func (n *node) getKeysNum() int {
-	return int(bin.Uint16(n.data[offKeysNum:]))
+func getKeysNum(data []byte) int {
+	return int(bin.Uint16(data[offKeysNum:]))
 }
 
-func (n *node) setKeysNum(num int) {
-	bin.PutUint16(n.data[offKeysNum:], uint16(num))
+func setKeysNum(num int, data []byte) {
+	bin.PutUint16(data[offKeysNum:], uint16(num))
 }
 
-func (n *node) getSibling() uint64 {
-	return bin.Uint64(n.data[offSibling:])
+func getSibling(data []byte) uint64 {
+	return bin.Uint64(data[offSibling:])
 }
 
-func (n *node) setSibling(id uint64) {
-	bin.PutUint64(n.data[offSibling:], id)
+func setSibling(child uint64, data []byte) {
+	bin.PutUint64(data[offSibling:], child)
 }
 
-func (n *node) getKey(i int) uint64 {
-	return bin.Uint64(n.data[headerLen+i*16:])
+func getOff(i int) int {
+	return headerLen + i*8*2
 }
 
-func (n *node) setKey(i int, key uint64) {
-	bin.PutUint64(n.data[headerLen+i*16:], key)
+func getKey(i int, data []byte) uint64 {
+	off := getOff(i)
+	return bin.Uint64(data[off:])
 }
 
-func (n *node) getVal(i int) uint64 {
-	return bin.Uint64(n.data[headerLen+i*16+8:])
+func setKey(i int, key uint64, data []byte) {
+	off := getOff(i)
+	bin.PutUint64(data[off:], key)
 }
 
-func (n *node) setVal(i int, val uint64) {
-	bin.PutUint64(n.data[headerLen+i*16+8:], val)
+func getChild(i int, data []byte) uint64 {
+	off := getOff(i) + 8
+	return bin.Uint64(data[off:])
 }
 
-func (n *node) readData(i uint64, data []byte) {
-	copy(data[headerLen:], n.data[headerLen+i*16:])
+func setChild(i int, val uint64, data []byte) {
+	off := getOff(i) + 8
+	bin.PutUint64(data[off:], val)
+}
+
+func shiftData(i int, data []byte) {
+	start := getOff(i + 1)
+	length := nodeSize - 1
+	for k := length; k >= start; k-- {
+		data[k] = data[k-8*2]
+	}
+}
+
+func writeData(i int, src, dst []byte) {
+	off := getOff(i)
+	copy(dst[headerLen:], src[off:])
+}
+
+func initRoot() []byte {
+	buf := make([]byte, nodeSize)
+	setLeaf(true, buf)
+	setKeysNum(0, buf)
+	setSibling(0, buf)
+	return buf
+}
+
+func createRoot(left, right uint64, key uint64) []byte {
+	buf := make([]byte, nodeSize)
+	setLeaf(false, buf) // 非叶子节点
+	setKeysNum(2, buf)  // 相当于有两个子节点
+	setSibling(0, buf)  // 没有兄弟节点
+
+	// 左节点
+	setKey(0, key, buf)
+	setChild(0, left, buf)
+
+	// 右节点
+	setKey(1, math.MaxUint64, buf)
+	setChild(1, right, buf)
+	return buf
+}
+
+func wrapNode(tree *index, id uint64) (*node, error) {
+	item, ok, err := tree.DataManage.Read(id)
+	if !ok || err != nil {
+		return nil, err
+	}
+
+	return &node{
+		tree: tree,
+		id:   id,
+		data: item.DataBody(),
+		item: item,
+	}, nil
+}
+
+func (n *node) Release() {
+	n.item.Release()
+}
+
+func (n *node) IsLeaf() bool {
+	n.item.RLock()
+	defer n.item.RUnlock()
+
+	return getLeaf(n.data)
 }

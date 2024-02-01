@@ -17,7 +17,7 @@ type index struct {
 	bootId   uint64
 	bootItem data.Item
 
-	dataManage data.Manage
+	DataManage data.Manage
 }
 
 // Insert
