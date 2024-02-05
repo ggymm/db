@@ -9,27 +9,122 @@ import (
 type Index interface {
 	Insert(key, itemId uint64) error
 	Search(key uint64) ([]uint64, error)
-	SearchRange(leftKey, rightKey uint64) ([]uint64, error)
+	SearchRange(prev, next uint64) ([]uint64, error)
 }
 
-type index struct {
+type tree struct {
 	lock     sync.Mutex
-	bootId   uint64
-	bootItem data.Item
+	rootItem data.Item
 
 	DataManage data.Manage
 }
 
+func (t *tree) rootId() uint64 {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
+	return bin.Uint64(t.rootItem.DataBody())
+}
+
+// insert
+func (t *tree) insert(nodeId, key, itemId uint64) (uint64, uint64, error) {
+	var (
+		err error
+
+		nd               *node
+		child            uint64
+		newKey, newChild uint64
+	)
+
+	nd, err = wrapNode(t, nodeId)
+	if err != nil {
+		return 0, 0, err
+	}
+	isLeaf := nd.Leaf()
+
+	nd.Release()
+	if isLeaf {
+		// 叶子节点
+		return t.insertNode(nodeId, key, itemId)
+	} else {
+		// 非叶子节点
+		child, err = t.searchNode(nodeId, key)
+		if err != nil {
+			return 0, 0, err
+		}
+		newKey, newChild, err = t.insert(child, key, itemId)
+		if err != nil {
+			return 0, 0, err
+		}
+
+		// 如果新的子节点不为 0 则代表下一层产生了分裂
+		// 需要在当前层插入分裂的节点信息 newKey 和 newChild
+		if newChild != 0 {
+			// 如果新的子节点不为 0，则需要分裂
+			return t.insertNode(nodeId, newKey, newChild)
+		}
+	}
+	return 0, 0, err
+}
+
+// insertNode
+// 向 node 中插入 key 和 itemId
+// 如果需要分裂，则返回新的 key 和新的 child
+func (t *tree) insertNode(nodeId, key, itemId uint64) (uint64, uint64, error) {
+	var (
+		err error
+
+		nd               *node
+		sibling          uint64
+		newKey, newChild uint64
+	)
+	for {
+		nd, err = wrapNode(t, nodeId)
+		if err != nil {
+			return 0, 0, err
+		}
+		sibling, newKey, newChild, err = nd.Insert(key, itemId)
+
+		nd.Release()
+		if sibling != 0 {
+			nodeId = sibling
+		} else {
+			return newKey, newChild, err
+		}
+	}
+}
+
+func (t *tree) searchNode(nodeId, key uint64) (uint64, error) {
+	for {
+		nd, err := wrapNode(t, nodeId)
+		if err != nil {
+			return 0, err
+		}
+		child, sibling := nd.Search(key)
+
+		// 如果找到符合条件的节点，则返回
+		// 如果没有找到，则继续查找下一个节点
+		nd.Release()
+		if child != 0 {
+			return child, nil
+		}
+		nodeId = sibling
+	}
+}
+
 // Insert
 // 插入 key（字段计算的hash值） 和 itemId（数据项的Id） 的索引关系
-func (i *index) Insert(key, itemId uint64) error {
+func (t *tree) Insert(key, itemId uint64) error {
+	rootId := t.rootId()
+
+	t.insert(rootId, key, itemId)
+	return nil
+}
+
+func (t *tree) Search(key uint64) ([]uint64, error) {
 	panic("implement me")
 }
 
-func (i *index) Search(key uint64) ([]uint64, error) {
-	panic("implement me")
-}
-
-func (i *index) SearchRange(leftKey, rightKey uint64) ([]uint64, error) {
+func (t *tree) SearchRange(prev, next uint64) ([]uint64, error) {
 	panic("implement me")
 }
