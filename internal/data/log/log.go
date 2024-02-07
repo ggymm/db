@@ -147,7 +147,7 @@ func updateChecksum(file *os.File, checksum uint32) {
 
 func NewLog(opt *opt.Option) Log {
 	l := new(logger)
-	l.filepath = filepath.Join(opt.Path, suffix)
+	l.filepath = filepath.Join(opt.GetPath(suffix))
 
 	if opt.Open {
 		open(l)

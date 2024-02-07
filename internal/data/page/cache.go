@@ -95,7 +95,7 @@ func NewCache(opt *opt.Option) Cache {
 		panic(ErrMemoryNotEnough)
 	}
 	c := new(pageCache)
-	c.filepath = filepath.Join(opt.Path, suffix)
+	c.filepath = filepath.Join(opt.GetPath(suffix))
 
 	// 构造缓存对象
 	c.cache = cache.NewCache(&cache.Option{

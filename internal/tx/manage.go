@@ -126,7 +126,7 @@ func create(tm *txManager) {
 
 func NewManager(opt *opt.Option) Manage {
 	tm := new(txManager)
-	tm.filepath = filepath.Join(opt.Path, suffix)
+	tm.filepath = filepath.Join(opt.GetPath(suffix))
 
 	// 判断文件是否存在
 	if opt.Open {

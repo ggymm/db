@@ -1,6 +1,7 @@
 package index
 
 import (
+	"db/internal/opt"
 	"db/internal/tx"
 	"sync"
 
@@ -19,6 +20,45 @@ type tree struct {
 	rootItem data.Item
 
 	DataManage data.Manage
+}
+
+func NewIndex(opt *opt.Option, manage data.Manage) (Index, error) {
+	var (
+		ok  bool
+		err error
+
+		itemId uint64
+		rootId uint64
+
+		rootItem data.Item
+	)
+
+	if opt.Open {
+		rootId = opt.RootId
+	} else {
+		root := initRoot()
+		itemId, err = manage.Insert(tx.Super, root)
+		if err != nil {
+			return nil, err
+		}
+
+		buf := make([]byte, 8)
+		bin.PutUint64(buf, itemId)
+		rootId, err = manage.Insert(tx.Super, buf)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// 读取根节点
+	rootItem, ok, err = manage.Read(rootId)
+	if !ok || err != nil {
+		return nil, err
+	}
+	return &tree{
+		rootItem:   rootItem,
+		DataManage: manage,
+	}, nil
 }
 
 func (t *tree) rootId() uint64 {
