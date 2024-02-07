@@ -152,6 +152,10 @@ func wrapNode(t *tree, id uint64) (*node, error) {
 	}, nil
 }
 
+func release(n *node) {
+	n.item.Release()
+}
+
 // split 将节点分为 prev 和 next 两个节点
 // 并且返回 next 节点的第一个 key 和新节点的 id
 //
@@ -218,10 +222,6 @@ func (n *node) insert(key, itemId uint64) bool {
 	return true
 }
 
-func (n *node) Release() {
-	n.item.Release() // 从缓存中释放引用
-}
-
 func (n *node) Leaf() bool {
 	n.item.RLock()
 	defer n.item.RUnlock()
@@ -265,10 +265,10 @@ func (n *node) Insert(key, itemId uint64) (uint64, uint64, uint64, error) {
 }
 
 // Search 查找数据
-// 如果无法找到，则返回下一个节点
+// 返回值：
 // childId: 子节点的 id
 // siblingId: 兄弟节点的 id
-func (n *node) Search(key uint64) (childId, siblingId uint64) {
+func (n *node) Search(key uint64) (uint64, uint64) {
 	n.item.RLock()
 	defer n.item.RUnlock()
 
@@ -280,4 +280,39 @@ func (n *node) Search(key uint64) (childId, siblingId uint64) {
 		}
 	}
 	return 0, getSibling(n.data)
+}
+
+// SearchRange 查找范围内的数据
+// 返回值：
+// []uint64: 满足条件的子节点 id
+// uint64: 兄弟节点的 id
+func (n *node) SearchRange(prevKey, nextKey uint64) ([]uint64, uint64) {
+	n.item.RLock()
+	defer n.item.RUnlock()
+
+	res := make([]uint64, 0)
+	num := getKeysNum(n.data)
+	var i int
+	// 查找大于等于 prevKey 的 key index
+	for i < num {
+		if prevKey <= getKey(n.data, i) {
+			break
+		}
+		i++
+	}
+	// 查找小于等于 nextKey 的 key index
+	// 将所有满足条件的 childId 加入到 res 中
+	for i < num {
+		if nextKey < getKey(n.data, i) {
+			break
+		}
+		res = append(res, getChild(n.data, i))
+		i++
+	}
+
+	var sibling uint64
+	if i == num {
+		sibling = getSibling(n.data)
+	}
+	return res, sibling
 }

@@ -8,6 +8,7 @@ import (
 )
 
 type Index interface {
+	Close()
 	Insert(key, itemId uint64) error
 	Search(key uint64) ([]uint64, error)
 	SearchRange(prev, next uint64) ([]uint64, error)
@@ -63,12 +64,13 @@ func (t *tree) insert(nodeId, key, itemId uint64) (uint64, uint64, error) {
 	}
 	isLeaf := nd.Leaf()
 
-	nd.Release()
+	// 释放 node 引用
+	release(nd)
+
+	// 判断是否是叶子节点
 	if isLeaf {
-		// 叶子节点
 		return t.insertNode(nodeId, key, itemId)
 	} else {
-		// 非叶子节点
 		// 查找可以插入的子节点，一直查找到叶子节点
 		child, err = t.searchNode(nodeId, key)
 		if err != nil {
@@ -108,12 +110,46 @@ func (t *tree) insertNode(nodeId, key, itemId uint64) (uint64, uint64, error) {
 		}
 		sibling, newKey, newChild, err = nd.Insert(key, itemId)
 
-		nd.Release()
+		// 释放 node 引用
+		release(nd)
+
+		// 判断是否需要继续查找下一个节点
 		if sibling != 0 {
 			nodeId = sibling
 		} else {
 			return newKey, newChild, err
 		}
+	}
+}
+
+// search
+// 从 node 的子节点中查找 key 直到找到对应的叶子节点 id（itemId）
+func (t *tree) search(nodeId, key uint64) (uint64, error) {
+	var (
+		err error
+
+		nd   *node
+		next uint64
+	)
+
+	nd, err = wrapNode(t, nodeId)
+	if err != nil {
+		return 0, err
+	}
+	isLeaf := nd.Leaf()
+
+	// 释放 node 引用
+	release(nd)
+
+	// 判断是否是叶子节点
+	if isLeaf {
+		return nodeId, nil
+	} else {
+		next, err = t.searchNode(nodeId, key)
+		if err != nil {
+			return 0, err
+		}
+		return t.search(next, key)
 	}
 }
 
@@ -125,14 +161,20 @@ func (t *tree) searchNode(nodeId, key uint64) (uint64, error) {
 		}
 		child, sibling := nd.Search(key)
 
+		// 释放 node 引用
+		release(nd)
+
 		// 如果找到符合条件的节点，则返回
 		// 如果没有找到，则继续查找下一个节点
-		nd.Release()
 		if child != 0 {
 			return child, nil
 		}
 		nodeId = sibling
 	}
+}
+
+func (t *tree) Close() {
+	t.rootItem.Release()
 }
 
 // Insert
@@ -152,14 +194,43 @@ func (t *tree) Insert(key, itemId uint64) error {
 			return err
 		}
 	}
-
 	return nil
 }
 
 func (t *tree) Search(key uint64) ([]uint64, error) {
-	panic("implement me")
+	return t.SearchRange(key, key)
 }
 
-func (t *tree) SearchRange(prev, next uint64) ([]uint64, error) {
-	panic("implement me")
+func (t *tree) SearchRange(prevKey, nextKey uint64) ([]uint64, error) {
+	var (
+		err error
+
+		nd     *node
+		prevId uint64
+	)
+
+	prevId, err = t.search(t.rootId(), prevKey)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []uint64
+	for {
+		nd, err = wrapNode(t, prevId)
+		if err != nil {
+			return nil, err
+		}
+		tmp, sibling := nd.SearchRange(prevKey, nextKey)
+		res = append(res, tmp...)
+
+		// 释放 node 引用
+		release(nd)
+
+		// 判断是否需要继续查找下一个节点
+		if sibling != 0 {
+			prevId = sibling
+		}
+		break
+	}
+	return res, nil
 }
