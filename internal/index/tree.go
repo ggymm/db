@@ -147,7 +147,10 @@ func (t *tree) Insert(key, itemId uint64) error {
 
 	if newChild != 0 {
 		// 需要变更根节点
-		t.updateRootId(newKey, rootId, newChild)
+		err = t.updateRootId(newKey, rootId, newChild)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
