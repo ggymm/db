@@ -109,7 +109,7 @@ func shiftData(data []byte, i int) {
 	}
 }
 
-func writeData(i int, src, dst []byte) {
+func writeInitData(i int, dst, src []byte) {
 	off := getOff(i)
 	copy(dst[headerLen:], src[off:])
 }
@@ -122,7 +122,7 @@ func initRoot() []byte {
 	return buf
 }
 
-func createRoot(left, right uint64, key uint64) []byte {
+func createRoot(key, prev, next uint64) []byte {
 	buf := make([]byte, nodeSize)
 	setLeaf(buf, false) // 非叶子节点
 	setKeysNum(buf, 2)  // 相当于有两个子节点
@@ -130,11 +130,11 @@ func createRoot(left, right uint64, key uint64) []byte {
 
 	// 左节点
 	setKey(buf, 0, key)
-	setChild(buf, 0, left)
+	setChild(buf, 0, prev)
 
 	// 右节点
 	setKey(buf, 1, math.MaxUint64)
-	setChild(buf, 1, right)
+	setChild(buf, 1, next)
 	return buf
 }
 
@@ -152,6 +152,11 @@ func wrapNode(t *tree, id uint64) (*node, error) {
 	}, nil
 }
 
+// split 将节点分为 prev 和 next 两个节点
+// 并且返回 next 节点的第一个 key 和新节点的 id
+//
+// newKey: next 节点的第一个 key
+// newChild: next 节点的 itemId
 /*
    key0, child0, key60, child60, INF, child99
 
@@ -159,12 +164,6 @@ func wrapNode(t *tree, id uint64) (*node, error) {
                   ↓                       ↓
    key0, child0, key60, child60, key60, child11, INF, child99
 */
-// split 将节点分为 prev 和 next 两个节点
-// 并且返回 next 节点的第一个 key 和新节点的 id
-//
-// newKey: next 节点的第一个 key
-// newChild: next 节点的 itemId
-//
 func (n *node) split() (uint64, uint64, error) {
 	buf := make([]byte, nodeSize)
 
@@ -172,7 +171,7 @@ func (n *node) split() (uint64, uint64, error) {
 	setLeaf(buf, getLeaf(n.data))
 	setKeysNum(buf, balanceNum)
 	setSibling(buf, getSibling(n.data))
-	writeData(balanceNum, buf, n.data)
+	writeInitData(balanceNum, buf, n.data)
 
 	// 插入新节点
 	newChild, err := n.tree.DataManage.Insert(tx.Super, buf)

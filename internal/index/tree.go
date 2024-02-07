@@ -1,6 +1,7 @@
 package index
 
 import (
+	"db/internal/tx"
 	"sync"
 
 	"db/internal/data"
@@ -24,6 +25,26 @@ func (t *tree) rootId() uint64 {
 	defer t.lock.Unlock()
 
 	return bin.Uint64(t.rootItem.DataBody())
+}
+
+func (t *tree) updateRootId(key, prev, next uint64) error {
+	t.lock.Lock()
+	defer t.lock.Unlock()
+
+	// 插入根节点
+	root := createRoot(key, prev, next)
+	rootId, err := t.DataManage.Insert(tx.Super, root)
+	if err != nil {
+		return err
+	}
+
+	// 更新根节点Id
+	t.rootItem.Before()
+	buf := make([]byte, 8)
+	bin.PutUint64(buf, rootId)
+	copy(t.rootItem.DataBody(), buf)
+	t.rootItem.After(tx.Super)
+	return nil
 }
 
 // insert
@@ -119,7 +140,16 @@ func (t *tree) searchNode(nodeId, key uint64) (uint64, error) {
 func (t *tree) Insert(key, itemId uint64) error {
 	rootId := t.rootId()
 
-	t.insert(rootId, key, itemId)
+	newKey, newChild, err := t.insert(rootId, key, itemId)
+	if err != nil {
+		return err
+	}
+
+	if newChild != 0 {
+		// 需要变更根节点
+		t.updateRootId(newKey, rootId, newChild)
+	}
+
 	return nil
 }
 
