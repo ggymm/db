@@ -48,6 +48,7 @@ func (t *tree) insert(nodeId, key, itemId uint64) (uint64, uint64, error) {
 		return t.insertNode(nodeId, key, itemId)
 	} else {
 		// 非叶子节点
+		// 查找可以插入的子节点，一直查找到叶子节点
 		child, err = t.searchNode(nodeId, key)
 		if err != nil {
 			return 0, 0, err
@@ -60,7 +61,8 @@ func (t *tree) insert(nodeId, key, itemId uint64) (uint64, uint64, error) {
 		// 如果新的子节点不为 0 则代表下一层产生了分裂
 		// 需要在当前层插入分裂的节点信息 newKey 和 newChild
 		if newChild != 0 {
-			// 如果新的子节点不为 0，则需要分裂
+			// 此处可以判断 newKey 或者 newChild 是否为 0
+			// 如果不为 0 则代表插入数据后产生了分裂，需要继续向上层插入
 			return t.insertNode(nodeId, newKey, newChild)
 		}
 	}
