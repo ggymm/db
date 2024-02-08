@@ -50,14 +50,14 @@ type node struct {
 }
 
 func getLeaf(data []byte) bool {
-	return data[offLeaf] == 1
+	return data[offLeaf] == byte(1)
 }
 
 func setLeaf(data []byte, leaf bool) {
 	if leaf {
-		data[offLeaf] = 1
+		data[offLeaf] = byte(1)
 	} else {
-		data[offLeaf] = 0
+		data[offLeaf] = byte(0)
 	}
 }
 
@@ -73,8 +73,8 @@ func getSibling(data []byte) uint64 {
 	return bin.Uint64(data[offSibling:])
 }
 
-func setSibling(data []byte, child uint64) {
-	bin.PutUint64(data[offSibling:], child)
+func setSibling(data []byte, sibling uint64) {
+	bin.PutUint64(data[offSibling:], sibling)
 }
 
 func getOff(i int) int {
@@ -217,12 +217,18 @@ func (n *node) insert(key, itemId uint64) bool {
 		shiftData(n.data, i)
 		setKey(n.data, i, key)
 		setChild(n.data, i+1, itemId)
+
+		// nextKey := getKey(n.data, i)
+		// setKey(n.data, i, key)
+		// shiftData(n.data, i+1)
+		// setKey(n.data, i+1, nextKey)
+		// setChild(n.data, i+1, itemId)
 	}
 	setKeysNum(n.data, num+1)
 	return true
 }
 
-func (n *node) Leaf() bool {
+func (n *node) IsLeaf() bool {
 	n.item.RLock()
 	defer n.item.RUnlock()
 
@@ -243,6 +249,7 @@ func (n *node) Insert(key, itemId uint64) (uint64, uint64, uint64, error) {
 		newKey   uint64
 		newChild uint64
 	)
+
 	n.item.Before()
 	defer func() {
 		if err == nil && success {
@@ -265,6 +272,7 @@ func (n *node) Insert(key, itemId uint64) (uint64, uint64, uint64, error) {
 }
 
 // Search 查找数据
+//
 // 返回值：
 // childId: 子节点的 id
 // siblingId: 兄弟节点的 id
@@ -283,6 +291,7 @@ func (n *node) Search(key uint64) (uint64, uint64) {
 }
 
 // SearchRange 查找范围内的数据
+//
 // 返回值：
 // []uint64: 满足条件的子节点 id
 // uint64: 兄弟节点的 id

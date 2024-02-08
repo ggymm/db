@@ -91,18 +91,15 @@ func (t *tree) updateRootId(key, prev, next uint64) error {
 // insert
 func (t *tree) insert(nodeId, key, itemId uint64) (uint64, uint64, error) {
 	var (
+		nd  *node
 		err error
-
-		nd               *node
-		child            uint64
-		newKey, newChild uint64
 	)
 
 	nd, err = wrapNode(t, nodeId)
 	if err != nil {
 		return 0, 0, err
 	}
-	isLeaf := nd.Leaf()
+	isLeaf := nd.IsLeaf()
 
 	// 释放 node 引用
 	release(nd)
@@ -111,6 +108,10 @@ func (t *tree) insert(nodeId, key, itemId uint64) (uint64, uint64, error) {
 	if isLeaf {
 		return t.insertNode(nodeId, key, itemId)
 	} else {
+		var (
+			child            uint64
+			newKey, newChild uint64
+		)
 		// 查找可以插入的子节点，一直查找到叶子节点
 		child, err = t.searchNode(nodeId, key)
 		if err != nil {
@@ -137,9 +138,9 @@ func (t *tree) insert(nodeId, key, itemId uint64) (uint64, uint64, error) {
 // 如果需要分裂，则返回新的 key 和新的 child
 func (t *tree) insertNode(nodeId, key, itemId uint64) (uint64, uint64, error) {
 	var (
+		nd  *node
 		err error
 
-		nd               *node
 		sibling          uint64
 		newKey, newChild uint64
 	)
@@ -166,17 +167,15 @@ func (t *tree) insertNode(nodeId, key, itemId uint64) (uint64, uint64, error) {
 // 从 node 的子节点中查找 key 直到找到对应的叶子节点 id（itemId）
 func (t *tree) search(nodeId, key uint64) (uint64, error) {
 	var (
+		nd  *node
 		err error
-
-		nd   *node
-		next uint64
 	)
 
 	nd, err = wrapNode(t, nodeId)
 	if err != nil {
 		return 0, err
 	}
-	isLeaf := nd.Leaf()
+	isLeaf := nd.IsLeaf()
 
 	// 释放 node 引用
 	release(nd)
@@ -185,6 +184,7 @@ func (t *tree) search(nodeId, key uint64) (uint64, error) {
 	if isLeaf {
 		return nodeId, nil
 	} else {
+		var next uint64
 		next, err = t.searchNode(nodeId, key)
 		if err != nil {
 			return 0, err
@@ -267,10 +267,10 @@ func (t *tree) SearchRange(prevKey, nextKey uint64) ([]uint64, error) {
 		release(nd)
 
 		// 判断是否需要继续查找下一个节点
-		if sibling != 0 {
-			prevId = sibling
+		if sibling == 0 {
+			break
 		}
-		break
+		prevId = sibling
 	}
 	return res, nil
 }

@@ -103,5 +103,18 @@ func Test_Inf(t *testing.T) {
 	t.Log(uint64(math.Inf(1)) > uint64(math.MaxUint64))
 	t.Log(math.Inf(1) > float64(math.MaxUint64))
 
-	t.Log(uint64(0x7FF0000000000000))
+	t.Log(uint64(14263705658874422041) > uint64(math.MaxUint64))
+}
+
+func Test_Data(t *testing.T) {
+	buf := make([]byte, nodeSize)
+
+	setLeaf(buf, true)
+	setKeysNum(buf, 1)
+	setSibling(buf, 1)
+	t.Logf("%v", buf)
+
+	setKey(buf, 0, 99)
+	setChild(buf, 0, 99)
+	t.Logf("%v", buf)
 }
