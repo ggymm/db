@@ -6,6 +6,8 @@ package sql
 	str string
 	strList []string
 	boolean bool
+	fieldType FieldType
+	compareOperate CompareOperate
 
 	stmt Statement
 	stmtList []Statement
@@ -15,7 +17,8 @@ package sql
 	fieldDef *FieldDef
 	indexDef *IndexDef
 	tableOption *TableOption
-	fieldType FieldType
+
+	selectStmt *SelectStmt
 }
 
 %token <str>
@@ -42,6 +45,10 @@ package sql
 %type <stmtList> StmtList
 
 // 语法定义（创建表）
+%type <str> DefaultValue
+%type <boolean> AllowNull
+%type <fieldType> FieldType
+
 %type <createStmt> CreateStmt
 %type <tableDef> TableDef
 
@@ -51,9 +58,10 @@ package sql
 %type <indexDef> PrimaryDef
 %type <tableOption> TableOption
 
-%type <fieldType> FieldType
-%type <boolean> AllowNull
-%type <str> DefaultValue
+// 语法定义（查询表）
+%type <compareOperate> CompareOperate
+
+%type <selectStmt> SelectStmt
 
 
 %start start
@@ -101,6 +109,48 @@ StmtList:
 	}
 
 // 语法规则（创建表）
+AllowNull:
+	{
+		$$ = true
+	}
+	| "NULL"
+	{
+		$$ = true
+	}
+	| "NOT" "NULL"
+	{
+		$$ = false
+	}
+
+DefaultValue:
+	{
+		$$ = ""
+	}
+	| "DEFAULT"
+	{
+		$$ = ""
+	}
+	| "DEFAULT" "NULL"
+	{
+		$$ = ""
+	}
+	| "DEFAULT" Expr
+   	{
+	   	$$ = $2
+   	}
+
+FieldType:
+	Expr
+	{
+		t, ok := typeMapping[$1]
+		if ok {
+			$$ = t
+		} else {
+			__yyfmt__.Printf("不支持的数据类型 %s",$1)
+			goto ret1
+		}
+	}
+
 CreateStmt:
 	"CREATE" "TABLE" Expr '(' TableDef ')' TableOption ';'
 	{
@@ -181,52 +231,55 @@ PrimaryDef:
 		}
 	}
 
-FieldType:
-	Expr
-	{
-		t, ok := typeMapping[$1]
-		if ok {
-			$$ = t
-		} else {
-			__yyfmt__.Printf("不支持的数据类型 %s",$1)
-			goto ret1
-		}
-	}
-
-AllowNull:
-	{
-		$$ = true
-	}
-	| "NULL"
-	{
-		$$ = true
-	}
-	| "NOT" "NULL"
-	{
-		$$ = false
-	}
-
-DefaultValue:
-	{
-		$$ = ""
-	}
-	| "DEFAULT"
-	{
-		$$ = ""
-	}
-	| "DEFAULT" "NULL"
-	{
-		$$ = ""
-	}
-	| "DEFAULT" Expr
-   	{
-	   	$$ = $2
-   	}
-
 TableOption:
 	{
 		$$ = nil
 	}
 
+// 语法规则（查询表）
+CompareOp:
+    '='
+    {
+        $$ = EQ
+    }
+    | '<'
+    {
+        $$ = LT
+    }
+    | '>'
+    {
+        $$ = GT
+    }
+    | "<="
+    {
+        $$ = LE
+    }
+    | ">="
+    {
+        $$ = GE
+    }
+    | "!="
+    {
+        $$ = NE
+    }
+
+SelectStmt:
+    "SELECT" SelectFieldList SelectStmtLimit ';'
+    {
+        $$ = &SelectStmt{
+        	Filed: $2,
+        	Limit: $3,
+        }
+    }
+    |  "SELECT" SelectFieldList SelectStmtFrom SelectStmtWhere SelectStmtOrder SelectStmtLimit ';'
+    {
+        $$ = &SelectStmt{
+        	Filed: $2,
+        	From: $3,
+        	Where: $4,
+        	Order: $5,
+        	Limit: $6,
+        }
+    }
 
 %%

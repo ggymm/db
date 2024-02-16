@@ -24,6 +24,34 @@ var typeMapping = map[string]FieldType{
 	"VARCHAR": Varchar,
 }
 
+type CompareOp int
+
+const (
+	EQ CompareOp = iota // =
+	NE                  // !=
+	LT                  // <
+	GT                  // >
+	LE                  // <=
+	GE                  // >=
+)
+
+func (o *CompareOp) Negate() {
+	switch *o {
+	case EQ:
+		*o = NE
+	case NE:
+		*o = EQ
+	case LT:
+		*o = GE
+	case GT:
+		*o = LE
+	case LE:
+		*o = GT
+	case GE:
+		*o = LT
+	}
+}
+
 type Statement interface {
 	GetStmtType() StmtType
 }
@@ -39,12 +67,9 @@ func (*CreateStmt) GetStmtType() StmtType {
 }
 
 type TableDef struct {
-	TableId   int
-	PKAsRowId bool
-	RowId     int
-	Field     []*FieldDef
-	Index     []*IndexDef
-	Primary   *IndexDef
+	Field   []*FieldDef
+	Index   []*IndexDef
+	Primary *IndexDef
 }
 
 type FieldDef struct {
@@ -61,4 +86,23 @@ type IndexDef struct {
 }
 
 type TableOption struct {
+}
+
+type SelectStmt struct {
+	Field []string
+	From  string
+	Where interface{}
+	Order interface{}
+	Limit interface{}
+}
+
+func (*SelectStmt) GetStmtType() StmtType {
+	return Select
+}
+
+type InsertStmt struct {
+}
+
+func (*InsertStmt) GetStmtType() StmtType {
+	return Insert
 }

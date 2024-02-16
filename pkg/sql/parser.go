@@ -29,33 +29,37 @@ func (l *Lexer) Error(s string) {
 	l.errs = append(l.errs, s)
 }
 
+// Lex 是词法分析器的实现，用于识别并提取 SQL 语句中的 token
+// 此函数会被 yacc 生成的代码调用
 func (l *Lexer) Lex(val *yySymType) int {
+	// start 和 finish 用于标记 token 的起始和结束位置
 	start := l.offset
 	finish := len(l.sql)
 	if l.offset >= finish {
 		return 0
 	}
 
-	prevQuote := false
-	prevBacktick := false
-	prevSingleQuotes := false
-	prevDoubleQuotes := false
-
+	prevQuote := false        // 用于标记是否在引号内
+	prevBacktick := false     // 用于标记是否在反引号内
+	prevSingleQuotes := false // 用于标记是否在单引号内
+	prevDoubleQuotes := false // 用于标记是否在双引号内
 	for i := l.offset; i < len(l.sql); i++ {
 		switch l.sql[i] {
 		case '\\':
 			continue
+		case '`':
+			prevBacktick = !prevBacktick
+			prevQuote = prevBacktick || prevSingleQuotes || prevDoubleQuotes
 		case '\'':
 			prevSingleQuotes = !prevSingleQuotes
 			prevQuote = prevBacktick || prevSingleQuotes || prevDoubleQuotes
 		case '"':
 			prevDoubleQuotes = !prevDoubleQuotes
 			prevQuote = prevBacktick || prevSingleQuotes || prevDoubleQuotes
-		case '`':
-			prevBacktick = !prevBacktick
-			prevQuote = prevBacktick || prevSingleQuotes || prevDoubleQuotes
 		}
 
+		// 如果不在引号内
+		// 那么根据当前字符判断是否结束 token
 		if !prevQuote {
 			switch l.sql[i] {
 			case ' ', '\n', '\t':
