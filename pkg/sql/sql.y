@@ -13,10 +13,10 @@ package sql
 	stmtList []Statement
 
 	createStmt *CreateStmt
-	tableDef *TableDef
-	fieldDef *FieldDef
-	indexDef *IndexDef
-	tableOption *TableOption
+	createTable *CreateTable
+	createField *CreateField
+	createIndex *CreateIndex
+	createTableOption *CreateTableOption
 
 	selectStmt *SelectStmt
 }
@@ -50,13 +50,13 @@ package sql
 %type <fieldType> FieldType
 
 %type <createStmt> CreateStmt
-%type <tableDef> TableDef
+%type <createTable> CreateTable
 
-%type <fieldDef> FieldDef
+%type <createField> CreateField
 
-%type <indexDef> IndexDef
-%type <indexDef> PrimaryDef
-%type <tableOption> TableOption
+%type <createIndex> CreateIndex
+%type <createIndex> CreatePrimary
+%type <createTableOption> CreateTableOption
 
 // 语法定义（查询表）
 %type <compareOperate> CompareOperate
@@ -152,47 +152,47 @@ FieldType:
 	}
 
 CreateStmt:
-	"CREATE" "TABLE" Expr '(' TableDef ')' TableOption ';'
+	"CREATE" "TABLE" Expr '(' createTable ')' createTableOption ';'
 	{
 		$$ = &CreateStmt{
 			TableName: $3,
-			TableDef: $5,
+			Table: $5,
 			TableOption: $7,
 		}
 	}
 
-TableDef:
-	FieldDef
+CreateTable:
+	CreateField
 	{
-		$$ = &TableDef{
-			Field: []*FieldDef{$1},
-			Index: []*IndexDef{},
+		$$ = &CreateTable{
+			Field: []*CreateField{$1},
+			Index: []*CreateIndex{},
 		}
 	}
-	| IndexDef
+	| CreateIndex
 	{
-		$$ = &TableDef{
-			Field: []*FieldDef{},
-			Index: []*IndexDef{$1},
+		$$ = &CreateTable{
+			Field: []*CreateField{},
+			Index: []*CreateIndex{$1},
 		}
 	}
-	| PrimaryDef
+	| CreatePrimary
 	{
-		$$ = &TableDef{
-			Field: []*FieldDef{},
-			Index: []*IndexDef{},
+		$$ = &CreateTable{
+			Field: []*CreateField{},
+			Index: []*CreateIndex{},
 			Primary: $1,
 		}
 	}
-	| TableDef ',' FieldDef
+	| CreateTable ',' CreateField
 	{
 		$$.Field = append($$.Field, $3)
 	}
-	| TableDef ',' IndexDef
+	| CreateTable ',' CreateIndex
 	{
 		$$.Index = append($$.Index, $3)
 	}
-	| TableDef ',' PrimaryDef
+	| CreateTable ',' CreatePrimary
 	{
 		if $$.Primary == nil {
 			$$.Primary = $3
@@ -202,10 +202,10 @@ TableDef:
 		}
 	}
 
-FieldDef:
+CreateField:
 	Expr FieldType AllowNull DefaultValue
 	{
-		$$ = &FieldDef{
+		$$ = &CreateField{
 			FieldName: $1,
 			FieldType: $2,
 			AllowNull: $3,
@@ -213,25 +213,25 @@ FieldDef:
 		}
 	}
 
-IndexDef:
+CreateIndex:
 	"INDEX" Expr '(' VaribleList ')'
 	{
-		$$ = &IndexDef{
+		$$ = &CreateIndex{
 			IndexName: $2,
 			IndexField: $4,
 		}
 	}
 
-PrimaryDef:
+CreatePrimary:
 	"PRIMARY" "KEY" '(' VaribleList ')'
 	{
-		$$ = &IndexDef{
+		$$ = &CreateIndex{
 			Primary: true,
 			IndexField: $4,
 		}
 	}
 
-TableOption:
+CreateTableOption:
 	{
 		$$ = nil
 	}
@@ -275,7 +275,7 @@ SelectStmt:
     {
         $$ = &SelectStmt{
         	Filed: $2,
-        	From: $3,
+        	Table: $3,
         	Where: $4,
         	Order: $5,
         	Limit: $6,

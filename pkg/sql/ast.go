@@ -58,39 +58,39 @@ type Statement interface {
 
 type CreateStmt struct {
 	TableName   string
-	TableDef    *TableDef
-	TableOption *TableOption
+	Table       *CreateTable
+	TableOption *CreateTableOption
 }
 
 func (*CreateStmt) GetStmtType() StmtType {
 	return Create
 }
 
-type TableDef struct {
-	Field   []*FieldDef
-	Index   []*IndexDef
-	Primary *IndexDef
+type CreateTable struct {
+	Field   []*CreateField
+	Index   []*CreateIndex
+	Primary *CreateIndex
 }
 
-type FieldDef struct {
+type CreateField struct {
 	FieldName    string
 	FieldType    FieldType
 	AllowNull    bool
 	DefaultValue string
 }
 
-type IndexDef struct {
+type CreateIndex struct {
 	IndexName  string
 	Primary    bool
 	IndexField []string
 }
 
-type TableOption struct {
+type CreateTableOption struct {
 }
 
 type SelectStmt struct {
 	Field []string
-	From  string
+	Table string
 	Where interface{}
 	Order interface{}
 	Limit interface{}
