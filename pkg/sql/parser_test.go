@@ -22,5 +22,29 @@ func Test_Create(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
-	t.Logf("%+v", stmts)
+	for i, stmt := range stmts {
+		t.Logf("%d %+v", i, stmt)
+	}
+}
+
+func TestSelect(t *testing.T) {
+	//goland:noinspection SqlDialectInspection,SqlNoDataSourceInspection
+	stmts, err := ParseSQL(`SELECT * FROM device WHERE device_id = 1 OR device_id = 2 AND device_name = 'pname \t\\<>12 ' LIMIT 10, 10;`)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+	for i, stmt := range stmts {
+		t.Logf("%d %+v", i, stmt)
+	}
+}
+
+func TestInsert(t *testing.T) {
+	//goland:noinspection SqlDialectInspection,SqlNoDataSourceInspection
+	stmts, err := ParseSQL("INSERT INTO device ('device_id' , 'device_name' ) VALUES ('1~sd\n==dfds','2'),('3','4');")
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+	for i, stmt := range stmts {
+		t.Logf("%d %+v", i, stmt)
+	}
 }

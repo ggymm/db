@@ -18,6 +18,7 @@ func newOpt(open bool) *opt.Option {
 	path := filepath.Join(base, "temp/data")
 	return &opt.Option{
 		Open:   open,
+		Name:   "test",
 		Path:   path,
 		Memory: (1 << 20) * 64,
 	}

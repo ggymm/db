@@ -1,5 +1,10 @@
 package sql
 
+import (
+	"fmt"
+	"strconv"
+)
+
 type StmtType int
 
 const (
@@ -24,18 +29,18 @@ var typeMapping = map[string]FieldType{
 	"VARCHAR": Varchar,
 }
 
-type CompareOp int
+type CompareOperate int
 
 const (
-	EQ CompareOp = iota // =
-	NE                  // !=
-	LT                  // <
-	GT                  // >
-	LE                  // <=
-	GE                  // >=
+	EQ CompareOperate = iota // =
+	NE                       // !=
+	LT                       // <
+	GT                       // >
+	LE                       // <=
+	GE                       // >=
 )
 
-func (o *CompareOp) Negate() {
+func (o *CompareOperate) Negate() {
 	switch *o {
 	case EQ:
 		*o = NE
@@ -57,9 +62,9 @@ type Statement interface {
 }
 
 type CreateStmt struct {
-	TableName   string
-	Table       *CreateTable
-	TableOption *CreateTableOption
+	Name   string
+	Table  *CreateTable
+	Option *CreateTableOption
 }
 
 func (*CreateStmt) GetStmtType() StmtType {
@@ -67,40 +72,149 @@ func (*CreateStmt) GetStmtType() StmtType {
 }
 
 type CreateTable struct {
-	Field   []*CreateField
-	Index   []*CreateIndex
-	Primary *CreateIndex
+	Pk    *CreateIndex
+	Field []*CreateField
+	Index []*CreateIndex
 }
 
 type CreateField struct {
-	FieldName    string
-	FieldType    FieldType
+	Name         string
+	Type         FieldType
 	AllowNull    bool
 	DefaultValue string
 }
 
 type CreateIndex struct {
-	IndexName  string
-	Primary    bool
-	IndexField []string
+	Pk    bool
+	Name  string
+	Field []string
 }
 
 type CreateTableOption struct {
 }
 
 type SelectStmt struct {
-	Field []string
-	Table string
-	Where interface{}
-	Order interface{}
-	Limit interface{}
+	Field []*SelectField
+	From  *SelectFrom
+	Where []SelectWhere
+	Order []*SelectOrder
+	Limit *SelectLimit
 }
 
 func (*SelectStmt) GetStmtType() StmtType {
 	return Select
 }
 
+type SelectFrom struct {
+	Name string
+}
+
+type SelectField struct {
+	Name  string
+	Alias string
+}
+
+type SelectWhere interface {
+	Negate()
+	Prepare(fieldMapping map[string]int) error
+	Filter(row *[]string) bool
+}
+
+type SelectWhereExpr struct {
+	Negation bool
+	Cnf      []SelectWhere
+}
+
+func (w *SelectWhereExpr) Negate() {
+	w.Negation = !w.Negation
+}
+
+func (w *SelectWhereExpr) Prepare(fieldMapping map[string]int) error {
+	for _, be := range w.Cnf {
+		err := be.Prepare(fieldMapping)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (w *SelectWhereExpr) Filter(row *[]string) bool {
+	filter := true
+	for _, be := range w.Cnf {
+		filter = filter && be.Filter(row)
+	}
+
+	if w.Negation {
+		return !filter
+	}
+	return filter
+}
+
+type SelectWhereField struct {
+	Pos     int
+	Field   string
+	Value   string
+	Operate CompareOperate
+}
+
+func (w *SelectWhereField) Negate() {
+	w.Operate.Negate()
+}
+
+func (w *SelectWhereField) Prepare(fieldMapping map[string]int) error {
+	pos, exist := fieldMapping[w.Field]
+	if !exist {
+		_, err := strconv.Atoi(w.Field)
+		if err != nil {
+			return fmt.Errorf("查询列 %s 不存在", w.Field)
+		}
+		w.Pos = -1
+		return nil
+	}
+	w.Pos = pos
+	return nil
+}
+
+func (w *SelectWhereField) Filter(row *[]string) bool {
+	var val string
+	if w.Pos == -1 {
+		val = w.Field
+	} else {
+		val = (*row)[w.Pos]
+	}
+
+	switch w.Operate {
+	case EQ:
+		return w.Value == val
+	case NE:
+		return w.Value != val
+	case LT:
+		return w.Value < val
+	case GT:
+		return w.Value > val
+	case LE:
+		return w.Value <= val
+	case GE:
+		return w.Value >= val
+	}
+	return false
+}
+
+type SelectOrder struct {
+	Asc   bool
+	Field string
+}
+
+type SelectLimit struct {
+	Limit  int
+	Offset int
+}
+
 type InsertStmt struct {
+	Table  string
+	Fields []string
+	Values [][]string
 }
 
 func (*InsertStmt) GetStmtType() StmtType {

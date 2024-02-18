@@ -11,7 +11,7 @@ import (
 
 func newOpt(open bool) *opt.Option {
 	base := utils.RunPath()
-	path := filepath.Join(base, "temp/db")
+	path := filepath.Join(base, "temp/page")
 	return &opt.Option{
 		Open:   open,
 		Path:   path,
@@ -21,7 +21,7 @@ func newOpt(open bool) *opt.Option {
 
 func TestNewPage(t *testing.T) {
 	base := utils.RunPath()
-	path := filepath.Join(base, "temp/db")
+	path := filepath.Join(base, "temp/page")
 	// 清空目录
 	err := os.RemoveAll(path)
 	if err != nil {
