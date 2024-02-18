@@ -20,13 +20,13 @@ var (
 )
 
 type Manage interface {
-	Read(tid uint64, key uint64) ([]byte, bool, error)
-	Insert(tid uint64, data []byte) (uint64, error)
-	Delete(tid uint64, key uint64) (bool, error)
-
 	Begin(level int) uint64
 	Abort(tid uint64)
 	Commit(tid uint64) error
+
+	Insert(tid uint64, data []byte) (uint64, error)
+	Delete(tid uint64, key uint64) (bool, error)
+	Select(tid uint64, key uint64) ([]byte, bool, error)
 }
 
 type verManage struct {
@@ -99,30 +99,41 @@ func (vm *verManage) releaseForCache(data any) {
 	ent.item.Release() // 将 entry 从内存中彻底释放
 }
 
-func (vm *verManage) Read(tid uint64, key uint64) ([]byte, bool, error) {
+// Begin 开启一个事务
+//
+// 保存当前处于激活状态的事务
+func (vm *verManage) Begin(level int) uint64 {
+	vm.lock.Lock()
+	defer vm.lock.Unlock()
+
+	// 开启一个事务，并且缓存当前处于激活状态该的事务
+	tid := vm.txManage.Begin()
+	vm.txCache[tid] = newTransaction(tid, level, vm.txCache)
+	return tid
+}
+
+// Abort 取消一个事务
+func (vm *verManage) Abort(tid uint64) {
+	vm.abort(tid, true)
+}
+
+// Commit 提交一个事务
+func (vm *verManage) Commit(tid uint64) error {
 	vm.lock.Lock()
 	t := vm.txCache[tid]
 	vm.lock.Unlock()
 
 	if t.Err != nil {
-		return nil, false, t.Err
+		return t.Err
 	}
 
-	// 读取数据
-	val, err := vm.cache.Obtain(key)
-	if err != nil {
-		if errors.Is(err, ErrNotFound) {
-			return nil, false, nil
-		}
-		return nil, false, err
-	}
-	ent := val.(*entry)
-	defer vm.cache.Release(tid) // 释放缓存
+	vm.lock.Lock()
+	delete(vm.txCache, tid)
+	vm.lock.Unlock()
 
-	if !t.IsVisible(vm.txManage, ent) {
-		return nil, false, nil
-	}
-	return ent.Data(), true, nil
+	vm.txLock.Remove(tid)
+	vm.txManage.Commit(tid)
+	return nil
 }
 
 func (vm *verManage) Insert(tid uint64, data []byte) (uint64, error) {
@@ -194,39 +205,28 @@ func (vm *verManage) Delete(tid uint64, key uint64) (bool, error) {
 	return true, nil
 }
 
-// Begin 开启一个事务
-//
-// 保存当前处于激活状态的事务
-func (vm *verManage) Begin(level int) uint64 {
-	vm.lock.Lock()
-	defer vm.lock.Unlock()
-
-	// 开启一个事务，并且缓存当前处于激活状态该的事务
-	tid := vm.txManage.Begin()
-	vm.txCache[tid] = newTransaction(tid, level, vm.txCache)
-	return tid
-}
-
-// Abort 取消一个事务
-func (vm *verManage) Abort(tid uint64) {
-	vm.abort(tid, true)
-}
-
-// Commit 提交一个事务
-func (vm *verManage) Commit(tid uint64) error {
+func (vm *verManage) Select(tid uint64, key uint64) ([]byte, bool, error) {
 	vm.lock.Lock()
 	t := vm.txCache[tid]
 	vm.lock.Unlock()
 
 	if t.Err != nil {
-		return t.Err
+		return nil, false, t.Err
 	}
 
-	vm.lock.Lock()
-	delete(vm.txCache, tid)
-	vm.lock.Unlock()
+	// 读取数据
+	val, err := vm.cache.Obtain(key)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+	ent := val.(*entry)
+	defer vm.cache.Release(tid) // 释放缓存
 
-	vm.txLock.Remove(tid)
-	vm.txManage.Commit(tid)
-	return nil
+	if !t.IsVisible(vm.txManage, ent) {
+		return nil, false, nil
+	}
+	return ent.Data(), true, nil
 }

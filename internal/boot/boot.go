@@ -34,7 +34,7 @@ func New(opt *opt.Option) Boot {
 	)
 	if opt.Open {
 		// 读取文件
-		f, err = os.OpenFile(path, os.O_RDWR, 0600)
+		f, err = os.OpenFile(path, os.O_RDWR, 0666)
 		if err != nil {
 			panic(err)
 		}
@@ -49,7 +49,7 @@ func New(opt *opt.Option) Boot {
 		}
 
 		// 创建文件
-		f, err = os.OpenFile(path, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0600)
+		f, err = os.OpenFile(path, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0666)
 		if err != nil {
 			panic(err)
 		}
@@ -81,7 +81,7 @@ func (b *boot) Load() []byte {
 }
 
 func (b *boot) Update(data []byte) {
-	tmpFile, err := os.OpenFile(b.path+SuffixTmp, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0600)
+	tmpFile, err := os.OpenFile(b.path+SuffixTmp, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0666)
 	if err != nil {
 		panic(err)
 	}
@@ -107,7 +107,7 @@ func (b *boot) Update(data []byte) {
 	}
 
 	// 重新打开文件
-	b.f, err = os.OpenFile(b.path+Suffix, os.O_RDWR, 0600)
+	b.f, err = os.OpenFile(b.path+Suffix, os.O_RDWR, 0666)
 	if err != nil {
 		panic(err)
 	}

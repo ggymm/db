@@ -48,3 +48,25 @@ func TestInsert(t *testing.T) {
 		t.Logf("%d %+v", i, stmt)
 	}
 }
+
+func TestUpdate(t *testing.T) {
+	//goland:noinspection SqlDialectInspection,SqlNoDataSourceInspection
+	stmts, err := ParseSQL("UPDATE device SET device_id = 1, device_name = 'pname \t\\<>12 ' WHERE device_id = 1;")
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+	for i, stmt := range stmts {
+		t.Logf("%d %+v", i, stmt)
+	}
+}
+
+func TestDelete(t *testing.T) {
+	//goland:noinspection SqlDialectInspection,SqlNoDataSourceInspection
+	stmts, err := ParseSQL("DELETE FROM device WHERE device_id = 1;")
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+	for i, stmt := range stmts {
+		t.Logf("%d %+v", i, stmt)
+	}
+}

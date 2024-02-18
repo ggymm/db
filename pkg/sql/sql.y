@@ -31,7 +31,12 @@ import (
 	selectLimit *SelectLimit
 
 	insertStmt *InsertStmt
-    valueList [][]string
+    insertValue [][]string
+
+    updateStmt *UpdateStmt
+    updateValue map[string]string
+    
+    deleteStmt *DeleteStmt
 }
 
 %token <str>
@@ -56,11 +61,16 @@ import (
 	DESC "DESC"
 	LIMIT "LIMIT"
 	OFFSET "OFFSET"
-	// 关键字（插入表）
+	// 关键字（插入数据）
 	INSERT "INSERT"
 	INTO "INTO"
 	VALUE "VALUE"
 	VALUES "VALUES"
+	// 关键字（更新数据）
+	UPDATE "UPDATE"
+	SET "SET"
+	// 关键字（删除数据）
+	DELETE "DELETE"
 
 %token <str>
 	COMP_NE "!="
@@ -98,12 +108,18 @@ import (
 %type <selectOrderList> SelectOrder SelectOrderList
 %type <selectLimit> SelectLimit
 
-// 语法定义（插入表）
+// 语法定义（插入数据）
 %type <insertStmt> InsertStmt
 %type <str> InsertTable
 %type <strList> InsertField InsertFieldList
-%type <valueList> InsertValue InsertValueList
+%type <insertValue> InsertValue InsertValueList
 
+// 语法定义（更新数据）
+%type <updateStmt> UpdateStmt
+%type <updateValue> UpdateValue
+
+// 语法定义（删除数据）
+%type <deleteStmt> DeleteStmt
 
 %left OR
 %left AND
@@ -148,6 +164,14 @@ Stmt:
 		$$ = Statement($1)
 	}
 	| InsertStmt
+	{
+		$$ = Statement($1)
+	}
+	| UpdateStmt
+	{
+		$$ = Statement($1)
+	}
+	| DeleteStmt
 	{
 		$$ = Statement($1)
 	}
@@ -548,7 +572,7 @@ SelectLimit:
 		}
 	}
 
-// 语法规则（插入表）
+// 语法规则（插入数据）
 InsertStmt:
 	"INSERT" InsertTable InsertField InsertValue ';'
 	{
@@ -599,6 +623,39 @@ InsertValueList:
 	| InsertValueList ',' '(' VaribleList ')'
 	{
 		$$ = append($1, $4)
+	}
+
+// 语法规则（更新数据）
+UpdateStmt:
+	"UPDATE" Expr "SET" UpdateValue SelectWhere ';'
+	{
+		$$ = &UpdateStmt{
+			Table: $2,
+			Value: $4,
+			Where: $5,
+		}
+	}
+
+UpdateValue:
+	Expr '=' Expr
+	{
+		$$ = map[string]string{
+			$1: $3,
+		}
+	}
+	| UpdateValue ',' Expr '=' Expr
+	{
+		$$[$3] = $5
+	}
+
+// 语法规则（删除数据）
+DeleteStmt:
+	"DELETE" "FROM" Expr SelectWhere ';'
+	{
+		$$ = &DeleteStmt{
+			Table: $3,
+			Where: $4,
+		}
 	}
 
 %%
