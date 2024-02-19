@@ -3,6 +3,7 @@ package sql
 import (
 	"bufio"
 	_ "embed"
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -18,8 +19,9 @@ func TestParseSQL_DDL(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
-	for i, stmt := range stmts {
-		t.Logf("%d %+v", i, stmt)
+	for _, stmt := range stmts {
+		s, _ := json.MarshalIndent(stmt, "", "  ")
+		t.Log(s)
 	}
 }
 
@@ -31,7 +33,8 @@ func TestParseSQL_DML(t *testing.T) {
 			t.Fatalf("%+v", err)
 		}
 		for _, stmt := range stmts {
-			t.Logf("%d %+v", stmt.GetStmtType(), stmt)
+			s, _ := json.MarshalIndent(stmt, "", "  ")
+			t.Logf("stmtType: %d\n%s", stmt.Type(), s)
 		}
 	}
 }

@@ -60,7 +60,7 @@ func (o *CompareOperate) Negate() {
 }
 
 type Statement interface {
-	GetStmtType() StmtType
+	Type() StmtType
 }
 
 type CreateStmt struct {
@@ -69,7 +69,7 @@ type CreateStmt struct {
 	Option *CreateTableOption
 }
 
-func (*CreateStmt) GetStmtType() StmtType {
+func (*CreateStmt) Type() StmtType {
 	return Create
 }
 
@@ -101,7 +101,7 @@ type InsertStmt struct {
 	Values [][]string
 }
 
-func (*InsertStmt) GetStmtType() StmtType {
+func (*InsertStmt) Type() StmtType {
 	return Insert
 }
 
@@ -111,7 +111,7 @@ type UpdateStmt struct {
 	Where []SelectWhere
 }
 
-func (*UpdateStmt) GetStmtType() StmtType {
+func (*UpdateStmt) Type() StmtType {
 	return Update
 }
 
@@ -120,7 +120,7 @@ type DeleteStmt struct {
 	Where []SelectWhere
 }
 
-func (*DeleteStmt) GetStmtType() StmtType {
+func (*DeleteStmt) Type() StmtType {
 	return Delete
 }
 
@@ -132,7 +132,7 @@ type SelectStmt struct {
 	Limit *SelectLimit
 }
 
-func (*SelectStmt) GetStmtType() StmtType {
+func (*SelectStmt) Type() StmtType {
 	return Select
 }
 
