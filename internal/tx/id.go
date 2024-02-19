@@ -1,6 +1,8 @@
 package tx
 
-import "encoding/binary"
+import (
+	"db/pkg/bin"
+)
 
 const (
 	IdLen        = 8
@@ -16,9 +18,9 @@ func WriteId(buf []byte, tid uint64) {
 }
 
 func readId(buf []byte) uint64 {
-	return binary.LittleEndian.Uint64(buf)
+	return bin.Uint64(buf)
 }
 
 func writeId(buf []byte, tid uint64) {
-	binary.LittleEndian.PutUint64(buf, tid)
+	bin.PutUint64(buf, tid)
 }

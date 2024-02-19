@@ -1,10 +1,10 @@
 package data
 
 import (
-	"encoding/binary"
 	"sync"
 
 	"db/internal/data/page"
+	"db/pkg/bin"
 )
 
 // 数据对象（保存在 page 中的数据对象）
@@ -67,19 +67,19 @@ type dataItem struct {
 }
 
 func readDataItemId(buf []byte) uint64 {
-	return binary.LittleEndian.Uint64(buf)
+	return bin.Uint64(buf)
 }
 
 func writeDataItemId(buf []byte, size uint64) {
-	binary.LittleEndian.PutUint64(buf, size)
+	bin.PutUint64(buf, size)
 }
 
 func readDataItemSize(buf []byte) uint16 {
-	return binary.LittleEndian.Uint16(buf)
+	return bin.Uint16(buf)
 }
 
 func writeDataItemSize(buf []byte, size uint16) {
-	binary.LittleEndian.PutUint16(buf, size)
+	bin.PutUint16(buf, size)
 }
 
 func wrapDataItem(data []byte) []byte {

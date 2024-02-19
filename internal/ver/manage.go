@@ -24,9 +24,9 @@ type Manage interface {
 	Abort(tid uint64)
 	Commit(tid uint64) error
 
+	Read(tid uint64, key uint64) ([]byte, bool, error)
 	Insert(tid uint64, data []byte) (uint64, error)
 	Delete(tid uint64, key uint64) (bool, error)
-	Select(tid uint64, key uint64) ([]byte, bool, error)
 }
 
 type verManage struct {
@@ -205,7 +205,7 @@ func (vm *verManage) Delete(tid uint64, key uint64) (bool, error) {
 	return true, nil
 }
 
-func (vm *verManage) Select(tid uint64, key uint64) ([]byte, bool, error) {
+func (vm *verManage) Read(tid uint64, key uint64) ([]byte, bool, error) {
 	vm.lock.Lock()
 	t := vm.txCache[tid]
 	vm.lock.Unlock()

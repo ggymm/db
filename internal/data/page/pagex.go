@@ -1,7 +1,7 @@
 package page
 
 import (
-	"encoding/binary"
+	"db/pkg/bin"
 )
 
 // 普通页
@@ -21,11 +21,11 @@ const (
 )
 
 func readPageFSO(data []byte) uint16 {
-	return binary.LittleEndian.Uint16(data[0:headLen])
+	return bin.Uint16(data[0:headLen])
 }
 
 func writePageFSO(data []byte, off uint16) {
-	binary.LittleEndian.PutUint16(data[0:headLen], off)
+	bin.PutUint16(data[0:headLen], off)
 }
 
 func InitPageX() []byte {

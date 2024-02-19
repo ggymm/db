@@ -21,14 +21,22 @@ type FieldType int
 const (
 	_ FieldType = iota
 	Int
-	Int64
 	Varchar
 )
 
 var typeMapping = map[string]FieldType{
 	"INT":     Int,
-	"INT64":   Int64,
 	"VARCHAR": Varchar,
+}
+
+func (t FieldType) String() string {
+	switch t {
+	case Int:
+		return "INT"
+	case Varchar:
+		return "VARCHAR"
+	}
+	return ""
 }
 
 type CompareOperate int
@@ -89,16 +97,16 @@ type CreateField struct {
 type CreateIndex struct {
 	Pk    bool
 	Name  string
-	Field []string
+	Field string
 }
 
 type CreateTableOption struct {
 }
 
 type InsertStmt struct {
-	Table  string
-	Fields []string
-	Values [][]string
+	Table string
+	Field []string
+	Value [][]string
 }
 
 func (*InsertStmt) Type() StmtType {

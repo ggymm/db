@@ -1,18 +1,22 @@
 package index
 
 import (
-	"db/internal/opt"
-	"db/internal/tx"
 	"sync"
 
 	"db/internal/data"
+	"db/internal/opt"
+	"db/internal/tx"
+	"db/pkg/bin"
 )
 
 type Index interface {
 	Close()
+
 	Insert(key, itemId uint64) error
 	Search(key uint64) ([]uint64, error)
 	SearchRange(prev, next uint64) ([]uint64, error)
+
+	GetRootId() uint64
 }
 
 type tree struct {
@@ -273,4 +277,8 @@ func (t *tree) SearchRange(prevKey, nextKey uint64) ([]uint64, error) {
 		prevId = sibling
 	}
 	return res, nil
+}
+
+func (t *tree) GetRootId() uint64 {
+	return t.rootId()
 }

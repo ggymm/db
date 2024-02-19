@@ -1,0 +1,1 @@
+goyacc -o yy_parser.go -v yacc.output sql.y

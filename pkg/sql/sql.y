@@ -289,7 +289,7 @@ CreateField:
 	}
 
 CreateIndex:
-	"INDEX" Expr '(' VaribleList ')'
+	"INDEX" Expr '(' Expr ')'
 	{
 		$$ = &CreateIndex{
 			Name: $2,
@@ -298,7 +298,7 @@ CreateIndex:
 	}
 
 CreatePrimary:
-	"PRIMARY" "KEY" '(' VaribleList ')'
+	"PRIMARY" "KEY" '(' Expr ')'
 	{
 		$$ = &CreateIndex{
 			Pk: true,
@@ -317,8 +317,8 @@ InsertStmt:
 	{
 		$$ = &InsertStmt{
 			Table: $3,
-			Fields: $4,
-			Values: $5,
+			Field: $4,
+			Value: $5,
 		}
 	}
 

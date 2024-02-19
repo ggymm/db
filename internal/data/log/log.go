@@ -1,13 +1,13 @@
 package log
 
 import (
-	"encoding/binary"
 	"errors"
 	"os"
 	"path/filepath"
 	"sync"
 
 	"db/internal/opt"
+	"db/pkg/bin"
 	"db/pkg/utils"
 )
 
@@ -118,11 +118,11 @@ func create(l *logger) {
 }
 
 func readUint32(buf []byte) uint32 {
-	return binary.LittleEndian.Uint32(buf)
+	return bin.Uint32(buf)
 }
 
 func writeUint32(buf []byte, uint32 uint32) {
-	binary.LittleEndian.PutUint32(buf, uint32)
+	bin.PutUint32(buf, uint32)
 }
 
 func calcChecksum(res uint32, data []byte) uint32 {
