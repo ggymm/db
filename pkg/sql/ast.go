@@ -95,9 +95,38 @@ type CreateIndex struct {
 type CreateTableOption struct {
 }
 
+type InsertStmt struct {
+	Table  string
+	Fields []string
+	Values [][]string
+}
+
+func (*InsertStmt) GetStmtType() StmtType {
+	return Insert
+}
+
+type UpdateStmt struct {
+	Table string
+	Value map[string]string
+	Where []SelectWhere
+}
+
+func (*UpdateStmt) GetStmtType() StmtType {
+	return Update
+}
+
+type DeleteStmt struct {
+	Table string
+	Where []SelectWhere
+}
+
+func (*DeleteStmt) GetStmtType() StmtType {
+	return Delete
+}
+
 type SelectStmt struct {
+	Table string
 	Field []*SelectField
-	From  *SelectFrom
 	Where []SelectWhere
 	Order []*SelectOrder
 	Limit *SelectLimit
@@ -105,10 +134,6 @@ type SelectStmt struct {
 
 func (*SelectStmt) GetStmtType() StmtType {
 	return Select
-}
-
-type SelectFrom struct {
-	Name string
 }
 
 type SelectField struct {
@@ -211,33 +236,4 @@ type SelectOrder struct {
 type SelectLimit struct {
 	Limit  int
 	Offset int
-}
-
-type InsertStmt struct {
-	Table  string
-	Fields []string
-	Values [][]string
-}
-
-func (*InsertStmt) GetStmtType() StmtType {
-	return Insert
-}
-
-type UpdateStmt struct {
-	Table string
-	Value map[string]string
-	Where []SelectWhere
-}
-
-func (*UpdateStmt) GetStmtType() StmtType {
-	return Update
-}
-
-type DeleteStmt struct {
-	Table string
-	Where []SelectWhere
-}
-
-func (*DeleteStmt) GetStmtType() StmtType {
-	return Delete
 }

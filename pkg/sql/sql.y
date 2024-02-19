@@ -23,13 +23,6 @@ import (
 	createIndex *CreateIndex
 	createTableOption *CreateTableOption
 
-	selectStmt *SelectStmt
-	selectFieldList []*SelectField
-	selectFrom *SelectFrom
-	selectWhereList []SelectWhere
-	selectOrderList []*SelectOrder
-	selectLimit *SelectLimit
-
 	insertStmt *InsertStmt
     insertValue [][]string
 
@@ -37,6 +30,12 @@ import (
     updateValue map[string]string
     
     deleteStmt *DeleteStmt
+
+	selectStmt *SelectStmt
+	selectFieldList []*SelectField
+	selectWhereList []SelectWhere
+	selectOrderList []*SelectOrder
+	selectLimit *SelectLimit
 }
 
 %token <str>
@@ -49,6 +48,16 @@ import (
 	INDEX "INDEX"
 	DEFAULT "DEFAULT"
 	PRIMARY "PRIMARY"
+	// 关键字（插入数据）
+	INSERT "INSERT"
+	INTO "INTO"
+	VALUE "VALUE"
+	VALUES "VALUES"
+	// 关键字（更新数据）
+	UPDATE "UPDATE"
+	SET "SET"
+	// 关键字（删除数据）
+	DELETE "DELETE"
 	// 关键字（查询表）
 	SELECT "SELECT"
 	FROM "FROM"
@@ -61,16 +70,6 @@ import (
 	DESC "DESC"
 	LIMIT "LIMIT"
 	OFFSET "OFFSET"
-	// 关键字（插入数据）
-	INSERT "INSERT"
-	INTO "INTO"
-	VALUE "VALUE"
-	VALUES "VALUES"
-	// 关键字（更新数据）
-	UPDATE "UPDATE"
-	SET "SET"
-	// 关键字（删除数据）
-	DELETE "DELETE"
 
 %token <str>
 	COMP_NE "!="
@@ -97,20 +96,8 @@ import (
 %type <createIndex> CreatePrimary
 %type <createTableOption> CreateTableOption
 
-// 语法定义（查询表）
-%type <boolean> Ascend
-%type <compareOperate> CompareOperate
-
-%type <selectStmt> SelectStmt
-%type <selectFrom> SelectFrom
-%type <selectFieldList> SelectFieldList
-%type <selectWhereList> SelectWhere SelectWhereList
-%type <selectOrderList> SelectOrder SelectOrderList
-%type <selectLimit> SelectLimit
-
 // 语法定义（插入数据）
 %type <insertStmt> InsertStmt
-%type <str> InsertTable
 %type <strList> InsertField InsertFieldList
 %type <insertValue> InsertValue InsertValueList
 
@@ -120,6 +107,16 @@ import (
 
 // 语法定义（删除数据）
 %type <deleteStmt> DeleteStmt
+
+// 语法定义（查询表）
+%type <boolean> Ascend
+%type <compareOperate> CompareOperate
+
+%type <selectStmt> SelectStmt
+%type <selectFieldList> SelectFieldList
+%type <selectWhereList> SelectWhere SelectWhereList
+%type <selectOrderList> SelectOrder SelectOrderList
+%type <selectLimit> SelectLimit
 
 %left OR
 %left AND
@@ -314,6 +311,82 @@ CreateTableOption:
 		$$ = nil
 	}
 
+// 语法规则（插入数据）
+InsertStmt:
+	"INSERT" "INTO" Expr InsertField InsertValue ';'
+	{
+		$$ = &InsertStmt{
+			Table: $3,
+			Fields: $4,
+			Values: $5,
+		}
+	}
+
+InsertField:
+	'(' InsertFieldList ')'
+	{
+		$$ = $2
+	}
+
+InsertFieldList:
+	{
+		$$ = nil
+	}
+	| VaribleList
+
+InsertValue:
+	"VALUE" InsertValueList
+	{
+		$$ = $2
+	}
+	| "VALUES" InsertValueList
+	{
+		$$ = $2
+	}
+
+InsertValueList:
+	'(' VaribleList ')'
+	{
+		$$ = [][]string{$2}
+	}
+	| InsertValueList ',' '(' VaribleList ')'
+	{
+		$$ = append($1, $4)
+	}
+
+// 语法规则（更新数据）
+UpdateStmt:
+	"UPDATE" Expr "SET" UpdateValue SelectWhere ';'
+	{
+		$$ = &UpdateStmt{
+			Table: $2,
+			Value: $4,
+			Where: $5,
+		}
+	}
+
+UpdateValue:
+	Expr '=' Expr
+	{
+		$$ = map[string]string{
+			$1: $3,
+		}
+	}
+	| UpdateValue ',' Expr '=' Expr
+	{
+		$$[$3] = $5
+	}
+
+// 语法规则（删除数据）
+DeleteStmt:
+	"DELETE" "FROM" Expr SelectWhere ';'
+	{
+		$$ = &DeleteStmt{
+			Table: $3,
+			Where: $4,
+		}
+	}
+
 // 语法规则（查询表）
 Ascend:
     {
@@ -361,14 +434,14 @@ SelectStmt:
         	Limit: $3,
         }
     }
-    |  "SELECT" SelectFieldList SelectFrom SelectWhere SelectOrder SelectLimit ';'
+    |  "SELECT" SelectFieldList "FROM" Expr SelectWhere SelectOrder SelectLimit ';'
     {
         $$ = &SelectStmt{
-        	From: $3,
+        	Table: $4,
         	Field: $2,
-        	Where: $4,
-        	Order: $5,
-        	Limit: $6,
+        	Where: $5,
+        	Order: $6,
+        	Limit: $7,
         }
     }
 
@@ -387,14 +460,6 @@ SelectFieldList:
 		   Name: $3,
 	   })
    }
-
-SelectFrom:
-	"FROM" Expr
-	{
-		$$ = &SelectFrom{
-			Name: $2,
-		}
-	}
 
 SelectWhere:
 	{
@@ -571,91 +636,4 @@ SelectLimit:
 			Offset: offset,
 		}
 	}
-
-// 语法规则（插入数据）
-InsertStmt:
-	"INSERT" InsertTable InsertField InsertValue ';'
-	{
-		$$ = &InsertStmt{
-			Table: $2,
-			Fields: $3,
-			Values: $4,
-		}
-	}
-
-InsertTable:
-	Expr
-	{
-		$$ = $1
-	}
-	| "INTO" Expr
-	{
-		$$ = $2
-	}
-
-InsertField:
-	'(' InsertFieldList ')'
-	{
-		$$ = $2
-	}
-
-InsertFieldList:
-	{
-		$$ = nil
-	}
-	| VaribleList
-
-InsertValue:
-	"VALUE" InsertValueList
-	{
-		$$ = $2
-	}
-	| "VALUES" InsertValueList
-	{
-		$$ = $2
-	}
-
-InsertValueList:
-	'(' VaribleList ')'
-	{
-		$$ = [][]string{$2}
-	}
-	| InsertValueList ',' '(' VaribleList ')'
-	{
-		$$ = append($1, $4)
-	}
-
-// 语法规则（更新数据）
-UpdateStmt:
-	"UPDATE" Expr "SET" UpdateValue SelectWhere ';'
-	{
-		$$ = &UpdateStmt{
-			Table: $2,
-			Value: $4,
-			Where: $5,
-		}
-	}
-
-UpdateValue:
-	Expr '=' Expr
-	{
-		$$ = map[string]string{
-			$1: $3,
-		}
-	}
-	| UpdateValue ',' Expr '=' Expr
-	{
-		$$[$3] = $5
-	}
-
-// 语法规则（删除数据）
-DeleteStmt:
-	"DELETE" "FROM" Expr SelectWhere ';'
-	{
-		$$ = &DeleteStmt{
-			Table: $3,
-			Where: $4,
-		}
-	}
-
 %%
