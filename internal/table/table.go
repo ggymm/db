@@ -117,3 +117,7 @@ func (t *table) persist(txId uint64) (err error) {
 	t.Id, err = t.tbm.VerManage().Insert(txId, data)
 	return
 }
+
+func (t *table) String() string {
+	return ""
+}

@@ -9,9 +9,7 @@ import (
 	"sync"
 )
 
-var (
-	ErrCheckDeadlock = errors.New("check deadlock error")
-)
+var ErrCheckDeadlock = errors.New("check deadlock error")
 
 type Lock interface {
 	Add(id, key uint64) (bool, chan struct{})
@@ -161,7 +159,7 @@ func (l *lock) Add(id, key uint64) (bool, chan struct{}) {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
-	var success = func() (bool, chan struct{}) {
+	success := func() (bool, chan struct{}) {
 		ch := make(chan struct{})
 		go func() {
 			ch <- struct{}{}
@@ -221,7 +219,7 @@ func (l *lock) String() string {
 	l.lock.Lock()
 	defer l.lock.Unlock()
 
-	var mapIntString = func(data map[uint64]uint64) string {
+	mapIntString := func(data map[uint64]uint64) string {
 		if len(data) == 0 {
 			return ""
 		}
@@ -238,7 +236,7 @@ func (l *lock) String() string {
 		return buf.String()
 	}
 
-	var mapListString = func(data map[uint64]*list.List) string {
+	mapListString := func(data map[uint64]*list.List) string {
 		if len(data) == 0 {
 			return ""
 		}

@@ -31,5 +31,4 @@ func TestNewLog(t *testing.T) {
 }
 
 func TestLogger_Next(t *testing.T) {
-
 }

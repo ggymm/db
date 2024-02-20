@@ -6,9 +6,7 @@ import (
 	"time"
 )
 
-var (
-	ErrCacheFull = errors.New("cache is full")
-)
+var ErrCacheFull = errors.New("cache is full")
 
 type Cache interface {
 	Close()

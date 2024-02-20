@@ -21,5 +21,4 @@ func Deserialize(data []byte) (string, int) {
 		int(data[2])<<16 |
 		int(data[3])<<24
 	return string(data[4 : 4+l]), l + 4
-
 }

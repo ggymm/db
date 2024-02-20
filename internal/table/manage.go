@@ -1,12 +1,13 @@
 package table
 
 import (
+	"sync"
+
 	"db/internal/boot"
 	"db/internal/data"
 	"db/internal/ver"
 	"db/pkg/bin"
 	"db/pkg/sql"
-	"sync"
 )
 
 type Manage interface {
@@ -14,7 +15,7 @@ type Manage interface {
 	Abort(txId uint64)
 	Commit(txId uint64) error
 
-	Show() ([]byte, error)
+	Show() []byte
 	Create(txId uint64, stmt *sql.CreateStmt) error
 
 	Insert(txId uint64, stmt *sql.InsertStmt) error
@@ -59,7 +60,7 @@ func (tbm *tableManage) readTableId() uint64 {
 	return bin.Uint64(tbm.boot.Load())
 }
 
-func (tbm *tableManage) writeTableId(id uint64) {
+func (tbm *tableManage) updateTableId(id uint64) {
 	buf := make([]byte, 8)
 	bin.PutUint64(buf, id)
 	tbm.boot.Update(buf)
@@ -77,9 +78,20 @@ func (tbm *tableManage) Commit(txId uint64) error {
 	return tbm.verManage.Commit(txId)
 }
 
-func (tbm *tableManage) Show() ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+func (tbm *tableManage) Show() []byte {
+	tbm.lock.Lock()
+	defer tbm.lock.Unlock()
+
+	result := ""
+	printTable := func(t *table) string {
+		str := "Table: " + t.Name + "\n"
+		return str
+	}
+
+	for _, t := range tbm.tables {
+		result += printTable(t)
+	}
+	return []byte(result)
 }
 
 func (tbm *tableManage) Create(txId uint64, stmt *sql.CreateStmt) error {
@@ -95,28 +107,28 @@ func (tbm *tableManage) Create(txId uint64, stmt *sql.CreateStmt) error {
 		return err
 	}
 
-	tbm.writeTableId(t.Id)
+	tbm.updateTableId(t.Id)
 	tbm.tables[t.Name] = t
 	return nil
 }
 
 func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
-	//TODO implement me
+	// TODO implement me
 	panic("implement me")
 }
 
 func (tbm *tableManage) Update(txId uint64, stmt *sql.UpdateStmt) error {
-	//TODO implement me
+	// TODO implement me
 	panic("implement me")
 }
 
 func (tbm *tableManage) Delete(txId uint64, stmt *sql.DeleteStmt) error {
-	//TODO implement me
+	// TODO implement me
 	panic("implement me")
 }
 
 func (tbm *tableManage) Select(txId uint64, stmt *sql.SelectStmt) ([]byte, error) {
-	//TODO implement me
+	// TODO implement me
 	panic("implement me")
 }
 

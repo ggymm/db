@@ -7,7 +7,6 @@ func TestNewCache(t *testing.T) {
 		return key, nil
 	}
 	release := func(key any) {
-
 	}
 
 	opt := new(Option)

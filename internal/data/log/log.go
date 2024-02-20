@@ -28,9 +28,7 @@ import (
 //
 // 每次插入数据，更新日志文件的 checksum
 
-var (
-	ErrBadLogFile = errors.New("bad log file")
-)
+var ErrBadLogFile = errors.New("bad log file")
 
 const (
 	seed        = 12321
@@ -66,7 +64,7 @@ type logger struct {
 
 func open(l *logger) {
 	// 打开文件
-	file, err := os.OpenFile(l.filepath, os.O_RDWR, 0666)
+	file, err := os.OpenFile(l.filepath, os.O_RDWR, 0o666)
 	if err != nil {
 		panic(err)
 	}
@@ -104,7 +102,7 @@ func create(l *logger) {
 	}
 
 	// 创建文件
-	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o666)
 	if err != nil {
 		panic(err)
 	}

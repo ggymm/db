@@ -2,9 +2,7 @@ package bin
 
 import "encoding/binary"
 
-var (
-	bin = binary.LittleEndian
-)
+var bin = binary.LittleEndian
 
 func Uint16(data []byte) uint16 {
 	return bin.Uint16(data)

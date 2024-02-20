@@ -1,10 +1,11 @@
 package boot
 
 import (
-	"db/internal/opt"
-	"db/pkg/utils"
 	"path/filepath"
 	"testing"
+
+	"db/internal/opt"
+	"db/pkg/utils"
 )
 
 func TestNew(t *testing.T) {

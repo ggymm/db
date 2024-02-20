@@ -42,7 +42,7 @@ func TestTree_Gen(t *testing.T) {
 	base := utils.RunPath()
 	path := filepath.Join(base, "temp/index/keys")
 
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0666)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o666)
 	if err != nil {
 		t.Fatalf("open file err %v", err)
 	}

@@ -1,20 +1,18 @@
 package page
 
 import (
-	"db/internal/opt"
 	"errors"
 	"os"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
 
+	"db/internal/opt"
 	"db/pkg/cache"
 	"db/pkg/utils"
 )
 
-var (
-	ErrMemoryNotEnough = errors.New("memory not enough")
-)
+var ErrMemoryNotEnough = errors.New("memory not enough")
 
 const (
 	Size  = 1 << 13 // 页面大小 8KB
@@ -53,7 +51,7 @@ func pos(no uint32) int64 {
 
 func open(c *pageCache) {
 	// 打开文件
-	file, err := os.OpenFile(c.filepath, os.O_RDWR, 0666)
+	file, err := os.OpenFile(c.filepath, os.O_RDWR, 0o666)
 	if err != nil {
 		panic(err)
 	}
@@ -80,7 +78,7 @@ func create(c *pageCache) {
 	}
 
 	// 创建文件
-	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o666)
 	if err != nil {
 		panic(err)
 	}

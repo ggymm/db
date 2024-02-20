@@ -1,11 +1,12 @@
 package boot
 
 import (
-	"db/internal/opt"
-	"db/pkg/utils"
 	"io"
 	"os"
 	"path/filepath"
+
+	"db/internal/opt"
+	"db/pkg/utils"
 )
 
 const (
@@ -34,7 +35,7 @@ func New(opt *opt.Option) Boot {
 	)
 	if opt.Open {
 		// 读取文件
-		f, err = os.OpenFile(path, os.O_RDWR, 0666)
+		f, err = os.OpenFile(path, os.O_RDWR, 0o666)
 		if err != nil {
 			panic(err)
 		}
@@ -49,7 +50,7 @@ func New(opt *opt.Option) Boot {
 		}
 
 		// 创建文件
-		f, err = os.OpenFile(path, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0666)
+		f, err = os.OpenFile(path, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0o666)
 		if err != nil {
 			panic(err)
 		}
@@ -81,7 +82,7 @@ func (b *boot) Load() []byte {
 }
 
 func (b *boot) Update(data []byte) {
-	tmpFile, err := os.OpenFile(b.path+SuffixTmp, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0666)
+	tmpFile, err := os.OpenFile(b.path+SuffixTmp, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0o666)
 	if err != nil {
 		panic(err)
 	}
@@ -107,7 +108,7 @@ func (b *boot) Update(data []byte) {
 	}
 
 	// 重新打开文件
-	b.f, err = os.OpenFile(b.path+Suffix, os.O_RDWR, 0666)
+	b.f, err = os.OpenFile(b.path+Suffix, os.O_RDWR, 0o666)
 	if err != nil {
 		panic(err)
 	}

@@ -100,8 +100,7 @@ type CreateIndex struct {
 	Field string
 }
 
-type CreateTableOption struct {
-}
+type CreateTableOption struct{}
 
 type InsertStmt struct {
 	Table string

@@ -40,7 +40,7 @@ func readField(tbm Manage, id uint64) *field {
 	if err != nil || !exist {
 		panic(err)
 	}
-	var f = &field{}
+	f := &field{}
 	var (
 		pos   int
 		shift int
@@ -104,4 +104,8 @@ func (f *field) persist(txId uint64) (err error) {
 	// 持久化
 	f.Id, err = f.tbm.VerManage().Insert(txId, data)
 	return
+}
+
+func (f *field) String() string {
+	return "{" + f.Name + ": " + f.Type + "} "
 }
