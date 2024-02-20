@@ -8,6 +8,7 @@ import (
 
 	"db/internal/opt"
 	"db/pkg/bin"
+	"db/pkg/file"
 	"db/pkg/utils"
 )
 
@@ -64,27 +65,27 @@ type logger struct {
 
 func open(l *logger) {
 	// 打开文件
-	file, err := os.OpenFile(l.filepath, os.O_RDWR, 0o666)
+	f, err := os.OpenFile(l.filepath, os.O_RDWR, file.Mode)
 	if err != nil {
 		panic(err)
 	}
 
 	// 读取 filesize 和 checksum
-	stat, _ := file.Stat()
+	stat, _ := f.Stat()
 	size := stat.Size()
 	if size < 4 {
 		panic(ErrBadLogFile)
 	}
 
 	buf := make([]byte, checksumLen)
-	_, err = file.ReadAt(buf, 0)
+	_, err = f.ReadAt(buf, 0)
 	if err != nil {
 		panic(err)
 	}
 	checksum := readUint32(buf)
 
 	// 字段信息
-	l.file = file
+	l.file = f
 	l.filesize = size
 	l.checksum = checksum
 }
@@ -102,16 +103,16 @@ func create(l *logger) {
 	}
 
 	// 创建文件
-	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o666)
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, file.Mode)
 	if err != nil {
 		panic(err)
 	}
 
 	// 写入 checksum
-	updateChecksum(file, 0)
+	updateChecksum(f, 0)
 
 	// 字段信息
-	l.file = file
+	l.file = f
 	l.checksum = 0
 }
 

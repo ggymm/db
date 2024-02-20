@@ -13,6 +13,7 @@ import (
 	"db/internal/data/page"
 	"db/internal/opt"
 	"db/internal/tx"
+	"db/pkg/file"
 	"db/pkg/utils"
 )
 
@@ -42,7 +43,7 @@ func TestTree_Gen(t *testing.T) {
 	base := utils.RunPath()
 	path := filepath.Join(base, "temp/index/keys")
 
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o666)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, file.Mode)
 	if err != nil {
 		t.Fatalf("open file err %v", err)
 	}

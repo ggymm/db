@@ -9,6 +9,7 @@ import (
 
 	"db/internal/opt"
 	"db/pkg/cache"
+	"db/pkg/file"
 	"db/pkg/utils"
 )
 
@@ -51,18 +52,18 @@ func pos(no uint32) int64 {
 
 func open(c *pageCache) {
 	// 打开文件
-	file, err := os.OpenFile(c.filepath, os.O_RDWR, 0o666)
+	f, err := os.OpenFile(c.filepath, os.O_RDWR, file.Mode)
 	if err != nil {
 		panic(err)
 	}
 
 	// 获取文件大小
-	stat, _ := file.Stat()
+	stat, _ := f.Stat()
 	size := stat.Size()
 
 	// 字段信息
 	c.num = uint32(size / Size)
-	c.file = file
+	c.file = f
 }
 
 func create(c *pageCache) {
@@ -78,14 +79,14 @@ func create(c *pageCache) {
 	}
 
 	// 创建文件
-	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o666)
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, file.Mode)
 	if err != nil {
 		panic(err)
 	}
 
 	// 字段信息
 	c.num = 0
-	c.file = file
+	c.file = f
 }
 
 func NewCache(opt *opt.Option) Cache {
