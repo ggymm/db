@@ -21,17 +21,19 @@ func TestNewIndex(t *testing.T) {
 	base := utils.RunPath()
 	path := filepath.Join(base, "temp/index")
 
-	o := &opt.Option{
-		Open:   false,
-		Path:   path,
-		Name:   "test",
-		Memory: page.Size * 10,
-	}
-
 	txManage := tx.NewMockManage()
-	dataManage := data.NewManage(o, txManage)
+	dataManage := data.NewManage(txManage, &opt.Option{
+		Open:   false,
+		Name:   "test",
+		Path:   path,
+		Memory: page.Size * 10,
+	})
 
-	index, err := NewIndex(o, dataManage)
+	index, err := NewIndex(dataManage, &opt.Option{
+		Open: false,
+		Name: "test",
+		Path: path,
+	})
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -61,15 +63,13 @@ func TestIndex_Func(t *testing.T) {
 	base := utils.RunPath()
 	path := filepath.Join(base, "temp/index")
 
-	o := &opt.Option{
-		Open:   false,
-		Path:   path,
-		Name:   "test",
-		Memory: page.Size * 10,
-	}
-
 	txManage := tx.NewMockManage()
-	dataManage := data.NewManage(o, txManage)
+	dataManage := data.NewManage(txManage, &opt.Option{
+		Open:   false,
+		Name:   "test",
+		Path:   path,
+		Memory: page.Size * 10,
+	})
 
 	var (
 		err   error
@@ -79,7 +79,11 @@ func TestIndex_Func(t *testing.T) {
 		result []uint64
 	)
 
-	index, err = NewIndex(o, dataManage)
+	index, err = NewIndex(dataManage, &opt.Option{
+		Open: false,
+		Name: "test",
+		Path: path,
+	})
 	if err != nil {
 		t.Fatalf("new index err %v", err)
 	}
@@ -120,15 +124,13 @@ func TestIndex_FuncAsync(t *testing.T) {
 	base := utils.RunPath()
 	path := filepath.Join(base, "temp/index")
 
-	o := &opt.Option{
-		Open:   false,
-		Path:   path,
-		Name:   "test",
-		Memory: page.Size * 80,
-	}
-
 	txManage := tx.NewMockManage()
-	dataManage := data.NewManage(o, txManage)
+	dataManage := data.NewManage(txManage, &opt.Option{
+		Open:   false,
+		Name:   "test",
+		Path:   path,
+		Memory: page.Size * 80,
+	})
 
 	var (
 		err   error
@@ -143,7 +145,11 @@ func TestIndex_FuncAsync(t *testing.T) {
 		cacheMap  = make(map[uint64]int)
 	)
 
-	index, err = NewIndex(o, dataManage)
+	index, err = NewIndex(dataManage, &opt.Option{
+		Open: false,
+		Name: "test",
+		Path: path,
+	})
 	if err != nil {
 		t.Fatalf("new index err %v", err)
 	}

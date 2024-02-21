@@ -20,13 +20,13 @@ type Index interface {
 }
 
 type tree struct {
-	lock     sync.Mutex
-	rootItem data.Item
+	lock sync.Mutex
+	root data.Item
 
 	DataManage data.Manage
 }
 
-func NewIndex(opt *opt.Option, manage data.Manage) (Index, error) {
+func NewIndex(dm data.Manage, opt *opt.Option) (Index, error) {
 	var (
 		ok  bool
 		err error
@@ -34,42 +34,39 @@ func NewIndex(opt *opt.Option, manage data.Manage) (Index, error) {
 		itemId uint64
 		rootId uint64
 
-		rootItem data.Item
+		root data.Item
 	)
 
 	if opt.Open {
 		rootId = opt.RootId
 	} else {
 		root := initRoot()
-		itemId, err = manage.Insert(tx.Super, root)
+		itemId, err = dm.Insert(tx.Super, root)
 		if err != nil {
 			return nil, err
 		}
 
 		buf := make([]byte, 8)
 		bin.PutUint64(buf, itemId)
-		rootId, err = manage.Insert(tx.Super, buf)
+		rootId, err = dm.Insert(tx.Super, buf)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	// 读取根节点
-	rootItem, ok, err = manage.Read(rootId)
+	root, ok, err = dm.Read(rootId)
 	if !ok || err != nil {
 		return nil, err
 	}
-	return &tree{
-		rootItem:   rootItem,
-		DataManage: manage,
-	}, nil
+	return &tree{root: root, DataManage: dm}, nil
 }
 
 func (t *tree) rootId() uint64 {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
-	return bin.Uint64(t.rootItem.DataBody())
+	return bin.Uint64(t.root.DataBody())
 }
 
 func (t *tree) updateRootId(key, prev, next uint64) error {
@@ -84,11 +81,11 @@ func (t *tree) updateRootId(key, prev, next uint64) error {
 	}
 
 	// 更新根节点Id
-	t.rootItem.Before()
+	t.root.Before()
 	buf := make([]byte, 8)
 	bin.PutUint64(buf, rootId)
-	copy(t.rootItem.DataBody(), buf)
-	t.rootItem.After(tx.Super)
+	copy(t.root.DataBody(), buf)
+	t.root.After(tx.Super)
 	return nil
 }
 
@@ -218,7 +215,7 @@ func (t *tree) searchNode(nodeId, key uint64) (uint64, error) {
 }
 
 func (t *tree) Close() {
-	t.rootItem.Release()
+	t.root.Release()
 }
 
 // Insert

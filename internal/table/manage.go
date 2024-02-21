@@ -15,13 +15,14 @@ type Manage interface {
 	Abort(txId uint64)
 	Commit(txId uint64) error
 
-	Show() []byte
 	Create(txId uint64, stmt *sql.CreateStmt) error
-
 	Insert(txId uint64, stmt *sql.InsertStmt) error
 	Update(txId uint64, stmt *sql.UpdateStmt) error
 	Delete(txId uint64, stmt *sql.DeleteStmt) error
 	Select(txId uint64, stmt *sql.SelectStmt) ([]byte, error)
+
+	ShowTable() string
+	ShowField(table string) string
 
 	VerManage() ver.Manage
 	DataManage() data.Manage
@@ -102,7 +103,11 @@ func (tbm *tableManage) Create(txId uint64, stmt *sql.CreateStmt) error {
 		return nil
 	}
 
-	t, err := createTable(tbm, &newTable{TxId: txId, NextId: tbm.readTableId(), Stmt: stmt})
+	t, err := createTable(tbm, &newTable{
+		TxId:   txId,
+		NextId: tbm.readTableId(),
+		Stmt:   stmt,
+	})
 	if err != nil {
 		return err
 	}
@@ -130,6 +135,43 @@ func (tbm *tableManage) Delete(txId uint64, stmt *sql.DeleteStmt) error {
 func (tbm *tableManage) Select(txId uint64, stmt *sql.SelectStmt) ([]byte, error) {
 	// TODO implement me
 	panic("implement me")
+}
+
+func (tbm *tableManage) ShowTable() string {
+	header := []string{"Tables"}
+	values := make([][]string, 0)
+	for name := range tbm.tables {
+		values = append(values, []string{name})
+	}
+
+	// 表格形式输出
+	v := newView()
+	v.setHeader(header)
+	v.setValues(values)
+	return v.string(singleLine)
+}
+
+func (tbm *tableManage) ShowField(table string) string {
+	header := []string{"Field", "Type", "Index"}
+	values := make([][]string, 0)
+	t, exist := tbm.tables[table]
+	if !exist {
+		return "no such table"
+	}
+
+	for _, f := range t.Fields {
+		index := "NO"
+		if f.Index != 0 {
+			index = "YES"
+		}
+		values = append(values, []string{f.Name, f.Type, index})
+	}
+
+	// 表格形式输出
+	v := newView()
+	v.setHeader(header)
+	v.setValues(values)
+	return v.string(singleLine)
 }
 
 func (tbm *tableManage) VerManage() ver.Manage {

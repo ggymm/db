@@ -51,8 +51,8 @@ func readTable(tbm Manage, id uint64) *table {
 	pos += 8
 	fields := make([]*field, 0)
 	for pos < len(data) {
-		fId := bin.Uint64(data[pos:])
-		fields = append(fields, readField(tbm, fId))
+		f := bin.Uint64(data[pos:])
+		fields = append(fields, readField(tbm, f))
 		pos += 8
 	}
 
@@ -116,8 +116,4 @@ func (t *table) persist(txId uint64) (err error) {
 	// 持久化
 	t.Id, err = t.tbm.VerManage().Insert(txId, data)
 	return
-}
-
-func (t *table) String() string {
-	return ""
 }

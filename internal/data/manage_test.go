@@ -25,9 +25,10 @@ func newOpt(open bool) *opt.Option {
 }
 
 func TestNewManage(t *testing.T) {
-	o := newOpt(false)
-	tm := tx.NewManager(o)
-	dm := NewManage(o, tm)
+	cfg := newOpt(false)
+
+	tm := tx.NewManager(cfg)
+	dm := NewManage(tm, cfg)
 	t.Logf("%+v", dm)
 }
 
@@ -39,9 +40,10 @@ func TestDataManage_DataHandle(t *testing.T) {
 		t.Fatalf("err %v", err)
 		return
 	}
-	o := newOpt(false)
-	tm := tx.NewManager(o)
-	dm := NewManage(o, tm)
+	cfg := newOpt(false)
+
+	tm := tx.NewManager(cfg)
+	dm := NewManage(tm, cfg)
 	t.Logf("%+v", dm)
 
 	data := utils.RandBytes(60)
@@ -88,7 +90,7 @@ func TestDataManage_DataHandleAsync(t *testing.T) {
 	}
 
 	// 数据管理
-	dm0 := NewManage(newOpt(false), nil)
+	dm0 := NewManage(nil, newOpt(false))
 	t.Logf("%+v", dm0)
 
 	// 模拟数据管理

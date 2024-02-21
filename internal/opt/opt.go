@@ -4,8 +4,8 @@ import "path/filepath"
 
 type Option struct {
 	Open   bool
-	Path   string
 	Name   string
+	Path   string
 	Memory int64
 
 	RootId uint64 // 索引根节点的 id

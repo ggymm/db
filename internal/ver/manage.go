@@ -49,6 +49,7 @@ func NewManage(tm tx.Manage, dm data.Manage) Manage {
 
 	vm.txLock = lock.NewLock()
 	vm.txCache = make(map[uint64]*transaction)
+	vm.txCache[tx.Super] = newTransaction(tx.Super, 0, nil)
 
 	vm.cache = cache.NewCache(&cache.Option{
 		Obtain:   vm.obtainForCache,

@@ -14,8 +14,8 @@ func TestNew(t *testing.T) {
 
 	cfg := &opt.Option{
 		Open: false,
-		Path: path,
 		Name: "boot",
+		Path: path,
 	}
 
 	b := New(cfg)
@@ -28,8 +28,8 @@ func TestBoot_Handle(t *testing.T) {
 
 	cfg := &opt.Option{
 		Open: false,
-		Path: path,
 		Name: "boot",
+		Path: path,
 	}
 
 	b := New(cfg)

@@ -96,10 +96,10 @@ func create(dm *dataManage) {
 	dm.pageCache.PageFlush(dm.page1)
 }
 
-func NewManage(opt *opt.Option, txm tx.Manage) Manage {
+func NewManage(tm tx.Manage, opt *opt.Option) Manage {
 	dm := new(dataManage)
 
-	dm.txManage = txm
+	dm.txManage = tm
 
 	dm.log = log.NewLog(opt)
 	dm.pageIndex = page.NewIndex()

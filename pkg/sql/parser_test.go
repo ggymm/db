@@ -6,16 +6,12 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+
+	"db/test"
 )
 
-//go:embed test_ddl.sql
-var testDDLSQL string
-
-//go:embed test_dml.sql
-var testDMLSQL string
-
 func TestParseSQL_DDL(t *testing.T) {
-	stmts, err := ParseSQL(testDDLSQL)
+	stmts, err := ParseSQL(test.CreateSQL)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -26,7 +22,7 @@ func TestParseSQL_DDL(t *testing.T) {
 }
 
 func TestParseSQL_DML(t *testing.T) {
-	scanner := bufio.NewScanner(strings.NewReader(testDMLSQL))
+	scanner := bufio.NewScanner(strings.NewReader(test.SQLList))
 	for scanner.Scan() {
 		stmts, err := ParseSQL(scanner.Text())
 		if err != nil {

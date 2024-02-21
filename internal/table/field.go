@@ -57,10 +57,10 @@ func readField(tbm Manage, id uint64) *field {
 	pos += shift
 	f.Index = bin.Uint64(data[pos:])
 	if f.Index != 0 {
-		f.idx, err = index.NewIndex(&opt.Option{
+		f.idx, err = index.NewIndex(tbm.DataManage(), &opt.Option{
 			Open:   true,
 			RootId: f.Index,
-		}, tbm.DataManage())
+		})
 		if err != nil {
 			panic(err)
 		}
@@ -68,7 +68,7 @@ func readField(tbm Manage, id uint64) *field {
 	return f
 }
 
-func createField(tbm *tableManage, info *newField) (*field, error) {
+func createField(tbm Manage, info *newField) (*field, error) {
 	f := &field{
 		tbm: tbm,
 
@@ -78,9 +78,9 @@ func createField(tbm *tableManage, info *newField) (*field, error) {
 	}
 
 	if info.Indexed {
-		idx, err := index.NewIndex(&opt.Option{
+		idx, err := index.NewIndex(tbm.DataManage(), &opt.Option{
 			Open: false,
-		}, tbm.dataManage)
+		})
 		if err != nil {
 			return nil, err
 		}
