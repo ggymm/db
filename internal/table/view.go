@@ -51,54 +51,54 @@ func border(lens []int, chars []string) (string, string, string) {
 }
 
 type view struct {
-	header []string
-	values [][]string
+	thead []string
+	tbody [][]string
 }
 
 func newView() *view {
 	return &view{
-		header: []string{},
-		values: [][]string{},
+		thead: []string{},
+		tbody: [][]string{},
 	}
 }
 
-func (v *view) setHeader(header []string) {
-	v.header = header
+func (v *view) setHead(thead []string) {
+	v.thead = thead
 }
 
-func (v *view) setValues(values [][]string) {
-	// 检查是否有 header
-	if len(v.header) == 0 {
-		panic("no header")
+func (v *view) setBody(tbody [][]string) {
+	// 检查是否有 thead
+	if len(v.thead) == 0 {
+		panic("no head")
 	}
 	// 检查每条记录的长度是否和 header 一致
-	for _, row := range values {
-		if len(row) != len(v.header) {
-			panic("invalid values")
+	for _, row := range tbody {
+		if len(row) != len(v.thead) {
+			panic("invalid body")
 		}
 	}
-	v.values = values
+	v.tbody = tbody
 }
 
 func (v *view) calcColumnLens() []int {
-	widths := make([]int, len(v.header))
-	for i, h := range v.header {
-		if len(h) > widths[i] {
-			widths[i] = len(h)
+	lens := make([]int, len(v.thead))
+	for i, h := range v.thead {
+		if len(h) > lens[i] {
+			lens[i] = len(h)
 		}
 	}
-	for _, row := range v.values {
-		for i, v := range row {
-			if len(v) > widths[i] {
-				widths[i] = len(v)
+	for _, row := range v.tbody {
+		for i, r := range row {
+			if len(r) > lens[i] {
+				lens[i] = len(r)
 			}
 		}
 	}
 	// 加上 padding
-	for i, w := range widths {
-		widths[i] = w + padding*2
+	for i, l := range lens {
+		lens[i] = l + padding*2
 	}
-	return widths
+	return lens
 }
 
 func (v *view) string(chars []string) string {
@@ -108,6 +108,7 @@ func (v *view) string(chars []string) string {
 	// 计算每列的宽度
 	lens := v.calcColumnLens()
 
+	// 左右填充
 	left := func() string {
 		return strings.Repeat(" ", padding)
 	}
@@ -118,23 +119,22 @@ func (v *view) string(chars []string) string {
 	// 生成边框
 	top, middle, bottom := border(lens, chars)
 
-	// 输出 header
+	// 输出标题
 	res = append(res, top)
 	str = chars[10]
-	for i, val := range v.header {
-		str += left() + val + right(i, len(val))
+	for i, h := range v.thead {
+		str += left() + h + right(i, len(h))
 	}
 	res = append(res, str)
 
 	// 输出每条记录
 	res = append(res, middle)
-	for _, row := range v.values {
+	for _, row := range v.tbody {
 		str = chars[10]
-		for i, val := range row {
-			str += left() + val + right(i, len(val))
+		for i, r := range row {
+			str += left() + r + right(i, len(r))
 		}
 		res = append(res, str)
 	}
-	res = append(res, bottom)
-	return strings.Join(res, "\n")
+	return strings.Join(append(res, bottom), "\n")
 }

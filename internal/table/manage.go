@@ -112,8 +112,8 @@ func (tbm *tableManage) Create(txId uint64, stmt *sql.CreateStmt) error {
 		return err
 	}
 
-	tbm.updateTableId(t.Id)
 	tbm.tables[t.Name] = t
+	tbm.updateTableId(t.Id)
 	return nil
 }
 
@@ -138,22 +138,22 @@ func (tbm *tableManage) Select(txId uint64, stmt *sql.SelectStmt) ([]byte, error
 }
 
 func (tbm *tableManage) ShowTable() string {
-	header := []string{"Tables"}
-	values := make([][]string, 0)
+	thead := []string{"Tables"}
+	tbody := make([][]string, 0)
 	for name := range tbm.tables {
-		values = append(values, []string{name})
+		tbody = append(tbody, []string{name})
 	}
 
 	// 表格形式输出
 	v := newView()
-	v.setHeader(header)
-	v.setValues(values)
+	v.setHead(thead)
+	v.setBody(tbody)
 	return v.string(singleLine)
 }
 
 func (tbm *tableManage) ShowField(table string) string {
-	header := []string{"Field", "Type", "Index"}
-	values := make([][]string, 0)
+	thead := []string{"Field", "Type", "Index"}
+	tbody := make([][]string, 0)
 	t, exist := tbm.tables[table]
 	if !exist {
 		return "no such table"
@@ -164,13 +164,13 @@ func (tbm *tableManage) ShowField(table string) string {
 		if f.Index != 0 {
 			index = "YES"
 		}
-		values = append(values, []string{f.Name, f.Type, index})
+		tbody = append(tbody, []string{f.Name, f.Type, index})
 	}
 
 	// 表格形式输出
 	v := newView()
-	v.setHeader(header)
-	v.setValues(values)
+	v.setHead(thead)
+	v.setBody(tbody)
 	return v.string(singleLine)
 }
 

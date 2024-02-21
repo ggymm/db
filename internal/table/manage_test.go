@@ -16,7 +16,7 @@ import (
 	"db/test"
 )
 
-func testOpen() Manage {
+func TestTableManage_Show(t *testing.T) {
 	base := utils.RunPath()
 	name := "test"
 	path := filepath.Join(base, "temp/table")
@@ -27,22 +27,24 @@ func testOpen() Manage {
 		Path: path,
 	})
 
-	txManage := tx.NewManager(&opt.Option{
+	tm := tx.NewManager(&opt.Option{
 		Open: true,
 		Name: name,
 		Path: path,
 	})
-	dataManage := data.NewManage(txManage, &opt.Option{
+	dm := data.NewManage(tm, &opt.Option{
 		Open:   true,
 		Name:   name,
 		Path:   path,
 		Memory: (1 << 20) * 64,
 	})
+	tbm := NewManage(b, ver.NewManage(tm, dm), dm)
 
-	return NewManage(b, ver.NewManage(txManage, dataManage), dataManage)
+	// 展示表
+	fmt.Println(tbm.ShowTable())
 }
 
-func testCreate() Manage {
+func TestTableManage_Create(t *testing.T) {
 	base := utils.RunPath()
 	name := "test"
 	path := filepath.Join(base, "temp/table")
@@ -58,30 +60,20 @@ func testCreate() Manage {
 	bin.PutUint64(buf, 0)
 	b.Update(buf)
 
-	txManage := tx.NewManager(&opt.Option{
+	tm := tx.NewManager(&opt.Option{
 		Open: false,
 		Name: name,
 		Path: path,
 	})
-	dataManage := data.NewManage(txManage, &opt.Option{
+	dm := data.NewManage(tm, &opt.Option{
 		Open:   false,
 		Name:   name,
 		Path:   path,
 		Memory: (1 << 20) * 64,
 	})
+	tbm := NewManage(b, ver.NewManage(tm, dm), dm)
 
-	return NewManage(b, ver.NewManage(txManage, dataManage), dataManage)
-}
-
-func TestTableManage_Show(t *testing.T) {
-	tbm := testOpen()
-
-	// 展示表
-	fmt.Println(tbm.ShowTable())
-}
-
-func TestTableManage_Create(t *testing.T) {
-	tbm := testCreate()
+	// 解析创建表语句
 	stmts, err := sql.ParseSQL(test.CreateSQL)
 	if err != nil {
 		t.Fatalf("%+v", err)
@@ -104,4 +96,9 @@ func TestTableManage_Create(t *testing.T) {
 
 	// 展示字段
 	fmt.Println(tbm.ShowField(tbl.Name))
+
+	// 释放资源
+	// 同步数据到磁盘
+	tm.Close()
+	dm.Close()
 }

@@ -105,7 +105,3 @@ func (f *field) persist(txId uint64) (err error) {
 	f.Id, err = f.tbm.VerManage().Insert(txId, data)
 	return
 }
-
-func (f *field) String() string {
-	return "{" + f.Name + ": " + f.Type + "} "
-}

@@ -47,15 +47,13 @@ func TestVerManage_Handle(t *testing.T) {
 		dst   []byte
 		exist bool
 	)
-	txId = vm.Begin(0)
-	dst, exist, err = vm.Read(txId, dataId)
+	dst, exist, err = vm.Read(tx.Super, dataId)
 	if err != nil {
 		t.Fatalf("read error: %s", err)
 	}
 	if !exist {
 		t.Fatalf("read error: not exist")
 	}
-	err = vm.Commit(txId)
 	if err != nil {
 		t.Fatalf("commit error: %s", err)
 	}

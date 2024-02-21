@@ -29,8 +29,8 @@ func TestView_Border(t *testing.T) {
 
 func TestView_Print(t *testing.T) {
 	v := newView()
-	v.setHeader([]string{"Field", "Type", "Null", "Key", "Default", "Extra"})
-	v.setValues([][]string{
+	v.setHead([]string{"Field", "Type", "Null", "Key", "Default", "Extra"})
+	v.setBody([][]string{
 		{"create_time", "datetime", "YES", "", "NULL", ""},
 		{"create_id", "bigint(20)", "YES", "", "NULL", ""},
 		{"update_time", "datetime", "YES", "", "NULL", ""},

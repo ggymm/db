@@ -1,6 +1,7 @@
 package table
 
 import (
+	"fmt"
 	"slices"
 
 	"db/internal/tx"
@@ -112,6 +113,8 @@ func (t *table) persist(txId uint64) (err error) {
 		bin.PutUint64(buf, f.Id)
 		data = append(data, buf...)
 	}
+
+	fmt.Printf("table.persist: %v\n", data)
 
 	// 持久化
 	t.Id, err = t.tbm.VerManage().Insert(txId, data)

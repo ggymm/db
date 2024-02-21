@@ -19,3 +19,8 @@ func TestDataItem_Id(t *testing.T) {
 	}
 	t.Log("parseDataItemId/wrapDataItemId success")
 }
+
+func TestDataItem_parseDataItemId(t *testing.T) {
+	no, off := parseDataItemId(132838)
+	t.Logf("no: %d off: %d", no, off)
+}
