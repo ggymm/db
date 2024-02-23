@@ -1,7 +1,10 @@
 package table
 
 import (
+	"errors"
 	"sync"
+
+	"db/pkg/cmap"
 
 	"db/internal/boot"
 	"db/internal/data"
@@ -9,6 +12,8 @@ import (
 	"db/pkg/bin"
 	"db/pkg/sql"
 )
+
+var ErrNoSuchTable = errors.New("no such table")
 
 type Manage interface {
 	Begin(level int) uint64
@@ -33,9 +38,8 @@ type tableManage struct {
 	verManage  ver.Manage
 	dataManage data.Manage
 
-	lock sync.Mutex
-
-	tables map[string]*table
+	lock   sync.Mutex
+	tables cmap.ConcurrentMap[string, *table]
 }
 
 func NewManage(boot boot.Boot, verManage ver.Manage, dataManage data.Manage) Manage {
@@ -43,16 +47,16 @@ func NewManage(boot boot.Boot, verManage ver.Manage, dataManage data.Manage) Man
 		boot:       boot,
 		verManage:  verManage,
 		dataManage: dataManage,
-		tables:     make(map[string]*table),
+		tables:     cmap.New[*table](),
 	}
 
 	id := tbm.readTableId()
 	for id != 0 {
 		t := readTable(tbm, id)
-		tbm.tables[t.Name] = t
+		tbm.tables.Set(t.name, t)
 
 		// 读取下一个表的信息
-		id = t.NextId
+		id = t.nextId
 	}
 	return tbm
 }
@@ -79,27 +83,11 @@ func (tbm *tableManage) Commit(txId uint64) error {
 	return tbm.verManage.Commit(txId)
 }
 
-func (tbm *tableManage) Show() []byte {
-	tbm.lock.Lock()
-	defer tbm.lock.Unlock()
-
-	result := ""
-	printTable := func(t *table) string {
-		str := "Table: " + t.Name + "\n"
-		return str
-	}
-
-	for _, t := range tbm.tables {
-		result += printTable(t)
-	}
-	return []byte(result)
-}
-
 func (tbm *tableManage) Create(txId uint64, stmt *sql.CreateStmt) error {
 	tbm.lock.Lock()
 	defer tbm.lock.Unlock()
 
-	if _, exist := tbm.tables[stmt.Name]; exist {
+	if exist := tbm.tables.Has(stmt.Name); exist {
 		return nil
 	}
 
@@ -112,37 +100,50 @@ func (tbm *tableManage) Create(txId uint64, stmt *sql.CreateStmt) error {
 		return err
 	}
 
-	tbm.tables[t.Name] = t
-	tbm.updateTableId(t.Id)
+	tbm.tables.Set(t.name, t)
+	tbm.updateTableId(t.id)
 	return nil
 }
 
 func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
-	// TODO implement me
-	panic("implement me")
+	_, ok := tbm.tables.Get(stmt.Table)
+	if !ok {
+		return ErrNoSuchTable
+	}
+	return nil
 }
 
 func (tbm *tableManage) Update(txId uint64, stmt *sql.UpdateStmt) error {
-	// TODO implement me
-	panic("implement me")
+	_, ok := tbm.tables.Get(stmt.Table)
+	if !ok {
+		return ErrNoSuchTable
+	}
+	return nil
 }
 
 func (tbm *tableManage) Delete(txId uint64, stmt *sql.DeleteStmt) error {
-	// TODO implement me
-	panic("implement me")
+	_, ok := tbm.tables.Get(stmt.Table)
+	if !ok {
+		return ErrNoSuchTable
+	}
+	return nil
 }
 
 func (tbm *tableManage) Select(txId uint64, stmt *sql.SelectStmt) ([]byte, error) {
-	// TODO implement me
-	panic("implement me")
+	_, ok := tbm.tables.Get(stmt.Table)
+	if !ok {
+		return nil, ErrNoSuchTable
+	}
+	return nil, nil
 }
 
 func (tbm *tableManage) ShowTable() string {
 	thead := []string{"Tables"}
 	tbody := make([][]string, 0)
-	for name := range tbm.tables {
+
+	tbm.tables.IterCb(func(name string, _ *table) {
 		tbody = append(tbody, []string{name})
-	}
+	})
 
 	// 表格形式输出
 	v := newView()
@@ -154,17 +155,21 @@ func (tbm *tableManage) ShowTable() string {
 func (tbm *tableManage) ShowField(table string) string {
 	thead := []string{"Field", "Type", "Index"}
 	tbody := make([][]string, 0)
-	t, exist := tbm.tables[table]
+	t, exist := tbm.tables.Get(table)
 	if !exist {
 		return "no such table"
 	}
 
-	for _, f := range t.Fields {
+	for _, f := range t.fields {
 		index := "NO"
-		if f.Index != 0 {
+		if f.index != 0 {
 			index = "YES"
 		}
-		tbody = append(tbody, []string{f.Name, f.Type, index})
+		tbody = append(tbody, []string{
+			f.name,
+			f.dataType,
+			index,
+		})
 	}
 
 	// 表格形式输出

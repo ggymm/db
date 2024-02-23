@@ -20,19 +20,23 @@ type FieldType int
 
 const (
 	_ FieldType = iota
-	Int
+	Int32
+	Int64
 	Varchar
 )
 
 var typeMapping = map[string]FieldType{
-	"INT":     Int,
+	"INT32":   Int32,
+	"INT64":   Int64,
 	"VARCHAR": Varchar,
 }
 
 func (t FieldType) String() string {
 	switch t {
-	case Int:
-		return "INT"
+	case Int32:
+		return "INT32"
+	case Int64:
+		return "INT64"
 	case Varchar:
 		return "VARCHAR"
 	}
@@ -88,10 +92,10 @@ type CreateTable struct {
 }
 
 type CreateField struct {
-	Name         string
-	Type         FieldType
-	AllowNull    bool
-	DefaultValue string
+	Name       string
+	Type       FieldType
+	AllowNull  bool
+	DefaultVal string
 }
 
 type CreateIndex struct {

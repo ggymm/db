@@ -22,10 +22,12 @@ type field struct {
 	tbm Manage
 	idx index.Index
 
-	Id    uint64
-	Name  string
-	Type  string
-	Index uint64
+	id         uint64
+	name       string
+	index      uint64
+	dataType   string
+	allowNull  bool
+	defaultVal string
 }
 
 type newField struct {
@@ -47,19 +49,19 @@ func readField(tbm Manage, id uint64) *field {
 	)
 
 	// 读取 name
-	f.Name, shift = str.Deserialize(data)
+	f.name, shift = str.Deserialize(data)
 
 	// 读取 type
 	pos += shift
-	f.Type, shift = str.Deserialize(data[pos:])
+	f.dataType, shift = str.Deserialize(data[pos:])
 
 	// 读取 index
 	pos += shift
-	f.Index = bin.Uint64(data[pos:])
-	if f.Index != 0 {
+	f.index = bin.Uint64(data[pos:])
+	if f.index != 0 {
 		f.idx, err = index.NewIndex(tbm.DataManage(), &opt.Option{
 			Open:   true,
-			RootId: f.Index,
+			RootId: f.index,
 		})
 		if err != nil {
 			panic(err)
@@ -70,11 +72,10 @@ func readField(tbm Manage, id uint64) *field {
 
 func createField(tbm Manage, info *newField) (*field, error) {
 	f := &field{
-		tbm: tbm,
-
-		Name:  info.Name,
-		Type:  info.Type,
-		Index: 0,
+		tbm:      tbm,
+		name:     info.Name,
+		index:    0,
+		dataType: info.Type,
 	}
 
 	if info.Indexed {
@@ -84,24 +85,24 @@ func createField(tbm Manage, info *newField) (*field, error) {
 		if err != nil {
 			return nil, err
 		}
-		f.Index = idx.GetRootId()
+		f.index = idx.GetRootId()
 	}
 	return f, f.persist(info.TxId)
 }
 
 func (f *field) persist(txId uint64) (err error) {
 	// name
-	data := str.Serialize(f.Name)
+	data := str.Serialize(f.name)
 
 	// type
-	data = append(data, str.Serialize(f.Type)...)
+	data = append(data, str.Serialize(f.dataType)...)
 
 	// index
 	buf := make([]byte, 8)
-	bin.PutUint64(buf, f.Index)
+	bin.PutUint64(buf, f.index)
 	data = append(data, buf...)
 
 	// 持久化
-	f.Id, err = f.tbm.VerManage().Insert(txId, data)
+	f.id, err = f.tbm.VerManage().Insert(txId, data)
 	return
 }

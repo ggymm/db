@@ -20,14 +20,20 @@ import (
 // +----------------+----------------+----------------+----------------+
 //
 
+type entry struct {
+	raw   []byte
+	value []any
+	field []*field
+}
+
 type table struct {
 	tbm Manage
 
-	Id     uint64
-	Name   string
-	Fields []*field
+	id     uint64
+	name   string
+	fields []*field
 
-	NextId uint64
+	nextId uint64
 }
 
 type newTable struct {
@@ -58,21 +64,19 @@ func readTable(tbm Manage, id uint64) *table {
 	}
 
 	return &table{
-		tbm: tbm,
-
-		Id:     id,
-		Name:   name,
-		Fields: fields,
-
-		NextId: next,
+		tbm:    tbm,
+		id:     id,
+		name:   name,
+		fields: fields,
+		nextId: next,
 	}
 }
 
 func createTable(tbm *tableManage, info *newTable) (*table, error) {
 	t := &table{
 		tbm:    tbm,
-		Name:   info.Stmt.Name,
-		NextId: info.NextId,
+		name:   info.Stmt.Name,
+		nextId: info.NextId,
 	}
 
 	// 读取 index
@@ -92,31 +96,68 @@ func createTable(tbm *tableManage, info *newTable) (*table, error) {
 		if err != nil {
 			return nil, err
 		}
-		t.Fields = append(t.Fields, fld)
+		t.fields = append(t.fields, fld)
 	}
 
 	// 持久化
 	return t, t.persist(info.TxId)
 }
 
+func (t *table) raw(stmt *sql.InsertStmt) ([]entry, error) {
+	es := make([]entry, len(t.fields))
+
+	maps := make([]map[string]string, len(stmt.Value))
+	for i, val := range stmt.Value {
+		maps[i] = make(map[string]string)
+		for j, f := range stmt.Field {
+			maps[i][f] = val[j]
+		}
+	}
+
+	for _, insert := range maps {
+		e := entry{}
+		e.raw = make([]byte, 0)
+		for i, f := range t.fields {
+			e.field[i] = f
+			if val, ok := insert[f.name]; ok {
+				e.value[i] = val
+			} else {
+				if len(f.defaultVal) != 0 {
+					e.value[i] = f.defaultVal
+				} else {
+					if f.allowNull {
+						e.value[i] = nil
+					} else {
+						return nil, fmt.Errorf("field %s is not allowed to be null", f.name)
+					}
+				}
+			}
+
+			e.raw = append(e.raw, sql.FieldRaw(f.dataType, e.value[i])...)
+		}
+		es = append(es, e)
+	}
+	return es, nil
+}
+
 func (t *table) persist(txId uint64) (err error) {
 	// name
-	data := str.Serialize(t.Name)
+	data := str.Serialize(t.name)
 
 	// next
 	buf := make([]byte, 8)
-	bin.PutUint64(buf, t.NextId)
+	bin.PutUint64(buf, t.nextId)
 	data = append(data, buf...)
 
 	// fields
-	for _, f := range t.Fields {
-		bin.PutUint64(buf, f.Id)
+	for _, f := range t.fields {
+		bin.PutUint64(buf, f.id)
 		data = append(data, buf...)
 	}
 
 	fmt.Printf("table.persist: %v\n", data)
 
 	// 持久化
-	t.Id, err = t.tbm.VerManage().Insert(txId, data)
+	t.id, err = t.tbm.VerManage().Insert(txId, data)
 	return
 }

@@ -148,7 +148,7 @@ var (
 		57367: 51, // BY (1x)
 		57384: 52, // CreateTable (1x)
 		57385: 53, // CreateTableOption (1x)
-		57386: 54, // DefaultValue (1x)
+		57386: 54, // DefaultVal (1x)
 		57389: 55, // FieldType (1x)
 		57390: 56, // InsertField (1x)
 		57391: 57, // InsertFieldList (1x)
@@ -226,7 +226,7 @@ var (
 		"BY",
 		"CreateTable",
 		"CreateTableOption",
-		"DefaultValue",
+		"DefaultVal",
 		"FieldType",
 		"InsertField",
 		"InsertFieldList",
@@ -891,10 +891,10 @@ yynewstate:
 	case 27:
 		{
 			yyVAL.createField = &CreateField{
-				Name:         yyS[yypt-3].str,
-				Type:         yyS[yypt-2].fieldType,
-				AllowNull:    yyS[yypt-1].boolean,
-				DefaultValue: yyS[yypt-0].str,
+				Name:       yyS[yypt-3].str,
+				Type:       yyS[yypt-2].fieldType,
+				AllowNull:  yyS[yypt-1].boolean,
+				DefaultVal: yyS[yypt-0].str,
 			}
 		}
 	case 28:

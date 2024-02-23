@@ -85,7 +85,7 @@ import (
 %type <stmtList> StmtList
 
 // 语法定义（创建表）
-%type <str> DefaultValue
+%type <str> DefaultVal
 %type <boolean> AllowNull
 %type <fieldType> FieldType
 
@@ -197,7 +197,7 @@ AllowNull:
 		$$ = false
 	}
 
-DefaultValue:
+DefaultVal:
 	{
 		$$ = ""
 	}
@@ -278,13 +278,13 @@ CreateTable:
 	}
 
 CreateField:
-	Expr FieldType AllowNull DefaultValue
+	Expr FieldType AllowNull DefaultVal
 	{
 		$$ = &CreateField{
 			Name: $1,
 			Type: $2,
 			AllowNull: $3,
-			DefaultValue: $4,
+			DefaultVal: $4,
 		}
 	}
 
