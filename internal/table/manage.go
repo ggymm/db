@@ -2,6 +2,7 @@ package table
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	"db/pkg/cmap"
@@ -106,9 +107,18 @@ func (tbm *tableManage) Create(txId uint64, stmt *sql.CreateStmt) error {
 }
 
 func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
-	_, ok := tbm.tables.Get(stmt.Table)
+	t, ok := tbm.tables.Get(stmt.Table)
 	if !ok {
 		return ErrNoSuchTable
+	}
+
+	// 格式化插入数据
+	entries, err := t.raw(stmt)
+	if err != nil {
+		return err
+	}
+	for _, e := range entries {
+		fmt.Println(e)
 	}
 	return nil
 }

@@ -133,6 +133,7 @@ func (t *table) raw(stmt *sql.InsertStmt) ([]entry, error) {
 				}
 			}
 
+			// 将字段值转换为二进制
 			e.raw = append(e.raw, sql.FieldRaw(f.dataType, e.value[i])...)
 		}
 		es = append(es, e)
@@ -154,8 +155,6 @@ func (t *table) persist(txId uint64) (err error) {
 		bin.PutUint64(buf, f.id)
 		data = append(data, buf...)
 	}
-
-	fmt.Printf("table.persist: %v\n", data)
 
 	// 持久化
 	t.id, err = t.tbm.VerManage().Insert(txId, data)
