@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"sync"
 
-	"db/pkg/cmap"
-
 	"db/internal/boot"
 	"db/internal/data"
 	"db/internal/ver"
 	"db/pkg/bin"
+	"db/pkg/cmap"
 	"db/pkg/sql"
 )
 
