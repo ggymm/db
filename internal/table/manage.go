@@ -39,7 +39,7 @@ type tableManage struct {
 	dataManage data.Manage
 
 	lock   sync.Mutex
-	tables cmap.ConcurrentMap[string, *table]
+	tables cmap.CMap[string, *table]
 }
 
 func NewManage(boot boot.Boot, verManage ver.Manage, dataManage data.Manage) Manage {
@@ -117,6 +117,8 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 		return err
 	}
 	for _, e := range entries {
+		// 判断是否有字段需要索引
+
 		fmt.Println(e)
 	}
 	return nil

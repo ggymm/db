@@ -115,25 +115,29 @@ func (t *table) raw(stmt *sql.InsertStmt) ([]entry, error) {
 	}
 
 	for _, insert := range maps {
-		e := entry{}
+		e := entry{
+			raw:   make([]byte, 0),
+			value: make([]any, len(t.fields)),
+			field: make([]*field, len(t.fields)),
+		}
 		e.raw = make([]byte, 0)
 		for i, f := range t.fields {
 			e.field[i] = f
-			if val, ok := insert[f.name]; ok {
+
+			// 获取字段值
+			val, ok := insert[f.name]
+			switch {
+			case ok:
 				e.value[i] = val
-			} else {
-				if len(f.defaultVal) != 0 {
-					e.value[i] = f.defaultVal
-				} else {
-					if f.allowNull {
-						e.value[i] = nil
-					} else {
-						return nil, fmt.Errorf("field %s is not allowed to be null", f.name)
-					}
-				}
+			case len(f.defaultVal) != 0:
+				e.value[i] = f.defaultVal
+			case f.allowNull:
+				e.value[i] = nil
+			default:
+				return nil, fmt.Errorf("field %s is not allowed to be null", f.name)
 			}
 
-			// 将字段值转换为二进制
+			// 获取字段二进制值
 			e.raw = append(e.raw, sql.FieldRaw(f.dataType, e.value[i])...)
 		}
 		es = append(es, e)
