@@ -1,7 +1,6 @@
 package table
 
 import (
-	"fmt"
 	"slices"
 
 	"db/internal/tx"
@@ -21,9 +20,9 @@ import (
 //
 
 type entry struct {
-	raw   []byte
-	value []any
-	field []*field
+	raw    []byte
+	value  []any
+	fields []*field
 }
 
 type table struct {
@@ -101,48 +100,6 @@ func createTable(tbm *tableManage, info *newTable) (*table, error) {
 
 	// 持久化
 	return t, t.persist(info.TxId)
-}
-
-func (t *table) raw(stmt *sql.InsertStmt) ([]entry, error) {
-	es := make([]entry, len(t.fields))
-
-	maps := make([]map[string]string, len(stmt.Value))
-	for i, val := range stmt.Value {
-		maps[i] = make(map[string]string)
-		for j, f := range stmt.Field {
-			maps[i][f] = val[j]
-		}
-	}
-
-	for _, insert := range maps {
-		e := entry{
-			raw:   make([]byte, 0),
-			value: make([]any, len(t.fields)),
-			field: make([]*field, len(t.fields)),
-		}
-		e.raw = make([]byte, 0)
-		for i, f := range t.fields {
-			e.field[i] = f
-
-			// 获取字段值
-			val, ok := insert[f.name]
-			switch {
-			case ok:
-				e.value[i] = val
-			case len(f.defaultVal) != 0:
-				e.value[i] = f.defaultVal
-			case f.allowNull:
-				e.value[i] = nil
-			default:
-				return nil, fmt.Errorf("field %s is not allowed to be null", f.name)
-			}
-
-			// 获取字段二进制值
-			e.raw = append(e.raw, sql.FieldRaw(f.dataType, e.value[i])...)
-		}
-		es = append(es, e)
-	}
-	return es, nil
 }
 
 func (t *table) persist(txId uint64) (err error) {

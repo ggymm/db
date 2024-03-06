@@ -116,6 +116,20 @@ func (*InsertStmt) Type() StmtType {
 	return Insert
 }
 
+func (s *InsertStmt) Format() ([]map[string]string, error) {
+	maps := make([]map[string]string, len(s.Value))
+	for i, row := range s.Value {
+		if len(row) != len(s.Field) {
+			return nil, fmt.Errorf("插入列数与值数不匹配")
+		}
+		maps[i] = make(map[string]string)
+		for j, col := range row {
+			maps[i][s.Field[j]] = col
+		}
+	}
+	return maps, nil
+}
+
 type UpdateStmt struct {
 	Table string
 	Value map[string]string

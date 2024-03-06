@@ -106,3 +106,7 @@ func (f *field) persist(txId uint64) (err error) {
 	f.id, err = f.tbm.VerManage().Insert(txId, data)
 	return
 }
+
+func (f *field) isIndexed() bool {
+	return f.index != 0
+}

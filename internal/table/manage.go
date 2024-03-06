@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 
+	"db/pkg/utils"
+
 	"db/internal/boot"
 	"db/internal/data"
 	"db/internal/ver"
@@ -106,20 +108,71 @@ func (tbm *tableManage) Create(txId uint64, stmt *sql.CreateStmt) error {
 }
 
 func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
-	t, ok := tbm.tables.Get(stmt.Table)
+	var (
+		ok  bool
+		err error
+
+		t    *table
+		maps []map[string]string
+	)
+
+	t, ok = tbm.tables.Get(stmt.Table)
 	if !ok {
 		return ErrNoSuchTable
 	}
 
 	// 格式化插入数据
-	entries, err := t.raw(stmt)
+	maps, err = stmt.Format()
 	if err != nil {
 		return err
 	}
-	for _, e := range entries {
-		// 判断是否有字段需要索引
+	es := make([]entry, len(t.fields))
+	for _, ins := range maps {
+		e := entry{
+			raw:    make([]byte, 0),
+			value:  make([]any, len(t.fields)),
+			fields: make([]*field, len(t.fields)),
+		}
+		e.raw = make([]byte, 0)
+		for i, f := range t.fields {
+			e.fields[i] = f
 
-		fmt.Println(e)
+			// 获取字段值
+			var val string
+			val, ok = ins[f.name]
+			switch {
+			case ok:
+				e.value[i] = val
+			case len(f.defaultVal) != 0:
+				e.value[i] = f.defaultVal
+			case f.allowNull:
+				e.value[i] = nil
+			default:
+				return fmt.Errorf("field %s is not allowed to be null", f.name)
+			}
+
+			// 获取字段二进制值
+			e.raw = append(e.raw, sql.FieldRaw(f.dataType, e.value[i])...)
+		}
+		es = append(es, e)
+	}
+	for _, e := range es {
+		// 写入数据
+		var id uint64
+		id, err = tbm.verManage.Insert(txId, e.raw)
+		if err != nil {
+			return err
+		}
+
+		// 判断是否有字段需要索引
+		for _, f := range e.fields {
+			if f.isIndexed() {
+				err = f.idx.Insert(utils.Hash(e.value[f.index]), id)
+				if err != nil {
+					return err
+				}
+			}
+		}
 	}
 	return nil
 }
