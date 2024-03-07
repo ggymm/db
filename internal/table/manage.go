@@ -126,6 +126,8 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 	if err != nil {
 		return err
 	}
+
+	// 构建插入的数据条目
 	es := make([]entry, len(t.fields))
 	for _, ins := range maps {
 		e := entry{
@@ -133,12 +135,12 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 			value:  make([]any, len(t.fields)),
 			fields: make([]*field, len(t.fields)),
 		}
-		e.raw = make([]byte, 0)
+
+		val := ""
 		for i, f := range t.fields {
 			e.fields[i] = f
 
 			// 获取字段值
-			var val string
 			val, ok = ins[f.name]
 			switch {
 			case ok:
@@ -156,9 +158,11 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 		}
 		es = append(es, e)
 	}
+
+	// 遍历插入的数据条目，写入数据
+	id := uint64(0)
 	for _, e := range es {
 		// 写入数据
-		var id uint64
 		id, err = tbm.verManage.Insert(txId, e.raw)
 		if err != nil {
 			return err
