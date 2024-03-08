@@ -7,3 +7,6 @@ var CreateSQL string
 
 //go:embed sql_list.txt
 var SQLList string
+
+//go:embed select.sql
+var SelectSQL string

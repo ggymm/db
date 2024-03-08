@@ -116,6 +116,7 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 		maps []map[string]string
 	)
 
+	// 获取表对象
 	t, ok = tbm.tables.Get(stmt.Table)
 	if !ok {
 		return ErrNoSuchTable
@@ -129,7 +130,7 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 
 	// 构建插入的数据条目
 	es := make([]entry, len(t.fields))
-	for _, ins := range maps {
+	for _, item := range maps {
 		e := entry{
 			raw:    make([]byte, 0),
 			value:  make([]any, len(t.fields)),
@@ -141,7 +142,7 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 			e.fields[i] = f
 
 			// 获取字段值
-			val, ok = ins[f.name]
+			val, ok = item[f.name]
 			switch {
 			case ok:
 				e.value[i] = val
@@ -194,10 +195,12 @@ func (tbm *tableManage) Delete(txId uint64, stmt *sql.DeleteStmt) error {
 	if !ok {
 		return ErrNoSuchTable
 	}
+
 	return nil
 }
 
 func (tbm *tableManage) Select(txId uint64, stmt *sql.SelectStmt) ([]byte, error) {
+	// 获取表对象
 	_, ok := tbm.tables.Get(stmt.Table)
 	if !ok {
 		return nil, ErrNoSuchTable
