@@ -102,3 +102,58 @@ func TestTableManage_Create(t *testing.T) {
 	tm.Close()
 	dm.Close()
 }
+
+func TestTableManage_Insert(t *testing.T) {
+	base := utils.RunPath()
+	name := "test"
+	path := filepath.Join(base, "temp/table")
+
+	b := boot.New(&opt.Option{
+		Open: false,
+		Name: name,
+		Path: path,
+	})
+
+	// 初始化boot
+	buf := make([]byte, 8)
+	bin.PutUint64(buf, 0)
+	b.Update(buf)
+
+	tm := tx.NewManager(&opt.Option{
+		Open: false,
+		Name: name,
+		Path: path,
+	})
+	dm := data.NewManage(tm, &opt.Option{
+		Open:   false,
+		Name:   name,
+		Path:   path,
+		Memory: (1 << 20) * 64,
+	})
+	tbm := NewManage(b, ver.NewManage(tm, dm), dm)
+
+	// 解析创建表语句
+	stmts, err := sql.ParseSQL(test.InsertSQL)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+	tbl := stmts[0].(*sql.InsertStmt)
+
+	txId := tbm.Begin(0)
+	err = tbm.Insert(txId, tbl)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+	err = tbm.Commit(txId)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	// 释放资源
+	// 同步数据到磁盘
+	tm.Close()
+	dm.Close()
+}
+
+func TestTableManage_Select(t *testing.T) {
+}
