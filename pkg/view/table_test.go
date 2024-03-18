@@ -1,4 +1,4 @@
-package table
+package view
 
 import (
 	"fmt"
@@ -28,9 +28,9 @@ func TestView_Border(t *testing.T) {
 }
 
 func TestView_Print(t *testing.T) {
-	v := newView()
-	v.setHead([]string{"Field", "Type", "Null", "Key", "Default", "Extra"})
-	v.setBody([][]string{
+	v := NewTable()
+	v.SetHead([]string{"Field", "Type", "Null", "Key", "Default", "Extra"})
+	v.SetBody([][]string{
 		{"create_time", "datetime", "YES", "", "NULL", ""},
 		{"create_id", "bigint(20)", "YES", "", "NULL", ""},
 		{"update_time", "datetime", "YES", "", "NULL", ""},
@@ -38,7 +38,10 @@ func TestView_Print(t *testing.T) {
 		{"del_flag", "int(11)", "YES", "", "NULL", ""},
 	})
 
-	fmt.Println(v.string(asciiLine))
-	fmt.Println(v.string(singleLine))
-	fmt.Println(v.string(doubleLine))
+	v.SetChars(asciiLine)
+	fmt.Println(v.String())
+	v.SetChars(singleLine)
+	fmt.Println(v.String())
+	v.SetChars(doubleLine)
+	fmt.Println(v.String())
 }

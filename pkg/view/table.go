@@ -1,4 +1,4 @@
-package table
+package view
 
 import "strings"
 
@@ -50,37 +50,23 @@ func border(lens []int, chars []string) (string, string, string) {
 	return top, middle, bottom
 }
 
-type view struct {
+type Table struct {
+	chars []string
+
 	thead []string
 	tbody [][]string
 }
 
-func newView() *view {
-	return &view{
+func NewTable() *Table {
+	return &Table{
+		chars: singleLine,
+
 		thead: []string{},
 		tbody: [][]string{},
 	}
 }
 
-func (v *view) setHead(thead []string) {
-	v.thead = thead
-}
-
-func (v *view) setBody(tbody [][]string) {
-	// 检查是否有 thead
-	if len(v.thead) == 0 {
-		panic("no head")
-	}
-	// 检查每条记录的长度是否和 header 一致
-	for _, row := range tbody {
-		if len(row) != len(v.thead) {
-			panic("invalid body")
-		}
-	}
-	v.tbody = tbody
-}
-
-func (v *view) calcColumnLens() []int {
+func (v *Table) calcLens() []int {
 	lens := make([]int, len(v.thead))
 	for i, h := range v.thead {
 		if len(h) > lens[i] {
@@ -101,12 +87,35 @@ func (v *view) calcColumnLens() []int {
 	return lens
 }
 
-func (v *view) string(chars []string) string {
+func (v *Table) SetChars(chars []string) {
+	v.chars = chars
+}
+
+func (v *Table) SetHead(thead []string) {
+	v.thead = thead
+}
+
+func (v *Table) SetBody(tbody [][]string) {
+	// 检查是否有 thead
+	if len(v.thead) == 0 {
+		panic("no head")
+	}
+	// 检查每条记录的长度是否和 header 一致
+	for _, row := range tbody {
+		if len(row) != len(v.thead) {
+			panic("invalid body")
+		}
+	}
+	v.tbody = tbody
+}
+
+func (v *Table) String() string {
 	str := ""
 	res := make([]string, 0)
 
 	// 计算每列的宽度
-	lens := v.calcColumnLens()
+	lens := v.calcLens()
+	chars := v.chars
 
 	// 左右填充
 	left := func() string {

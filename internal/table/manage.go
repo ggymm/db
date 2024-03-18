@@ -1,6 +1,7 @@
 package table
 
 import (
+	"db/pkg/view"
 	"errors"
 	"fmt"
 	"sync"
@@ -205,6 +206,10 @@ func (tbm *tableManage) Select(txId uint64, stmt *sql.SelectStmt) ([]byte, error
 	if !ok {
 		return nil, ErrNoSuchTable
 	}
+
+	// 遍历条件，如果有索引，则使用索引进行查询
+	for range stmt.Where {
+	}
 	return nil, nil
 }
 
@@ -217,10 +222,10 @@ func (tbm *tableManage) ShowTable() string {
 	})
 
 	// 表格形式输出
-	v := newView()
-	v.setHead(thead)
-	v.setBody(tbody)
-	return v.string(singleLine)
+	vt := view.NewTable()
+	vt.SetHead(thead)
+	vt.SetBody(tbody)
+	return vt.String()
 }
 
 func (tbm *tableManage) ShowField(table string) string {
@@ -244,10 +249,10 @@ func (tbm *tableManage) ShowField(table string) string {
 	}
 
 	// 表格形式输出
-	v := newView()
-	v.setHead(thead)
-	v.setBody(tbody)
-	return v.string(singleLine)
+	vt := view.NewTable()
+	vt.SetHead(thead)
+	vt.SetBody(tbody)
+	return vt.String()
 }
 
 func (tbm *tableManage) VerManage() ver.Manage {
