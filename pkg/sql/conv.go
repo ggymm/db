@@ -20,11 +20,9 @@ func FieldRaw(t string, v any) []byte {
 	}
 	switch typeMapping[t] {
 	case Int32:
-		raw = make([]byte, 4)
-		bin.PutUint32(raw, v.(uint32))
+		raw = bin.Uint32Raw(v.(uint32))
 	case Int64:
-		raw = make([]byte, 8)
-		bin.PutUint64(raw, v.(uint64))
+		raw = bin.Uint64Raw(v.(uint64))
 	case Varchar:
 		raw = str.Serialize(v.(string))
 	}

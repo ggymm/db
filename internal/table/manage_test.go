@@ -56,9 +56,8 @@ func TestTableManage_Create(t *testing.T) {
 	})
 
 	// 初始化boot
-	buf := make([]byte, 8)
-	bin.PutUint64(buf, 0)
-	b.Update(buf)
+	raw := bin.Uint64Raw(0)
+	b.Update(raw)
 
 	tm := tx.NewManager(&opt.Option{
 		Open: false,
@@ -115,9 +114,8 @@ func TestTableManage_Insert(t *testing.T) {
 	})
 
 	// 初始化boot
-	buf := make([]byte, 8)
-	bin.PutUint64(buf, 0)
-	b.Update(buf)
+	raw := bin.Uint64Raw(0)
+	b.Update(raw)
 
 	tm := tx.NewManager(&opt.Option{
 		Open: false,

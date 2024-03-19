@@ -16,20 +16,31 @@ type entry struct {
 	fields []*field
 }
 
+// table 内存结构
+//
+// +----------------+----------------+----------------+
+// |     name       |     nextId     |     fields     |
+// +----------------+----------------+----------------+
+// |    string      |     uint64     |    uint64[]    |
+// +----------------+----------------+----------------+
 type table struct {
 	tbm Manage
 
-	id     uint64
-	name   string
-	fields []*field
+	itemId uint64
 
-	nextId uint64
+	tableName   string
+	tableNext   uint64
+	tableFields []*field
 }
 
 type newTable struct {
-	TxId   uint64
-	NextId uint64
-	Stmt   *sql.CreateStmt
+	txId uint64
+
+	tableName string
+	tableNext uint64
+
+	index []*sql.CreateIndex
+	field []*sql.CreateField
 }
 
 func readTable(tbm Manage, id uint64) *table {
@@ -54,82 +65,118 @@ func readTable(tbm Manage, id uint64) *table {
 	}
 
 	return &table{
-		tbm:    tbm,
-		id:     id,
-		name:   name,
-		fields: fields,
-		nextId: next,
+		tbm:         tbm,
+		itemId:      id,
+		tableName:   name,
+		tableNext:   next,
+		tableFields: fields,
 	}
 }
 
 func createTable(tbm *tableManage, info *newTable) (*table, error) {
 	t := &table{
-		tbm:    tbm,
-		name:   info.Stmt.Name,
-		nextId: info.NextId,
+		tbm:       tbm,
+		tableName: info.tableName,
+		tableNext: info.tableNext,
 	}
 
-	// 读取 index
-	index := make([]string, 0)
-	for _, i := range info.Stmt.Table.Index {
-		index = append(index, i.Field)
+	// 读取 主键 和 索引
+	pkList := make([]string, 0)
+	indexList := make([]string, 0)
+	for _, i := range info.index {
+		if i.Pk {
+			pkList = append(pkList, i.Field)
+		}
+		indexList = append(indexList, i.Field)
 	}
 
 	// 读取 field
-	for _, f := range info.Stmt.Table.Field {
-		fld, err := createField(tbm, &newField{
-			TxId:    info.TxId,
-			Name:    f.Name,
-			Type:    f.Type.String(),
-			Indexed: slices.Contains(index, f.Name),
+	for _, f := range info.field {
+		hasPk := slices.Contains(pkList, f.Name)
+		hasIndex := slices.Contains(indexList, f.Name)
+
+		// 如果是主键, 则不允许为空
+		if hasPk {
+			f.AllowNull = false
+		}
+		fd, err := createField(tbm, &newField{
+			txId: info.txId,
+
+			fieldName:  f.Name,
+			fieldType:  f.Type.String(),
+			fieldIndex: hasIndex,
+
+			allowNull:  f.AllowNull,
+			primaryKey: hasPk,
+			defaultVal: f.DefaultVal,
 		})
 		if err != nil {
 			return nil, err
 		}
-		t.fields = append(t.fields, fld)
+		t.tableFields = append(t.tableFields, fd)
 	}
 
 	// 持久化
-	return t, t.persist(info.TxId)
+	return t, t.persist(info.txId)
 }
 
 func (t *table) persist(txId uint64) (err error) {
 	// name
-	data := str.Serialize(t.name)
+	data := str.Serialize(t.tableName)
 
 	// next
-	buf := make([]byte, 8)
-	bin.PutUint64(buf, t.nextId)
-	data = append(data, buf...)
+	raw := bin.Uint64Raw(t.tableNext)
+	data = append(data, raw...)
 
 	// fields
-	for _, f := range t.fields {
-		bin.PutUint64(buf, f.id)
-		data = append(data, buf...)
+	for _, f := range t.tableFields {
+		raw = bin.Uint64Raw(f.itemId)
+		data = append(data, raw...)
 	}
 
 	// 持久化
-	t.id, err = t.tbm.VerManage().Insert(txId, data)
+	t.itemId, err = t.tbm.VerManage().Insert(txId, data)
 	return
 }
 
+// field 内存结构
+// +----------------+----------------+----------------+----------------+----------------+----------------+
+// |    fieldName   |    fieldType   |   fieldIndex   |   allowNull    |   primaryKey   |   defaultVal   |
+// +----------------+----------------+----------------+----------------+----------------+----------------+
+// |     string     |     string     |     uint64     |     bool       |      bool      |     string     |
+// +----------------+----------------+----------------+----------------+----------------+----------------+
+//
+// fieldName: 字段名
+// fieldType: 字段类型
+// fieldIndex: 字段索引Id
+// allowNull: 是否允许为空
+// primaryKey: 是否是主键
+// defaultVal: 为空时的默认值
 type field struct {
 	tbm Manage
 	idx index.Index
 
-	id         uint64
-	name       string
-	index      uint64
-	dataType   string
-	allowNull  bool
-	defaultVal string
+	itemId uint64
+
+	fieldName  string // 字段名
+	fieldType  string // 字段类型
+	fieldIndex uint64 // 字段索引Id
+
+	allowNull  bool   // 是否允许为空
+	primaryKey bool   // 是否是主键
+	defaultVal string // 为空时的默认值
 }
 
 type newField struct {
-	TxId    uint64
-	Name    string
-	Type    string
-	Indexed bool
+	txId uint64
+
+	fieldName  string
+	fieldType  string
+	fieldIndex bool
+
+	allowNull  bool
+	primaryKey bool
+	defaultVal string
 }
 
 func readField(tbm Manage, id uint64) *field {
@@ -144,19 +191,19 @@ func readField(tbm Manage, id uint64) *field {
 	)
 
 	// 读取 name
-	f.name, shift = str.Deserialize(data)
+	f.fieldName, shift = str.Deserialize(data)
 
 	// 读取 type
 	pos += shift
-	f.dataType, shift = str.Deserialize(data[pos:])
+	f.fieldType, shift = str.Deserialize(data[pos:])
 
 	// 读取 index
 	pos += shift
-	f.index = bin.Uint64(data[pos:])
-	if f.index != 0 {
+	f.fieldIndex = bin.Uint64(data[pos:])
+	if f.fieldIndex != 0 {
 		f.idx, err = index.NewIndex(tbm.DataManage(), &opt.Option{
 			Open:   true,
-			RootId: f.index,
+			RootId: f.fieldIndex,
 		})
 		if err != nil {
 			panic(err)
@@ -167,41 +214,50 @@ func readField(tbm Manage, id uint64) *field {
 
 func createField(tbm Manage, info *newField) (*field, error) {
 	f := &field{
-		tbm:      tbm,
-		name:     info.Name,
-		index:    0,
-		dataType: info.Type,
+		tbm: tbm,
+
+		fieldName:  info.fieldName,
+		fieldType:  info.fieldType,
+		fieldIndex: 0,
+
+		allowNull:  info.allowNull,
+		primaryKey: info.primaryKey,
+		defaultVal: info.defaultVal,
 	}
 
-	if info.Indexed {
+	if info.fieldIndex {
 		idx, err := index.NewIndex(tbm.DataManage(), &opt.Option{
 			Open: false,
 		})
 		if err != nil {
 			return nil, err
 		}
-		f.index = idx.GetRootId()
+		f.fieldIndex = idx.GetRootId()
 	}
-	return f, f.persist(info.TxId)
+	return f, f.persist(info.txId)
 }
 
 func (f *field) persist(txId uint64) (err error) {
 	// name
-	data := str.Serialize(f.name)
+	data := str.Serialize(f.fieldName)
 
 	// type
-	data = append(data, str.Serialize(f.dataType)...)
+	raw := str.Serialize(f.fieldType)
+	data = append(data, raw...)
 
 	// index
-	buf := make([]byte, 8)
-	bin.PutUint64(buf, f.index)
-	data = append(data, buf...)
+	raw = bin.Uint64Raw(f.fieldIndex)
+	data = append(data, raw...)
 
 	// 持久化
-	f.id, err = f.tbm.VerManage().Insert(txId, data)
+	f.itemId, err = f.tbm.VerManage().Insert(txId, data)
 	return
 }
 
-func (f *field) isIndexed() bool {
-	return f.index != 0
+func (f *field) isIndex() bool {
+	return f.fieldIndex != 0
+}
+
+func (f *field) isPrimaryKey() bool {
+	return f.primaryKey
 }

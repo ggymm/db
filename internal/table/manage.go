@@ -56,10 +56,10 @@ func NewManage(boot boot.Boot, verManage ver.Manage, dataManage data.Manage) Man
 	id := tbm.readTableId()
 	for id != 0 {
 		t := readTable(tbm, id)
-		tbm.tables.Set(t.name, t)
+		tbm.tables.Set(t.tableName, t)
 
 		// 读取下一个表的信息
-		id = t.nextId
+		id = t.tableNext
 	}
 	return tbm
 }
@@ -69,9 +69,8 @@ func (tbm *tableManage) readTableId() uint64 {
 }
 
 func (tbm *tableManage) updateTableId(id uint64) {
-	buf := make([]byte, 8)
-	bin.PutUint64(buf, id)
-	tbm.boot.Update(buf)
+	raw := bin.Uint64Raw(id)
+	tbm.boot.Update(raw)
 }
 
 func (tbm *tableManage) Begin(level int) uint64 {
@@ -95,16 +94,20 @@ func (tbm *tableManage) Create(txId uint64, stmt *sql.CreateStmt) error {
 	}
 
 	t, err := createTable(tbm, &newTable{
-		TxId:   txId,
-		NextId: tbm.readTableId(),
-		Stmt:   stmt,
+		txId: txId,
+
+		tableName: stmt.Name,
+		tableNext: tbm.readTableId(),
+
+		index: stmt.Table.Index,
+		field: stmt.Table.Field,
 	})
 	if err != nil {
 		return err
 	}
 
-	tbm.tables.Set(t.name, t)
-	tbm.updateTableId(t.id)
+	tbm.tables.Set(t.tableName, t)
+	tbm.updateTableId(t.itemId)
 	return nil
 }
 
@@ -130,50 +133,52 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 	}
 
 	// 构建插入的数据条目
-	es := make([]entry, len(t.fields))
+	length := len(t.tableFields)
+	entries := make([]entry, length)
 	for _, item := range maps {
-		e := entry{
+		ent := entry{
 			raw:    make([]byte, 0),
-			value:  make([]any, len(t.fields)),
-			fields: make([]*field, len(t.fields)),
+			value:  make([]any, length),
+			fields: make([]*field, length),
 		}
 
 		val := ""
-		for i, f := range t.fields {
-			e.fields[i] = f
+		for i, f := range t.tableFields {
+			ent.fields[i] = f
 
 			// 获取字段值
-			val, ok = item[f.name]
+			val, ok = item[f.fieldName]
 			switch {
 			case ok:
-				e.value[i] = val
+				ent.value[i] = val
 			case len(f.defaultVal) != 0:
-				e.value[i] = f.defaultVal
+				ent.value[i] = f.defaultVal
 			case f.allowNull:
-				e.value[i] = nil
+				ent.value[i] = nil
 			default:
-				return fmt.Errorf("field %s is not allowed to be null", f.name)
+				return fmt.Errorf("field %s is not allowed to be null", f.fieldName)
 			}
 
 			// 获取字段二进制值
-			e.raw = append(e.raw, sql.FieldRaw(f.dataType, e.value[i])...)
+			ent.raw = append(ent.raw, sql.FieldRaw(f.fieldType, ent.value[i])...)
 		}
-		es = append(es, e)
+		entries = append(entries, ent)
 	}
 
 	// 遍历插入的数据条目，写入数据
 	id := uint64(0)
-	for _, e := range es {
+	for _, ent := range entries {
 		// 写入数据
-		id, err = tbm.verManage.Insert(txId, e.raw)
+		id, err = tbm.verManage.Insert(txId, ent.raw)
 		if err != nil {
 			return err
 		}
 
 		// 判断是否有字段需要索引
-		for _, f := range e.fields {
-			if f.isIndexed() {
-				err = f.idx.Insert(utils.Hash(e.value[f.index]), id)
+		for i, f := range ent.fields {
+			if f.isIndex() {
+				key := utils.Hash(ent.value[i])
+				err = f.idx.Insert(key, id)
 				if err != nil {
 					return err
 				}
@@ -208,7 +213,13 @@ func (tbm *tableManage) Select(txId uint64, stmt *sql.SelectStmt) ([]byte, error
 	}
 
 	// 遍历条件，如果有索引，则使用索引进行查询
-	for range stmt.Where {
+	if len(stmt.Where) == 0 {
+		// 根据主键索引，扫描所有数据
+
+	} else {
+		for _, cond := range stmt.Where {
+			fmt.Printf("cond: %+v\n", cond)
+		}
 	}
 	return nil, nil
 }
@@ -236,14 +247,14 @@ func (tbm *tableManage) ShowField(table string) string {
 		return "no such table"
 	}
 
-	for _, f := range t.fields {
+	for _, f := range t.tableFields {
 		index := "NO"
-		if f.index != 0 {
+		if f.isIndex() {
 			index = "YES"
 		}
 		tbody = append(tbody, []string{
-			f.name,
-			f.dataType,
+			f.fieldName,
+			f.fieldType,
 			index,
 		})
 	}

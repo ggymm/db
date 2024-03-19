@@ -40,15 +40,14 @@ func NewIndex(dm data.Manage, opt *opt.Option) (Index, error) {
 	if opt.Open {
 		rootId = opt.RootId
 	} else {
-		root := initRoot()
-		itemId, err = dm.Insert(tx.Super, root)
+		item := initRoot()
+		itemId, err = dm.Insert(tx.Super, item)
 		if err != nil {
 			return nil, err
 		}
 
-		buf := make([]byte, 8)
-		bin.PutUint64(buf, itemId)
-		rootId, err = dm.Insert(tx.Super, buf)
+		raw := bin.Uint64Raw(itemId)
+		rootId, err = dm.Insert(tx.Super, raw)
 		if err != nil {
 			return nil, err
 		}
@@ -82,9 +81,8 @@ func (t *tree) updateRootId(key, prev, next uint64) error {
 
 	// 更新根节点Id
 	t.root.Before()
-	buf := make([]byte, 8)
-	bin.PutUint64(buf, rootId)
-	copy(t.root.DataBody(), buf)
+	raw := bin.Uint64Raw(rootId)
+	copy(t.root.DataBody(), raw)
 	t.root.After(tx.Super)
 	return nil
 }
