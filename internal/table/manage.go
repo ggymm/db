@@ -246,8 +246,8 @@ func (tbm *tableManage) Select(txId uint64, stmt *sql.SelectStmt) ([]entry, erro
 	var (
 		pos  int
 		raw  []byte
-		row  entry
-		rows []entry
+		row  = make(entry)
+		rows = make([]entry, 0)
 	)
 	// 读取数据
 	for _, id := range ids {

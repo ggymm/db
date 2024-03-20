@@ -250,7 +250,7 @@ func createField(tbm Manage, info *newField) (*field, error) {
 		if err != nil {
 			return nil, err
 		}
-		f.fieldIndex = idx.GetRootId()
+		f.fieldIndex = idx.GetBootId()
 	}
 	return f, f.persist(info.txId)
 }

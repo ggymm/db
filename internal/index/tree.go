@@ -16,12 +16,14 @@ type Index interface {
 	Search(key uint64) ([]uint64, error)
 	SearchRange(prev, next uint64) ([]uint64, error)
 
-	GetRootId() uint64
+	GetBootId() uint64
 }
 
 type tree struct {
 	lock sync.Mutex
-	root data.Item
+
+	bootId   uint64
+	bootItem data.Item
 
 	DataManage data.Manage
 }
@@ -31,41 +33,46 @@ func NewIndex(dm data.Manage, opt *opt.Option) (Index, error) {
 		ok  bool
 		err error
 
-		itemId uint64
 		rootId uint64
+		bootId uint64
 
-		root data.Item
+		bootItem data.Item
 	)
 
 	if opt.Open {
-		rootId = opt.RootId
+		bootId = opt.RootId
 	} else {
-		item := initRoot()
-		itemId, err = dm.Insert(tx.Super, item)
+		root := initRoot()
+		rootId, err = dm.Insert(tx.Super, root)
 		if err != nil {
 			return nil, err
 		}
 
-		raw := bin.Uint64Raw(itemId)
-		rootId, err = dm.Insert(tx.Super, raw)
+		raw := bin.Uint64Raw(rootId)
+		bootId, err = dm.Insert(tx.Super, raw)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	// 读取根节点
-	root, ok, err = dm.Read(rootId)
+	bootItem, ok, err = dm.Read(bootId)
 	if !ok || err != nil {
 		return nil, err
 	}
-	return &tree{root: root, DataManage: dm}, nil
+	return &tree{
+		bootId:   bootId,
+		bootItem: bootItem,
+
+		DataManage: dm,
+	}, nil
 }
 
 func (t *tree) rootId() uint64 {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
-	return bin.Uint64(t.root.DataBody())
+	return bin.Uint64(t.bootItem.DataBody())
 }
 
 func (t *tree) updateRootId(key, prev, next uint64) error {
@@ -80,10 +87,10 @@ func (t *tree) updateRootId(key, prev, next uint64) error {
 	}
 
 	// 更新根节点Id
-	t.root.Before()
+	t.bootItem.Before()
 	raw := bin.Uint64Raw(rootId)
-	copy(t.root.DataBody(), raw)
-	t.root.After(tx.Super)
+	copy(t.bootItem.DataBody(), raw)
+	t.bootItem.After(tx.Super)
 	return nil
 }
 
@@ -213,7 +220,7 @@ func (t *tree) searchNode(nodeId, key uint64) (uint64, error) {
 }
 
 func (t *tree) Close() {
-	t.root.Release()
+	t.bootItem.Release()
 }
 
 // Insert
@@ -274,6 +281,6 @@ func (t *tree) SearchRange(prevKey, nextKey uint64) ([]uint64, error) {
 	return res, nil
 }
 
-func (t *tree) GetRootId() uint64 {
-	return t.rootId()
+func (t *tree) GetBootId() uint64 {
+	return t.bootId
 }
