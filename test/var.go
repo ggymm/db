@@ -8,5 +8,5 @@ var CreateSQL string
 //go:embed insert.sql
 var InsertSQL string
 
-//go:embed select.sql
-var SelectSQL string
+//go:embed select-all.sql
+var SelectAllSQL string

@@ -8,17 +8,17 @@ import (
 	"db/test"
 )
 
-func TestParseSQL_DDL(t *testing.T) {
+func TestParseSQL_Create(t *testing.T) {
 	stmt, err := ParseSQL(test.CreateSQL)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 	s, _ := json.MarshalIndent(stmt, "", "  ")
-	t.Log(s)
+	t.Logf("%s", s)
 }
 
 func TestParseSQL_Select(t *testing.T) {
-	stmt, err := ParseSQL(test.SelectSQL)
+	stmt, err := ParseSQL(test.SelectAllSQL)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}

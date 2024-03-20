@@ -102,6 +102,7 @@ func (tbm *tableManage) Create(txId uint64, stmt *sql.CreateStmt) error {
 		tableName: stmt.Name,
 		tableNext: tbm.readTableId(),
 
+		pk:    stmt.Table.Pk,
 		index: stmt.Table.Index,
 		field: stmt.Table.Field,
 	})
@@ -120,7 +121,7 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 		err error
 
 		t    *table
-		maps []map[string]any
+		maps []map[string]string
 	)
 
 	// 获取表对象
@@ -139,10 +140,11 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 	raws := make([][]byte, 0)
 	for _, row := range maps {
 		raw := make([]byte, 0)
+		val := ""
 		for _, f := range t.tableFields {
 			// 获取字段值
-			val := row[f.fieldName]
-			if val == nil {
+			val, ok = row[f.fieldName]
+			if !ok {
 				if len(f.defaultVal) != 0 {
 					val = f.defaultVal
 				} else if !f.allowNull {
@@ -166,13 +168,16 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 		}
 
 		// 判断是否有字段需要索引
+		val := ""
 		for i, f := range t.tableFields {
-			val := maps[i][f.fieldName]
 			if f.isIndex() { // 主键同时也是索引
-				if val == nil {
+				val, ok = maps[i][f.fieldName]
+				if !ok {
 					return errors.New("index is not allowed to be null")
 				}
-				key := utils.Hash(val)
+
+				// 格式化索引字段
+				key := utils.Hash(sql.FieldFormat(f.fieldType, val))
 				err = f.idx.Insert(key, id)
 				if err != nil {
 					return err
@@ -306,8 +311,8 @@ func (tbm *tableManage) ShowField(table string) string {
 		tbody = append(tbody, []string{
 			f.fieldName,
 			f.fieldType,
-			index,
 			allowNull,
+			index,
 			f.defaultVal,
 		})
 	}

@@ -1,6 +1,7 @@
 package data
 
 import (
+	"db/internal/tx"
 	"math/rand"
 	"sync"
 )
@@ -53,4 +54,8 @@ func (m *mockManage) LogDataItem(tid uint64, item Item) {
 
 func (m *mockManage) ReleaseDataItem(item Item) {
 	println(item)
+}
+
+func (m *mockManage) TxManage() tx.Manage {
+	return nil
 }

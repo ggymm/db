@@ -23,18 +23,18 @@ func openTbm() Manage {
 	path := filepath.Join(base, "temp/table")
 
 	b := boot.New(&opt.Option{
-		Open: false,
+		Open: true,
 		Name: name,
 		Path: path,
 	})
 
 	tm := tx.NewManager(&opt.Option{
-		Open: false,
+		Open: true,
 		Name: name,
 		Path: path,
 	})
 	dm := data.NewManage(tm, &opt.Option{
-		Open:   false,
+		Open:   true,
 		Name:   name,
 		Path:   path,
 		Memory: (1 << 20) * 64,
@@ -100,9 +100,6 @@ func TestTableManage_Create(t *testing.T) {
 		t.Fatalf("%+v", err)
 	}
 
-	// 展示表
-	fmt.Println(tbm.ShowTable())
-
 	// 展示字段
 	fmt.Println(tbm.ShowField(stmt.TableName()))
 
@@ -137,8 +134,8 @@ func TestTableManage_Insert(t *testing.T) {
 func TestTableManage_Select(t *testing.T) {
 	tbm := openTbm()
 
-	// 解析创建表语句
-	stmt, err := sql.ParseSQL(test.SelectSQL)
+	// 解析查询表语句
+	stmt, err := sql.ParseSQL(test.SelectAllSQL)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}

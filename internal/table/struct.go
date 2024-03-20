@@ -41,6 +41,7 @@ type newTable struct {
 	tableName string
 	tableNext uint64
 
+	pk    *sql.CreateIndex
 	index []*sql.CreateIndex
 	field []*sql.CreateField
 }
@@ -83,35 +84,30 @@ func createTable(tbm *tableManage, info *newTable) (*table, error) {
 	}
 
 	// 读取 主键 和 索引
-	pkList := make([]string, 0)
 	indexList := make([]string, 0)
 	for _, i := range info.index {
-		if i.Pk {
-			pkList = append(pkList, i.Field)
-		}
 		indexList = append(indexList, i.Field)
 	}
 
 	// 读取 field
 	for _, f := range info.field {
-		hasPk := slices.Contains(pkList, f.Name)
-		hasIndex := slices.Contains(indexList, f.Name)
+		nfd := new(newField)
+		nfd.txId = info.txId
+		nfd.fieldName = f.Name
+		nfd.fieldType = f.Type.String()
+		nfd.fieldIndex = slices.Contains(indexList, f.Name)
+		nfd.allowNull = f.AllowNull
+		nfd.defaultVal = f.DefaultVal
 
-		// 如果是主键, 则不允许为空
-		if hasPk {
-			f.AllowNull = false
+		// 如果是主键
+		// 则不允许为空，且是索引
+		if info.pk.Field == f.Name {
+			nfd.allowNull = false
+			nfd.fieldIndex = true
+			nfd.primaryKey = true
 		}
-		fd, err := createField(tbm, &newField{
-			txId: info.txId,
 
-			fieldName:  f.Name,
-			fieldType:  f.Type.String(),
-			fieldIndex: hasIndex,
-
-			allowNull:  f.AllowNull,
-			primaryKey: hasPk,
-			defaultVal: f.DefaultVal,
-		})
+		fd, err := createField(tbm, nfd)
 		if err != nil {
 			return nil, err
 		}
@@ -220,6 +216,17 @@ func readField(tbm Manage, id uint64) *field {
 	// fieldIndex
 	pos++
 	f.fieldIndex = bin.Uint64(data[pos:])
+
+	// 读取索引
+	if f.fieldIndex != 0 {
+		f.idx, err = index.NewIndex(tbm.DataManage(), &opt.Option{
+			Open:   true,
+			RootId: f.fieldIndex,
+		})
+		if err != nil {
+			panic(err)
+		}
+	}
 	return f
 }
 

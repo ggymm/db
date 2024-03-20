@@ -125,13 +125,13 @@ func (s *InsertStmt) TableName() string {
 	return s.Table
 }
 
-func (s *InsertStmt) Format() ([]map[string]any, error) {
-	maps := make([]map[string]any, len(s.Value))
+func (s *InsertStmt) Format() ([]map[string]string, error) {
+	maps := make([]map[string]string, len(s.Value))
 	for i, row := range s.Value {
 		if len(row) != len(s.Field) {
 			return nil, fmt.Errorf("插入列数与值数不匹配")
 		}
-		maps[i] = make(map[string]any)
+		maps[i] = make(map[string]string)
 		for j, col := range row {
 			maps[i][s.Field[j]] = col
 		}
