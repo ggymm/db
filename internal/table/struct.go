@@ -10,11 +10,13 @@ import (
 	"slices"
 )
 
-type entry struct {
-	raw    []byte
-	value  []any
-	fields []*field
-}
+type entry map[string]any
+
+//type entry struct {
+//	raw    []byte
+//	value  []any
+//	fields []*field
+//}
 
 // table 内存结构
 //
@@ -140,6 +142,7 @@ func (t *table) persist(txId uint64) (err error) {
 }
 
 // field 内存结构
+//
 // +----------------+----------------+----------------+----------------+----------------+----------------+
 // |    fieldName   |    fieldType   |   fieldIndex   |   allowNull    |   primaryKey   |   defaultVal   |
 // +----------------+----------------+----------------+----------------+----------------+----------------+
@@ -184,31 +187,39 @@ func readField(tbm Manage, id uint64) *field {
 	if err != nil || !exist {
 		panic(err)
 	}
-	f := &field{}
+
+	f := &field{
+		tbm: tbm,
+
+		itemId: id,
+	}
 	var (
 		pos   int
 		shift int
 	)
 
-	// 读取 name
+	// fieldName
 	f.fieldName, shift = str.Deserialize(data)
 
-	// 读取 type
+	// fieldType
 	pos += shift
 	f.fieldType, shift = str.Deserialize(data[pos:])
 
-	// 读取 index
+	// defaultVal
 	pos += shift
+	f.defaultVal, shift = str.Deserialize(data[pos:])
+
+	// allowNull
+	pos += shift
+	f.allowNull = data[pos] == 1
+
+	// primaryKey
+	pos++
+	f.primaryKey = data[pos] == 1
+
+	// fieldIndex
+	pos++
 	f.fieldIndex = bin.Uint64(data[pos:])
-	if f.fieldIndex != 0 {
-		f.idx, err = index.NewIndex(tbm.DataManage(), &opt.Option{
-			Open:   true,
-			RootId: f.fieldIndex,
-		})
-		if err != nil {
-			panic(err)
-		}
-	}
 	return f
 }
 
@@ -237,27 +248,45 @@ func createField(tbm Manage, info *newField) (*field, error) {
 	return f, f.persist(info.txId)
 }
 
+// persist 将该field持久化
+//
+// +----------------+----------------+----------------+----------------+----------------+----------------+
+// |	fieldName   |	fieldType    |	 defaultVal   |	   allowNull   |	primaryKey  |	fieldIndex   |
+// +----------------+----------------+----------------+----------------+----------------+----------------+
+// |	 string     |	 string      |	   string     |	     bool      |	  bool      |	  uint64     |
+// +----------------+----------------+----------------+----------------+----------------+----------------+
 func (f *field) persist(txId uint64) (err error) {
-	// name
+	// fieldName
 	data := str.Serialize(f.fieldName)
 
-	// type
-	raw := str.Serialize(f.fieldType)
-	data = append(data, raw...)
+	// fieldType
+	data = append(data, str.Serialize(f.fieldType)...)
 
-	// index
-	raw = bin.Uint64Raw(f.fieldIndex)
-	data = append(data, raw...)
+	// defaultVal
+	data = append(data, str.Serialize(f.defaultVal)...)
 
-	// 持久化
+	// allowNull
+	if f.allowNull {
+		data = append(data, 1)
+	} else {
+		data = append(data, 0)
+	}
+
+	// primaryKey
+	if f.primaryKey {
+		data = append(data, 1)
+	} else {
+		data = append(data, 0)
+	}
+
+	// fieldIndex
+	data = append(data, bin.Uint64Raw(f.fieldIndex)...)
+
+	// 保存到磁盘
 	f.itemId, err = f.tbm.VerManage().Insert(txId, data)
 	return
 }
 
 func (f *field) isIndex() bool {
 	return f.fieldIndex != 0
-}
-
-func (f *field) isPrimaryKey() bool {
-	return f.primaryKey
 }

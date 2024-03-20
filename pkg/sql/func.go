@@ -2,7 +2,18 @@ package sql
 
 import "fmt"
 
-func ParseSQL(sql string) ([]Statement, error) {
+func ParseSQL(sql string) (Statement, error) {
+	stmts, err := ParseMultiSQL(sql)
+	if err != nil {
+		return nil, err
+	}
+	if len(stmts) == 0 {
+		return nil, fmt.Errorf("解析sql为空")
+	}
+	return stmts[0], nil
+}
+
+func ParseMultiSQL(sql string) ([]Statement, error) {
 	lex := &Lexer{
 		sql: sql,
 	}

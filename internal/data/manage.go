@@ -37,6 +37,8 @@ type Manage interface {
 
 	LogDataItem(tid uint64, item Item)
 	ReleaseDataItem(item Item)
+
+	TxManage() tx.Manage
 }
 
 type dataManage struct {
@@ -224,4 +226,8 @@ func (dm *dataManage) LogDataItem(tid uint64, item Item) {
 
 func (dm *dataManage) ReleaseDataItem(item Item) {
 	dm.cache.Release(item.Id())
+}
+
+func (dm *dataManage) TxManage() tx.Manage {
+	return dm.txManage
 }

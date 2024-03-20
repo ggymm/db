@@ -1,12 +1,10 @@
 package table
 
 import (
-	"db/pkg/view"
 	"errors"
 	"fmt"
+	"math"
 	"sync"
-
-	"db/pkg/utils"
 
 	"db/internal/boot"
 	"db/internal/data"
@@ -14,9 +12,14 @@ import (
 	"db/pkg/bin"
 	"db/pkg/cmap"
 	"db/pkg/sql"
+	"db/pkg/utils"
+	"db/pkg/view"
 )
 
-var ErrNoSuchTable = errors.New("no such table")
+var (
+	ErrNoSuchTable  = errors.New("no such table")
+	ErrNoPrimaryKey = errors.New("no primary key")
+)
 
 type Manage interface {
 	Begin(level int) uint64
@@ -27,7 +30,7 @@ type Manage interface {
 	Insert(txId uint64, stmt *sql.InsertStmt) error
 	Update(txId uint64, stmt *sql.UpdateStmt) error
 	Delete(txId uint64, stmt *sql.DeleteStmt) error
-	Select(txId uint64, stmt *sql.SelectStmt) ([]byte, error)
+	Select(txId uint64, stmt *sql.SelectStmt) ([]entry, error)
 
 	ShowTable() string
 	ShowField(table string) string
@@ -117,7 +120,7 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 		err error
 
 		t    *table
-		maps []map[string]string
+		maps []map[string]any
 	)
 
 	// 获取表对象
@@ -133,51 +136,43 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 	}
 
 	// 构建插入的数据条目
-	length := len(t.tableFields)
-	entries := make([]entry, length)
-	for _, item := range maps {
-		ent := entry{
-			raw:    make([]byte, 0),
-			value:  make([]any, length),
-			fields: make([]*field, length),
-		}
-
-		val := ""
-		for i, f := range t.tableFields {
-			ent.fields[i] = f
-
+	raws := make([][]byte, 0)
+	for _, row := range maps {
+		raw := make([]byte, 0)
+		for _, f := range t.tableFields {
 			// 获取字段值
-			val, ok = item[f.fieldName]
-			switch {
-			case ok:
-				ent.value[i] = val
-			case len(f.defaultVal) != 0:
-				ent.value[i] = f.defaultVal
-			case f.allowNull:
-				ent.value[i] = nil
-			default:
-				return fmt.Errorf("field %s is not allowed to be null", f.fieldName)
+			val := row[f.fieldName]
+			if val == nil {
+				if len(f.defaultVal) != 0 {
+					val = f.defaultVal
+				} else if !f.allowNull {
+					return fmt.Errorf("field %s is not allowed to be null", f.fieldName)
+				}
 			}
 
 			// 获取字段二进制值
-			ent.raw = append(ent.raw, sql.FieldRaw(f.fieldType, ent.value[i])...)
+			raw = append(raw, sql.FieldRaw(f.fieldType, val)...)
 		}
-		entries = append(entries, ent)
+		raws = append(raws, raw)
 	}
 
 	// 遍历插入的数据条目，写入数据
 	id := uint64(0)
-	for _, ent := range entries {
+	for _, raw := range raws {
 		// 写入数据
-		id, err = tbm.verManage.Insert(txId, ent.raw)
+		id, err = tbm.verManage.Insert(txId, raw)
 		if err != nil {
 			return err
 		}
 
 		// 判断是否有字段需要索引
-		for i, f := range ent.fields {
-			if f.isIndex() {
-				key := utils.Hash(ent.value[i])
+		for i, f := range t.tableFields {
+			val := maps[i][f.fieldName]
+			if f.isIndex() { // 主键同时也是索引
+				if val == nil {
+					return errors.New("index is not allowed to be null")
+				}
+				key := utils.Hash(val)
 				err = f.idx.Insert(key, id)
 				if err != nil {
 					return err
@@ -205,23 +200,72 @@ func (tbm *tableManage) Delete(txId uint64, stmt *sql.DeleteStmt) error {
 	return nil
 }
 
-func (tbm *tableManage) Select(txId uint64, stmt *sql.SelectStmt) ([]byte, error) {
+func (tbm *tableManage) Select(txId uint64, stmt *sql.SelectStmt) ([]entry, error) {
 	// 获取表对象
-	_, ok := tbm.tables.Get(stmt.Table)
+	t, ok := tbm.tables.Get(stmt.Table)
 	if !ok {
 		return nil, ErrNoSuchTable
 	}
 
+	var (
+		err error
+
+		fd  *field
+		ids []uint64
+	)
+
 	// 遍历条件，如果有索引，则使用索引进行查询
 	if len(stmt.Where) == 0 {
-		// 根据主键索引，扫描所有数据
+		// 找到主键索引
+		for _, f := range t.tableFields {
+			if f.primaryKey {
+				fd = f
+				break
+			}
+		}
+		if fd == nil {
+			return nil, ErrNoPrimaryKey
+		}
 
+		// 查询全部数据的 item id
+		ids, err = fd.idx.SearchRange(0, math.MaxUint64)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		for _, cond := range stmt.Where {
 			fmt.Printf("cond: %+v\n", cond)
 		}
 	}
-	return nil, nil
+
+	var (
+		pos  int
+		raw  []byte
+		row  entry
+		rows []entry
+	)
+	// 读取数据
+	for _, id := range ids {
+		raw, ok, err = tbm.verManage.Read(txId, id)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
+			continue
+		}
+
+		// 解析数据
+		for _, f := range t.tableFields {
+			val, shift := sql.FieldParse(f.fieldType, raw[pos:])
+			if err != nil {
+				return nil, err
+			}
+			row[f.fieldName] = val
+			pos += shift
+		}
+		rows = append(rows, row)
+	}
+	return rows, nil
 }
 
 func (tbm *tableManage) ShowTable() string {
@@ -240,7 +284,7 @@ func (tbm *tableManage) ShowTable() string {
 }
 
 func (tbm *tableManage) ShowField(table string) string {
-	thead := []string{"Field", "Type", "Index"}
+	thead := []string{"Field", "Type", "Null", "Key", "Default"}
 	tbody := make([][]string, 0)
 	t, exist := tbm.tables.Get(table)
 	if !exist {
@@ -248,14 +292,23 @@ func (tbm *tableManage) ShowField(table string) string {
 	}
 
 	for _, f := range t.tableFields {
-		index := "NO"
+		index := ""
 		if f.isIndex() {
 			index = "YES"
+			if f.primaryKey {
+				index = "PRI"
+			}
+		}
+		allowNull := "NO"
+		if f.allowNull {
+			allowNull = "YES"
 		}
 		tbody = append(tbody, []string{
 			f.fieldName,
 			f.fieldType,
 			index,
+			allowNull,
+			f.defaultVal,
 		})
 	}
 

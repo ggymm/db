@@ -5,10 +5,10 @@ import (
 	"strconv"
 )
 
-type StmtType int
+type Type int
 
 const (
-	_ StmtType = iota
+	_ Type = iota
 	Create
 	Select
 	Insert
@@ -72,7 +72,8 @@ func (o *CompareOperate) Negate() {
 }
 
 type Statement interface {
-	Type() StmtType
+	StmtType() Type
+	TableName() string
 }
 
 type CreateStmt struct {
@@ -81,8 +82,12 @@ type CreateStmt struct {
 	Option *CreateTableOption
 }
 
-func (*CreateStmt) Type() StmtType {
+func (*CreateStmt) StmtType() Type {
 	return Create
+}
+
+func (s *CreateStmt) TableName() string {
+	return s.Name
 }
 
 type CreateTable struct {
@@ -112,17 +117,21 @@ type InsertStmt struct {
 	Value [][]string
 }
 
-func (*InsertStmt) Type() StmtType {
+func (*InsertStmt) StmtType() Type {
 	return Insert
 }
 
-func (s *InsertStmt) Format() ([]map[string]string, error) {
-	maps := make([]map[string]string, len(s.Value))
+func (s *InsertStmt) TableName() string {
+	return s.Table
+}
+
+func (s *InsertStmt) Format() ([]map[string]any, error) {
+	maps := make([]map[string]any, len(s.Value))
 	for i, row := range s.Value {
 		if len(row) != len(s.Field) {
 			return nil, fmt.Errorf("插入列数与值数不匹配")
 		}
-		maps[i] = make(map[string]string)
+		maps[i] = make(map[string]any)
 		for j, col := range row {
 			maps[i][s.Field[j]] = col
 		}
@@ -136,8 +145,12 @@ type UpdateStmt struct {
 	Where []SelectWhere
 }
 
-func (*UpdateStmt) Type() StmtType {
+func (*UpdateStmt) StmtType() Type {
 	return Update
+}
+
+func (s *UpdateStmt) TableName() string {
+	return s.Table
 }
 
 type DeleteStmt struct {
@@ -145,8 +158,12 @@ type DeleteStmt struct {
 	Where []SelectWhere
 }
 
-func (*DeleteStmt) Type() StmtType {
+func (*DeleteStmt) StmtType() Type {
 	return Delete
+}
+
+func (s *DeleteStmt) TableName() string {
+	return s.Table
 }
 
 type SelectStmt struct {
@@ -157,8 +174,12 @@ type SelectStmt struct {
 	Limit *SelectLimit
 }
 
-func (*SelectStmt) Type() StmtType {
+func (*SelectStmt) StmtType() Type {
 	return Select
+}
+
+func (s *SelectStmt) TableName() string {
+	return s.Table
 }
 
 type SelectField struct {

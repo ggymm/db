@@ -9,22 +9,28 @@ import (
 )
 
 func TestParseSQL_DDL(t *testing.T) {
-	stmts, err := ParseSQL(test.CreateSQL)
+	stmt, err := ParseSQL(test.CreateSQL)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
-	for _, stmt := range stmts {
-		s, _ := json.MarshalIndent(stmt, "", "  ")
-		t.Log(s)
-	}
+	s, _ := json.MarshalIndent(stmt, "", "  ")
+	t.Log(s)
 }
 
 func TestParseSQL_Select(t *testing.T) {
-	stmts, err := ParseSQL(test.SelectSQL)
+	stmt, err := ParseSQL(test.SelectSQL)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
-	stmt := stmts[0].(*SelectStmt)
 	s, _ := json.MarshalIndent(stmt, "", "  ")
-	t.Logf("stmtType: %d\n%s", stmt.Type(), s)
+	t.Logf("%s", s)
+}
+
+func TestParseSQL_Insert(t *testing.T) {
+	stmt, err := ParseSQL(test.InsertSQL)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+	s, _ := json.MarshalIndent(stmt, "", "  ")
+	t.Logf("%s", s)
 }

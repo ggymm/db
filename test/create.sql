@@ -12,8 +12,8 @@ CREATE TABLE `user`
     `create_time`  VARCHAR        DEFAULT NULL,
     `create_id`    INT64 NOT NULL DEFAULT '1',
     `update_time`  VARCHAR        DEFAULT NULL,
-    `update_id`    INT64 NOT NULL DEFAULT '1',
+    `update_id`    INT32 NOT NULL DEFAULT '1',
     `del_flag`     INT32 NOT NULL DEFAULT '1',
     PRIMARY KEY (`user_id`),
-    INDEX          account_index (`account`)
+    INDEX          ACCOUNT_INDEX (`account`)
 );
