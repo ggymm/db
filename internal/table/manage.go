@@ -117,15 +117,13 @@ func (tbm *tableManage) Create(txId uint64, stmt *sql.CreateStmt) error {
 
 func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 	var (
-		ok  bool
 		err error
 
-		t    *table
 		maps []map[string]string
 	)
 
 	// 获取表对象
-	t, ok = tbm.tables.Get(stmt.Table)
+	t, ok := tbm.tables.Get(stmt.Table)
 	if !ok {
 		return ErrNoSuchTable
 	}
@@ -140,11 +138,10 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 	raws := make([][]byte, 0)
 	for _, row := range maps {
 		raw := make([]byte, 0)
-		val := ""
 		for _, f := range t.tableFields {
 			// 获取字段值
-			val, ok = row[f.fieldName]
-			if !ok {
+			val, exist := row[f.fieldName]
+			if !exist {
 				if len(f.defaultVal) != 0 {
 					val = f.defaultVal
 				} else if !f.allowNull {
@@ -159,7 +156,7 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 	}
 
 	// 遍历插入的数据条目，写入数据
-	id := uint64(0)
+	var id uint64
 	for _, raw := range raws {
 		// 写入数据
 		id, err = tbm.verManage.Insert(txId, raw)
@@ -168,16 +165,16 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 		}
 
 		// 判断是否有字段需要索引
-		val := ""
 		for i, f := range t.tableFields {
 			if f.isIndex() { // 主键同时也是索引
-				val, ok = maps[i][f.fieldName]
-				if !ok {
+				v, exist := maps[i][f.fieldName]
+				if !exist {
 					return errors.New("index is not allowed to be null")
 				}
 
 				// 格式化索引字段
-				key := utils.Hash(sql.FieldFormat(f.fieldType, val))
+				val := sql.FieldFormat(f.fieldType, v)
+				key := utils.Hash(val)
 				err = f.idx.Insert(key, id)
 				if err != nil {
 					return err
@@ -243,13 +240,9 @@ func (tbm *tableManage) Select(txId uint64, stmt *sql.SelectStmt) ([]entry, erro
 		}
 	}
 
-	var (
-		pos  int
-		raw  []byte
-		row  = make(entry)
-		rows = make([]entry, 0)
-	)
 	// 读取数据
+	raw := make([]byte, 0)
+	rows := make([]entry, 0)
 	for _, id := range ids {
 		raw, ok, err = tbm.verManage.Read(txId, id)
 		if err != nil {
@@ -260,6 +253,8 @@ func (tbm *tableManage) Select(txId uint64, stmt *sql.SelectStmt) ([]entry, erro
 		}
 
 		// 解析数据
+		pos := 0
+		row := make(entry)
 		for _, f := range t.tableFields {
 			val, shift := sql.FieldParse(f.fieldType, raw[pos:])
 			if err != nil {
