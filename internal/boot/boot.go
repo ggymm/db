@@ -1,6 +1,7 @@
 package boot
 
 import (
+	"db/pkg/bin"
 	"io"
 	"os"
 	"path/filepath"
@@ -31,12 +32,14 @@ func New(opt *opt.Option) Boot {
 	var (
 		err error
 
-		f    *os.File
+		b    = new(boot)
 		path = opt.GetPath(Suffix)
 	)
+
+	b.path = opt.GetPath("") // 不带后缀的路径
 	if opt.Open {
 		// 读取文件
-		f, err = os.OpenFile(path, os.O_RDWR, file.Mode)
+		b.f, err = os.OpenFile(path, os.O_RDWR, file.Mode)
 		if err != nil {
 			panic(err)
 		}
@@ -51,15 +54,15 @@ func New(opt *opt.Option) Boot {
 		}
 
 		// 创建文件
-		f, err = os.OpenFile(path, os.O_RDWR|os.O_TRUNC|os.O_CREATE, file.Mode)
+		b.f, err = os.OpenFile(path, os.O_RDWR|os.O_TRUNC|os.O_CREATE, file.Mode)
 		if err != nil {
 			panic(err)
 		}
+
+		// 初始化文件
+		b.Update(bin.Uint64Raw(0))
 	}
-	return &boot{
-		f:    f,
-		path: opt.GetPath(""), // 不带后缀的路径
-	}
+	return b
 }
 
 func (b *boot) Load() []byte {

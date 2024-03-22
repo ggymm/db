@@ -1,7 +1,14 @@
 package main
 
 import (
+	_ "embed"
+
 	"bufio"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
 	"db/internal/boot"
 	"db/internal/data"
 	"db/internal/opt"
@@ -10,93 +17,136 @@ import (
 	"db/internal/ver"
 	"db/pkg/sql"
 	"db/pkg/utils"
-	"db/test"
-	"fmt"
-	"os"
-	"path/filepath"
-	"strings"
 )
 
+var (
+	tm tx.Manage
+	dm data.Manage
+
+	tbm table.Manage
+)
+
+//go:embed sample_data.sql
+var sampleData string
+
+//go:embed sample_struct.sql
+var sampleStruct string
+
+// 初始化目录
+// 创建基础数据库
 func init() {
 	// 创建基础数据库
-}
-
-func openTbm() table.Manage {
+	name := "sample"
 	base := utils.RunPath()
-	name := "test"
-	path := filepath.Join(base, "temp/table")
+	path := filepath.Join(base, name)
 
-	b := boot.New(&opt.Option{
-		Open: true,
-		Name: name,
-		Path: path,
-	})
+	if !utils.IsExist(path) {
+		err := os.MkdirAll(path, os.ModePerm)
+		if err != nil {
+			panic(err)
+		}
+	}
 
-	tm := tx.NewManager(&opt.Option{
-		Open: true,
-		Name: name,
-		Path: path,
-	})
-	dm := data.NewManage(tm, &opt.Option{
-		Open:   true,
+	// 判断目录是否为空
+	cfg := &opt.Option{
 		Name:   name,
 		Path:   path,
 		Memory: (1 << 20) * 64,
-	})
-	return table.NewManage(b, ver.NewManage(tm, dm), dm)
+	}
+	if !utils.IsEmpty(path) {
+		cfg.Open = true
+	} else {
+		cfg.Open = false
+	}
+
+	tm = tx.NewManager(cfg)
+	dm = data.NewManage(tm, cfg)
+
+	tbm = table.NewManage(boot.New(cfg), ver.NewManage(tm, dm), dm)
+
+	// 初始化表
+	if !cfg.Open {
+		stmt, err := sql.ParseSQL(sampleStruct)
+		if err != nil {
+			panic(err)
+		}
+		err = tbm.Create(tx.Super, stmt.(*sql.CreateStmt))
+		if err != nil {
+			panic(err)
+		}
+
+		// 初始化数据
+		stmt, err = sql.ParseSQL(sampleData)
+		if err != nil {
+			panic(err)
+		}
+		err = tbm.Insert(tx.Super, stmt.(*sql.InsertStmt))
+		if err != nil {
+			panic(err)
+		}
+	}
 }
 
 // 同步数据到磁盘
-func closeTbm(tbm table.Manage) {
-	tbm.DataManage().TxManage().Close()
-	tbm.DataManage().Close()
+func exit() {
+	tm.Close()
+	dm.Close()
+}
+
+func printErr(a ...any) {
+	_, _ = fmt.Fprintln(os.Stderr, a...)
 }
 
 func main() {
 	reader := bufio.NewReader(os.Stdin)
 
+	var (
+		err error
+
+		in   string
+		stmt sql.Statement
+	)
+
 	for {
 		fmt.Print("db> ")
-		input, err := reader.ReadString(';')
+		in, err = reader.ReadString(';')
 		if err != nil {
-			_, _ = fmt.Fprintln(os.Stderr, "Error reading input:", err)
+			printErr("Error reading input:", err)
 			continue
 		}
 
-		input = strings.TrimSpace(input)
-
-		// 用户输入exit时退出
-		if input == "select" {
-			tbm := openTbm()
-
-			// 解析查询表语句
-			stmt, err := sql.ParseSQL(test.SelectAllSQL)
-			if err != nil {
-				_, _ = fmt.Fprintln(os.Stderr, "Error parsing SQL:", err)
-				continue
-			}
-
+		in = strings.TrimSpace(in)
+		if in == "exit" {
+			exit()
+			break
+		}
+		if in == "select" {
+			// 测试
+			stmt, err = sql.ParseSQL("select * from user;")
 			txId := tbm.Begin(0)
 			entries, err := tbm.Select(txId, stmt.(*sql.SelectStmt))
 			if err != nil {
-				_, _ = fmt.Fprintln(os.Stderr, "Error selecting data:", err)
-				continue
+				panic(err)
 			}
 			err = tbm.Commit(txId)
 			if err != nil {
-				_, _ = fmt.Fprintln(os.Stderr, "Error committing transaction:", err)
-				continue
+				panic(err)
 			}
-
-			// 展示字段
 			fmt.Println(tbm.ShowResult(stmt.TableName(), entries))
-
-			// 释放资源
-			closeTbm(tbm)
-			break
 		}
 
-		// 在这里处理其他命令
-		fmt.Printf("You entered: %s\n", input)
+		// 解析 sql 语句
+		stmt, err = sql.ParseSQL(in)
+		if err != nil {
+			printErr("Error parsing sql:", err)
+			continue
+		}
+
+		switch stmt.StmtType() {
+		case sql.Select:
+		default:
+			printErr("Unsupported statement type:", stmt.StmtType())
+		}
+
 	}
 }

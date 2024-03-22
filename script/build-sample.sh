@@ -1,6 +1,5 @@
 #!/bin/sh
 
-
 cd ../cmd/sample || exit
 
-go build -o ../../dist
+go build -ldflags="-s -w" -o ../../dist

@@ -10,7 +10,6 @@ import (
 	"db/internal/opt"
 	"db/internal/tx"
 	"db/internal/ver"
-	"db/pkg/bin"
 	"db/pkg/sql"
 	"db/pkg/utils"
 	"db/test"
@@ -64,10 +63,6 @@ func TestTableManage_Create(t *testing.T) {
 		Name: name,
 		Path: path,
 	})
-
-	// 初始化boot
-	raw := bin.Uint64Raw(0)
-	b.Update(raw)
 
 	tm := tx.NewManager(&opt.Option{
 		Open: false,
