@@ -69,14 +69,16 @@ func NewTable() *Table {
 func (v *Table) calcLens() []int {
 	lens := make([]int, len(v.thead))
 	for i, h := range v.thead {
-		if len(h) > lens[i] {
-			lens[i] = len(h)
+		w := runeWidth(h)
+		if w > lens[i] {
+			lens[i] = w
 		}
 	}
 	for _, row := range v.tbody {
 		for i, r := range row {
-			if len(r) > lens[i] {
-				lens[i] = len(r)
+			w := runeWidth(r)
+			if w > lens[i] {
+				lens[i] = w
 			}
 		}
 	}
@@ -119,10 +121,10 @@ func (v *Table) String() string {
 
 	// 左右填充
 	left := func() string {
-		return strings.Repeat(" ", padding)
+		return strings.Repeat("\u0020", padding)
 	}
-	right := func(i int, len int) string {
-		return strings.Repeat(" ", lens[i]-len-padding) + chars[10]
+	right := func(i int, str string) string {
+		return runeFillRight(str, lens[i]-runeWidth(str)-padding) + chars[10]
 	}
 
 	// 生成边框
@@ -132,7 +134,7 @@ func (v *Table) String() string {
 	res = append(res, top)
 	str = chars[10]
 	for i, h := range v.thead {
-		str += left() + h + right(i, len(h))
+		str += left() + h + right(i, h)
 	}
 	res = append(res, str)
 
@@ -141,7 +143,7 @@ func (v *Table) String() string {
 	for _, row := range v.tbody {
 		str = chars[10]
 		for i, r := range row {
-			str += left() + r + right(i, len(r))
+			str += left() + r + right(i, r)
 		}
 		res = append(res, str)
 	}

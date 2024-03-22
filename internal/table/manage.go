@@ -34,6 +34,7 @@ type Manage interface {
 
 	ShowTable() string
 	ShowField(table string) string
+	ShowResult(table string, entries []entry) string
 
 	VerManage() ver.Manage
 	DataManage() data.Manage
@@ -310,6 +311,39 @@ func (tbm *tableManage) ShowField(table string) string {
 			index,
 			f.defaultVal,
 		})
+	}
+
+	// 表格形式输出
+	vt := view.NewTable()
+	vt.SetHead(thead)
+	vt.SetBody(tbody)
+	return vt.String()
+}
+
+func (tbm *tableManage) ShowResult(table string, entries []entry) string {
+	// 获取表对象
+	t, ok := tbm.tables.Get(table)
+	if !ok {
+		return ""
+	}
+
+	thead := make([]string, 0)
+	tbody := make([][]string, 0)
+
+	for _, f := range t.tableFields {
+		thead = append(thead, f.fieldName)
+	}
+
+	for _, ent := range entries {
+		row := make([]string, 0)
+		for _, f := range thead {
+			val, exist := ent[f]
+			if !exist {
+				val = ""
+			}
+			row = append(row, fmt.Sprintf("%v", val))
+		}
+		tbody = append(tbody, row)
 	}
 
 	// 表格形式输出

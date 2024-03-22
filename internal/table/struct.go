@@ -12,12 +12,6 @@ import (
 
 type entry map[string]any
 
-//type entry struct {
-//	raw    []byte
-//	value  []any
-//	fields []*field
-//}
-
 // table 内存结构
 //
 // +----------------+----------------+----------------+

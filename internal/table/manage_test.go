@@ -1,7 +1,6 @@
 package table
 
 import (
-	"db/pkg/view"
 	"fmt"
 	"path/filepath"
 	"testing"
@@ -150,29 +149,8 @@ func TestTableManage_Select(t *testing.T) {
 		t.Fatalf("%+v", err)
 	}
 
-	// 打印数据
-	thead := make([]string, 0)
-	tbody := make([][]string, 0)
-	for i, ent := range entries {
-		if i == 0 {
-			for k := range ent {
-				thead = append(thead, k)
-			}
-		}
-		row := make([]string, 0)
-		for _, v := range ent {
-			row = append(row, fmt.Sprintf("%v", v))
-		}
-		tbody = append(tbody, row)
-	}
-
-	// 表格形式输出
-	vt := view.NewTable()
-	vt.SetHead(thead)
-	vt.SetBody(tbody)
-
-	// 打印表格
-	fmt.Println(vt.String())
+	// 展示字段
+	fmt.Println(tbm.ShowResult(stmt.TableName(), entries))
 
 	// 释放资源
 	closeTbm(tbm)
