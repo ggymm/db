@@ -124,7 +124,9 @@ func (v *Table) String() string {
 		return strings.Repeat("\u0020", padding)
 	}
 	right := func(i int, str string) string {
-		return runeFillRight(str, lens[i]-runeWidth(str)-padding) + chars[10]
+		w := runeWidth(str)
+		return strings.Repeat("\u0020", lens[i]-w-padding) + chars[10]
+		// return runeFillRight(str, lens[i]-runeWidth(str)-padding) + chars[10]
 	}
 
 	// 生成边框

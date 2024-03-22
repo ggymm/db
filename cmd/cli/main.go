@@ -11,8 +11,8 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		fmt.Print("Enter command (type 'exit' to quit): ")
-		input, err := reader.ReadString('\n')
+		fmt.Print("db> ")
+		input, err := reader.ReadString(';')
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error reading input:", err)
 			continue
