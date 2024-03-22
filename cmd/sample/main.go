@@ -80,7 +80,12 @@ func init() {
 		if err != nil {
 			panic(err)
 		}
-		err = tbm.Insert(tx.Super, stmt.(*sql.InsertStmt))
+		txId := tbm.Begin(0)
+		err = tbm.Insert(txId, stmt.(*sql.InsertStmt))
+		if err != nil {
+			panic(err)
+		}
+		err = tbm.Commit(txId)
 		if err != nil {
 			panic(err)
 		}
@@ -120,7 +125,7 @@ func main() {
 			exit()
 			break
 		}
-		if in == "select" {
+		if in == "test;" {
 			// 测试
 			stmt, err = sql.ParseSQL("select * from user;")
 			txId := tbm.Begin(0)
