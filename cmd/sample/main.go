@@ -98,10 +98,6 @@ func exit() {
 	dm.Close()
 }
 
-func printErr(a ...any) {
-	_, _ = fmt.Fprintln(os.Stderr, a...)
-}
-
 func main() {
 	reader := bufio.NewReader(os.Stdin)
 
@@ -116,12 +112,12 @@ func main() {
 		fmt.Print("db> ")
 		in, err = reader.ReadString(';')
 		if err != nil {
-			printErr("Error reading input:", err)
+			println("Error reading input:", err)
 			continue
 		}
 
 		in = strings.TrimSpace(in)
-		if in == "exit" {
+		if in == "exit;" {
 			exit()
 			break
 		}
@@ -137,21 +133,21 @@ func main() {
 			if err != nil {
 				panic(err)
 			}
-			fmt.Println(tbm.ShowResult(stmt.TableName(), entries))
+			println(tbm.ShowResult(stmt.TableName(), entries))
+			continue
 		}
 
 		// 解析 sql 语句
 		stmt, err = sql.ParseSQL(in)
 		if err != nil {
-			printErr("Error parsing sql:", err)
+			println("Error parsing sql:", err)
 			continue
 		}
 
 		switch stmt.StmtType() {
 		case sql.Select:
 		default:
-			printErr("Unsupported statement type:", stmt.StmtType())
+			println("Error Unsupported statement type:", stmt.StmtType())
 		}
-
 	}
 }
