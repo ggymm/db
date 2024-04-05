@@ -480,7 +480,7 @@ func TestKeysWhenRemoving(t *testing.T) {
 	// Remove 10 elements concurrently.
 	Num := 10
 	for i := 0; i < Num; i++ {
-		go func(c *ConcurrentMap[string, Animal], n int) {
+		go func(c *CMap[string, Animal], n int) {
 			c.Remove(strconv.Itoa(n))
 		}(&m, i)
 	}
