@@ -1,6 +1,7 @@
 package tx
 
 import (
+	"db/pkg/file"
 	"errors"
 	"os"
 	"path/filepath"
@@ -68,14 +69,14 @@ func pos(tid uint64) int64 {
 
 func open(tm *txManager) {
 	// 打开文件
-	file, err := os.OpenFile(tm.filepath, os.O_RDWR, 0666)
+	f, err := os.OpenFile(tm.filepath, os.O_RDWR, file.Mode)
 	if err != nil {
 		panic(err)
 	}
 
 	// 解析文件
 	buf := make([]byte, headerLen)
-	_, err = file.ReadAt(buf, 0)
+	_, err = f.ReadAt(buf, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -83,14 +84,14 @@ func open(tm *txManager) {
 
 	// 获取 tid 对应的状态位置
 	off := pos(tid)
-	stat, _ := file.Stat()
+	stat, _ := f.Stat()
 	if off != stat.Size() {
 		panic(ErrBadIdFile)
 	}
 
 	// 字段信息
 	tm.seq = tid
-	tm.file = file
+	tm.file = f
 }
 
 func create(tm *txManager) {
@@ -106,7 +107,7 @@ func create(tm *txManager) {
 	}
 
 	// 创建文件
-	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, file.Mode)
 	if err != nil {
 		panic(err)
 	}
@@ -114,14 +115,14 @@ func create(tm *txManager) {
 	// 写入文件头
 	buf := make([]byte, headerLen)
 	writeId(buf, 1) // tid 从 1 开始
-	_, err = file.WriteAt(buf, 0)
+	_, err = f.WriteAt(buf, 0)
 	if err != nil {
 		panic(err)
 	}
 
 	// 字段信息
 	tm.seq = 1
-	tm.file = file
+	tm.file = f
 }
 
 func NewManager(opt *opt.Option) Manage {
