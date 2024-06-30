@@ -1,6 +1,8 @@
 package sql
 
-import "strings"
+import (
+	"strings"
+)
 
 var mapping map[string]int
 

@@ -3,10 +3,11 @@ package data
 import (
 	"errors"
 
+	"db/internal/app"
 	"db/internal/data/log"
 	"db/internal/data/page"
-	"db/internal/opt"
 	"db/internal/tx"
+
 	"db/pkg/cache"
 )
 
@@ -98,7 +99,7 @@ func create(dm *dataManage) {
 	dm.pageCache.PageFlush(dm.page1)
 }
 
-func NewManage(tm tx.Manage, opt *opt.Option) Manage {
+func NewManage(tm tx.Manage, opt *app.Option) Manage {
 	dm := new(dataManage)
 
 	dm.txManage = tm

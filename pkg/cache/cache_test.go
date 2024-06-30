@@ -1,6 +1,8 @@
 package cache
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestNewCache(t *testing.T) {
 	obtain := func(key uint64) (any, error) {

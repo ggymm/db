@@ -5,14 +5,15 @@ import (
 	"path/filepath"
 	"testing"
 
-	"db/internal/opt"
+	"db/internal/app"
+
 	"db/pkg/utils"
 )
 
-func newOpt(open bool) *opt.Option {
-	base := utils.RunPath()
+func newOpt(open bool) *app.Option {
+	base := app.RunPath()
 	path := filepath.Join(base, "temp/page")
-	return &opt.Option{
+	return &app.Option{
 		Open:   open,
 		Path:   path,
 		Memory: (1 << 20) * 64,
@@ -20,7 +21,7 @@ func newOpt(open bool) *opt.Option {
 }
 
 func TestNewPage(t *testing.T) {
-	base := utils.RunPath()
+	base := app.RunPath()
 	path := filepath.Join(base, "temp/page")
 	// 清空目录
 	err := os.RemoveAll(path)

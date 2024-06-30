@@ -3,9 +3,10 @@ package index
 import (
 	"sync"
 
+	"db/internal/app"
 	"db/internal/data"
-	"db/internal/opt"
 	"db/internal/tx"
+
 	"db/pkg/bin"
 )
 
@@ -28,7 +29,7 @@ type tree struct {
 	DataManage data.Manage
 }
 
-func NewIndex(dm data.Manage, opt *opt.Option) (Index, error) {
+func NewIndex(dm data.Manage, opt *app.Option) (Index, error) {
 	var (
 		ok  bool
 		err error

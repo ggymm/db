@@ -1,6 +1,8 @@
 package page
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestNewIndex(t *testing.T) {
 	pi := NewIndex()

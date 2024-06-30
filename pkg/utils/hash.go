@@ -1,6 +1,8 @@
 package utils
 
-import "hash/fnv"
+import (
+	"hash/fnv"
+)
 
 // Hash 返回任意值对应的哈希值
 func Hash(val any) uint64 {

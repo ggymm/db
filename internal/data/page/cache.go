@@ -7,7 +7,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"db/internal/opt"
+	"db/internal/app"
+
 	"db/pkg/cache"
 	"db/pkg/file"
 	"db/pkg/utils"
@@ -89,7 +90,7 @@ func create(c *pageCache) {
 	c.file = f
 }
 
-func NewCache(opt *opt.Option) Cache {
+func NewCache(opt *app.Option) Cache {
 	if opt.Memory/Size < Limit {
 		panic(ErrMemoryNotEnough)
 	}

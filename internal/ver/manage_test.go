@@ -4,24 +4,22 @@ import (
 	"path/filepath"
 	"testing"
 
+	"db/internal/app"
 	"db/internal/data"
-
-	"db/internal/opt"
 	"db/internal/tx"
-	"db/pkg/utils"
 )
 
 func TestVerManage_Handle(t *testing.T) {
-	base := utils.RunPath()
+	base := app.RunPath()
 	name := "test"
 	path := filepath.Join(base, "temp/ver")
 
-	tm := tx.NewManager(&opt.Option{
+	tm := tx.NewManager(&app.Option{
 		Open: false,
 		Name: name,
 		Path: path,
 	})
-	dm := data.NewManage(tm, &opt.Option{
+	dm := data.NewManage(tm, &app.Option{
 		Open:   false,
 		Name:   name,
 		Path:   path,

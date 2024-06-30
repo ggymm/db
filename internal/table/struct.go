@@ -1,13 +1,15 @@
 package table
 
 import (
+	"slices"
+
+	"db/internal/app"
 	"db/internal/index"
-	"db/internal/opt"
 	"db/internal/tx"
+
 	"db/pkg/bin"
 	"db/pkg/sql"
 	"db/pkg/str"
-	"slices"
 )
 
 type entry map[string]any
@@ -213,7 +215,7 @@ func readField(tbm Manage, id uint64) *field {
 
 	// 读取索引
 	if f.fieldIndex != 0 {
-		f.idx, err = index.NewIndex(tbm.DataManage(), &opt.Option{
+		f.idx, err = index.NewIndex(tbm.DataManage(), &app.Option{
 			Open:   true,
 			RootId: f.fieldIndex,
 		})
@@ -238,7 +240,7 @@ func createField(tbm Manage, info *newField) (*field, error) {
 	}
 
 	if info.fieldIndex {
-		idx, err := index.NewIndex(tbm.DataManage(), &opt.Option{
+		idx, err := index.NewIndex(tbm.DataManage(), &app.Option{
 			Open: false,
 		})
 		if err != nil {

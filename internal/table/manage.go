@@ -9,6 +9,7 @@ import (
 	"db/internal/boot"
 	"db/internal/data"
 	"db/internal/ver"
+
 	"db/pkg/bin"
 	"db/pkg/cmap"
 	"db/pkg/sql"

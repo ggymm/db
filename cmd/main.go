@@ -1,7 +1,9 @@
 package main
 
-import "db/pkg/utils"
+import (
+	"db/internal/app"
+)
 
 func main() {
-	print(utils.RunPath())
+	print(app.RunPath())
 }

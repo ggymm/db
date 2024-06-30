@@ -9,27 +9,28 @@ import (
 	"sync"
 	"testing"
 
+	"db/internal/app"
 	"db/internal/data"
 	"db/internal/data/page"
-	"db/internal/opt"
 	"db/internal/tx"
+
 	"db/pkg/file"
 	"db/pkg/utils"
 )
 
 func TestNewIndex(t *testing.T) {
-	base := utils.RunPath()
+	base := app.RunPath()
 	path := filepath.Join(base, "temp/index")
 
 	txManage := tx.NewMockManage()
-	dataManage := data.NewManage(txManage, &opt.Option{
+	dataManage := data.NewManage(txManage, &app.Option{
 		Open:   false,
 		Name:   "test",
 		Path:   path,
 		Memory: page.Size * 10,
 	})
 
-	index, err := NewIndex(dataManage, &opt.Option{
+	index, err := NewIndex(dataManage, &app.Option{
 		Open: false,
 		Name: "test",
 		Path: path,
@@ -42,7 +43,7 @@ func TestNewIndex(t *testing.T) {
 
 func TestTree_Gen(t *testing.T) {
 	// 生成包含 1000 个 随机 uint64 的文件
-	base := utils.RunPath()
+	base := app.RunPath()
 	path := filepath.Join(base, "temp/index/keys")
 
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, file.Mode)
@@ -60,11 +61,11 @@ func TestTree_Gen(t *testing.T) {
 }
 
 func TestIndex_Func(t *testing.T) {
-	base := utils.RunPath()
+	base := app.RunPath()
 	path := filepath.Join(base, "temp/index")
 
 	txManage := tx.NewMockManage()
-	dataManage := data.NewManage(txManage, &opt.Option{
+	dataManage := data.NewManage(txManage, &app.Option{
 		Open:   false,
 		Name:   "test",
 		Path:   path,
@@ -79,7 +80,7 @@ func TestIndex_Func(t *testing.T) {
 		result []uint64
 	)
 
-	index, err = NewIndex(dataManage, &opt.Option{
+	index, err = NewIndex(dataManage, &app.Option{
 		Open: false,
 		Name: "test",
 		Path: path,
@@ -121,11 +122,11 @@ func TestIndex_Func(t *testing.T) {
 }
 
 func TestIndex_FuncAsync(t *testing.T) {
-	base := utils.RunPath()
+	base := app.RunPath()
 	path := filepath.Join(base, "temp/index")
 
 	txManage := tx.NewMockManage()
-	dataManage := data.NewManage(txManage, &opt.Option{
+	dataManage := data.NewManage(txManage, &app.Option{
 		Open:   false,
 		Name:   "test",
 		Path:   path,
@@ -145,7 +146,7 @@ func TestIndex_FuncAsync(t *testing.T) {
 		cacheMap  = make(map[uint64]int)
 	)
 
-	index, err = NewIndex(dataManage, &opt.Option{
+	index, err = NewIndex(dataManage, &app.Option{
 		Open: false,
 		Name: "test",
 		Path: path,

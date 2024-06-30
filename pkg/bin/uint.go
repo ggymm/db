@@ -1,6 +1,8 @@
 package bin
 
-import "encoding/binary"
+import (
+	"encoding/binary"
+)
 
 var bin = binary.LittleEndian
 

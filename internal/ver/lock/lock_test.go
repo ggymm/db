@@ -1,6 +1,8 @@
 package lock
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestNewLock(t *testing.T) {
 	l := NewLock()

@@ -4,35 +4,34 @@ import (
 	"path/filepath"
 	"testing"
 
-	"db/internal/opt"
-	"db/pkg/utils"
+	"db/internal/app"
 )
 
 func TestNew(t *testing.T) {
-	base := utils.RunPath()
+	base := app.RunPath()
 	path := filepath.Join(base, "temp/boot")
 
-	cfg := &opt.Option{
+	opt := &app.Option{
 		Open: false,
 		Name: "boot",
 		Path: path,
 	}
 
-	b := New(cfg)
+	b := New(opt)
 	t.Logf("%+v", b)
 }
 
 func TestBoot_Handle(t *testing.T) {
-	base := utils.RunPath()
+	base := app.RunPath()
 	path := filepath.Join(base, "temp/boot")
 
-	cfg := &opt.Option{
+	opt := &app.Option{
 		Open: false,
 		Name: "boot",
 		Path: path,
 	}
 
-	b := New(cfg)
+	b := New(opt)
 	t.Logf("%+v", b)
 
 	data := []byte("hello")

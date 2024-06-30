@@ -1,6 +1,8 @@
 package view
 
-import "testing"
+import (
+	"testing"
+)
 
 func Test_CalcWidth(t *testing.T) {
 	t.Log(runeWidth("中文"))

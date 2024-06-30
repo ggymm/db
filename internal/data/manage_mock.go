@@ -1,9 +1,10 @@
 package data
 
 import (
-	"db/internal/tx"
 	"math/rand"
 	"sync"
+
+	"db/internal/tx"
 )
 
 type mockManage struct {

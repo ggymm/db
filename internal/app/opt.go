@@ -1,6 +1,8 @@
-package opt
+package app
 
-import "path/filepath"
+import (
+	"path/filepath"
+)
 
 type Option struct {
 	Open   bool
@@ -9,6 +11,10 @@ type Option struct {
 	Memory int64
 
 	RootId uint64 // 索引根节点的 id
+}
+
+func NewOption(path string) *Option {
+	return new(Option)
 }
 
 func (o *Option) GetPath(suffix string) string {

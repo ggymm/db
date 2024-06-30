@@ -6,7 +6,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"db/internal/opt"
+	"db/internal/app"
+
 	"db/pkg/bin"
 	"db/pkg/file"
 	"db/pkg/utils"
@@ -144,7 +145,7 @@ func updateChecksum(file *os.File, checksum uint32) {
 	}
 }
 
-func NewLog(opt *opt.Option) Log {
+func NewLog(opt *app.Option) Log {
 	l := new(logger)
 	l.filepath = filepath.Join(opt.GetPath(suffix))
 

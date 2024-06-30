@@ -1,12 +1,13 @@
 package boot
 
 import (
-	"db/pkg/bin"
 	"io"
 	"os"
 	"path/filepath"
 
-	"db/internal/opt"
+	"db/internal/app"
+
+	"db/pkg/bin"
 	"db/pkg/file"
 	"db/pkg/utils"
 )
@@ -26,7 +27,7 @@ type boot struct {
 	path string
 }
 
-func New(opt *opt.Option) Boot {
+func New(opt *app.Option) Boot {
 	_ = os.Remove(opt.Path + SuffixTmp)
 
 	var (

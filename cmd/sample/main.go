@@ -9,12 +9,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"db/internal/app"
 	"db/internal/boot"
 	"db/internal/data"
-	"db/internal/opt"
 	"db/internal/table"
 	"db/internal/tx"
 	"db/internal/ver"
+
 	"db/pkg/sql"
 	"db/pkg/utils"
 )
@@ -37,7 +38,7 @@ var sampleStruct string
 func init() {
 	// 创建基础数据库
 	name := "sample"
-	base := utils.RunPath()
+	base := app.RunPath()
 	path := filepath.Join(base, name)
 
 	if !utils.IsExist(path) {
@@ -47,25 +48,26 @@ func init() {
 		}
 	}
 
-	// 判断目录是否为空
-	cfg := &opt.Option{
+	opt := &app.Option{
 		Name:   name,
 		Path:   path,
 		Memory: (1 << 20) * 64,
 	}
+
+	// 判断目录是否为空
 	if !utils.IsEmpty(path) {
-		cfg.Open = true
+		opt.Open = true
 	} else {
-		cfg.Open = false
+		opt.Open = false
 	}
 
-	tm = tx.NewManager(cfg)
-	dm = data.NewManage(tm, cfg)
+	tm = tx.NewManager(opt)
+	dm = data.NewManage(tm, opt)
 
-	tbm = table.NewManage(boot.New(cfg), ver.NewManage(tm, dm), dm)
+	tbm = table.NewManage(boot.New(opt), ver.NewManage(tm, dm), dm)
 
 	// 初始化表
-	if !cfg.Open {
+	if !opt.Open {
 		stmt, err := sql.ParseSQL(sampleStruct)
 		if err != nil {
 			panic(err)

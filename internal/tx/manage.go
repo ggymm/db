@@ -6,7 +6,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"db/internal/opt"
+	"db/internal/app"
+
 	"db/pkg/file"
 	"db/pkg/utils"
 )
@@ -125,7 +126,7 @@ func create(tm *txManager) {
 	tm.file = f
 }
 
-func NewManager(opt *opt.Option) Manage {
+func NewManager(opt *app.Option) Manage {
 	tm := new(txManager)
 	tm.filepath = filepath.Join(opt.GetPath(suffix))
 

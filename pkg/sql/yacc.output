@@ -1,0 +1,1273 @@
+state 0 //
+
+    0 $accept: . start
+
+    CREATE  shift, and goto state 9
+    DELETE  shift, and goto state 12
+    INSERT  shift, and goto state 10
+    SELECT  shift, and goto state 13
+    UPDATE  shift, and goto state 11
+
+    CreateStmt  goto state 3
+    DeleteStmt  goto state 7
+    InsertStmt  goto state 5
+    SelectStmt  goto state 4
+    Stmt        goto state 8
+    StmtList    goto state 2
+    UpdateStmt  goto state 6
+    start       goto state 1
+
+state 1 // SELECT VARIABLE ';' [$end]
+
+    0 $accept: start .  [$end]
+
+    $end  accept
+
+state 2 // SELECT VARIABLE ';' [$end]
+
+    1 start: StmtList .  [$end]
+   11 StmtList: StmtList . Stmt
+
+    $end    reduce using rule 1 (start)
+    CREATE  shift, and goto state 9
+    DELETE  shift, and goto state 12
+    INSERT  shift, and goto state 10
+    SELECT  shift, and goto state 13
+    UPDATE  shift, and goto state 11
+
+    CreateStmt  goto state 3
+    DeleteStmt  goto state 7
+    InsertStmt  goto state 5
+    SelectStmt  goto state 4
+    Stmt        goto state 142
+    UpdateStmt  goto state 6
+
+state 3 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE ')' ';' [$end]
+
+    5 Stmt: CreateStmt .  [$end, CREATE, DELETE, INSERT, SELECT, UPDATE]
+
+    $end    reduce using rule 5 (Stmt)
+    CREATE  reduce using rule 5 (Stmt)
+    DELETE  reduce using rule 5 (Stmt)
+    INSERT  reduce using rule 5 (Stmt)
+    SELECT  reduce using rule 5 (Stmt)
+    UPDATE  reduce using rule 5 (Stmt)
+
+state 4 // SELECT VARIABLE ';' [$end]
+
+    6 Stmt: SelectStmt .  [$end, CREATE, DELETE, INSERT, SELECT, UPDATE]
+
+    $end    reduce using rule 6 (Stmt)
+    CREATE  reduce using rule 6 (Stmt)
+    DELETE  reduce using rule 6 (Stmt)
+    INSERT  reduce using rule 6 (Stmt)
+    SELECT  reduce using rule 6 (Stmt)
+    UPDATE  reduce using rule 6 (Stmt)
+
+state 5 // INSERT INTO VARIABLE '(' ')' VALUE '(' VARIABLE ')' ';' [$end]
+
+    7 Stmt: InsertStmt .  [$end, CREATE, DELETE, INSERT, SELECT, UPDATE]
+
+    $end    reduce using rule 7 (Stmt)
+    CREATE  reduce using rule 7 (Stmt)
+    DELETE  reduce using rule 7 (Stmt)
+    INSERT  reduce using rule 7 (Stmt)
+    SELECT  reduce using rule 7 (Stmt)
+    UPDATE  reduce using rule 7 (Stmt)
+
+state 6 // UPDATE VARIABLE SET VARIABLE '=' VARIABLE ';' [$end]
+
+    8 Stmt: UpdateStmt .  [$end, CREATE, DELETE, INSERT, SELECT, UPDATE]
+
+    $end    reduce using rule 8 (Stmt)
+    CREATE  reduce using rule 8 (Stmt)
+    DELETE  reduce using rule 8 (Stmt)
+    INSERT  reduce using rule 8 (Stmt)
+    SELECT  reduce using rule 8 (Stmt)
+    UPDATE  reduce using rule 8 (Stmt)
+
+state 7 // DELETE FROM VARIABLE ';' [$end]
+
+    9 Stmt: DeleteStmt .  [$end, CREATE, DELETE, INSERT, SELECT, UPDATE]
+
+    $end    reduce using rule 9 (Stmt)
+    CREATE  reduce using rule 9 (Stmt)
+    DELETE  reduce using rule 9 (Stmt)
+    INSERT  reduce using rule 9 (Stmt)
+    SELECT  reduce using rule 9 (Stmt)
+    UPDATE  reduce using rule 9 (Stmt)
+
+state 8 // SELECT VARIABLE ';' [$end]
+
+   10 StmtList: Stmt .  [$end, CREATE, DELETE, INSERT, SELECT, UPDATE]
+
+    $end    reduce using rule 10 (StmtList)
+    CREATE  reduce using rule 10 (StmtList)
+    DELETE  reduce using rule 10 (StmtList)
+    INSERT  reduce using rule 10 (StmtList)
+    SELECT  reduce using rule 10 (StmtList)
+    UPDATE  reduce using rule 10 (StmtList)
+
+state 9 // CREATE
+
+   20 CreateStmt: CREATE . TABLE Expr '(' CreateTable ')' CreateTableOption ';'
+
+    TABLE  shift, and goto state 107
+
+state 10 // INSERT
+
+   31 InsertStmt: INSERT . INTO Expr InsertField InsertValue ';'
+
+    INTO  shift, and goto state 84
+
+state 11 // UPDATE
+
+   39 UpdateStmt: UPDATE . Expr SET UpdateValue SelectWhere ';'
+
+    VARIABLE  shift, and goto state 14
+
+    Expr  goto state 72
+
+state 12 // DELETE
+
+   42 DeleteStmt: DELETE . FROM Expr SelectWhere ';'
+
+    FROM  shift, and goto state 68
+
+state 13 // SELECT
+
+   52 SelectStmt: SELECT . SelectFieldList SelectLimit ';'
+   53 SelectStmt: SELECT . SelectFieldList FROM Expr SelectWhere SelectOrder SelectLimit ';'
+
+    VARIABLE  shift, and goto state 14
+
+    Expr             goto state 16
+    SelectFieldList  goto state 15
+
+state 14 // UPDATE VARIABLE
+
+    2 Expr: VARIABLE .  ['(', ')', ',', ';', '<', '=', '>', AND, ASC, COMP_GE, COMP_LE, COMP_NE, DEFAULT, DESC, FROM, LIMIT, NOT, NULL, OR, ORDER, SET, VARIABLE, WHERE]
+
+    '('       reduce using rule 2 (Expr)
+    ')'       reduce using rule 2 (Expr)
+    ','       reduce using rule 2 (Expr)
+    ';'       reduce using rule 2 (Expr)
+    '<'       reduce using rule 2 (Expr)
+    '='       reduce using rule 2 (Expr)
+    '>'       reduce using rule 2 (Expr)
+    AND       reduce using rule 2 (Expr)
+    ASC       reduce using rule 2 (Expr)
+    COMP_GE   reduce using rule 2 (Expr)
+    COMP_LE   reduce using rule 2 (Expr)
+    COMP_NE   reduce using rule 2 (Expr)
+    DEFAULT   reduce using rule 2 (Expr)
+    DESC      reduce using rule 2 (Expr)
+    FROM      reduce using rule 2 (Expr)
+    LIMIT     reduce using rule 2 (Expr)
+    NOT       reduce using rule 2 (Expr)
+    NULL      reduce using rule 2 (Expr)
+    OR        reduce using rule 2 (Expr)
+    ORDER     reduce using rule 2 (Expr)
+    SET       reduce using rule 2 (Expr)
+    VARIABLE  reduce using rule 2 (Expr)
+    WHERE     reduce using rule 2 (Expr)
+
+state 15 // SELECT VARIABLE [',']
+
+   52 SelectStmt: SELECT SelectFieldList . SelectLimit ';'
+   53 SelectStmt: SELECT SelectFieldList . FROM Expr SelectWhere SelectOrder SelectLimit ';'
+   55 SelectFieldList: SelectFieldList . ',' Expr
+   67 SelectLimit: .  [';']
+
+    ','    shift, and goto state 19
+    ';'    reduce using rule 67 (SelectLimit)
+    FROM   shift, and goto state 18
+    LIMIT  shift, and goto state 20
+
+    SelectLimit  goto state 17
+
+state 16 // SELECT VARIABLE [',']
+
+   54 SelectFieldList: Expr .  [',', ';', FROM, LIMIT]
+
+    ','    reduce using rule 54 (SelectFieldList)
+    ';'    reduce using rule 54 (SelectFieldList)
+    FROM   reduce using rule 54 (SelectFieldList)
+    LIMIT  reduce using rule 54 (SelectFieldList)
+
+state 17 // SELECT VARIABLE [';']
+
+   52 SelectStmt: SELECT SelectFieldList SelectLimit . ';'
+
+    ';'  shift, and goto state 67
+
+state 18 // SELECT VARIABLE FROM
+
+   53 SelectStmt: SELECT SelectFieldList FROM . Expr SelectWhere SelectOrder SelectLimit ';'
+
+    VARIABLE  shift, and goto state 14
+
+    Expr  goto state 27
+
+state 19 // SELECT VARIABLE ','
+
+   55 SelectFieldList: SelectFieldList ',' . Expr
+
+    VARIABLE  shift, and goto state 14
+
+    Expr  goto state 26
+
+state 20 // SELECT VARIABLE LIMIT
+
+   68 SelectLimit: LIMIT . VARIABLE
+   69 SelectLimit: LIMIT . VARIABLE ',' VARIABLE
+   70 SelectLimit: LIMIT . VARIABLE OFFSET VARIABLE
+
+    VARIABLE  shift, and goto state 21
+
+state 21 // SELECT VARIABLE LIMIT VARIABLE
+
+   68 SelectLimit: LIMIT VARIABLE .  [';']
+   69 SelectLimit: LIMIT VARIABLE . ',' VARIABLE
+   70 SelectLimit: LIMIT VARIABLE . OFFSET VARIABLE
+
+    ','     shift, and goto state 22
+    ';'     reduce using rule 68 (SelectLimit)
+    OFFSET  shift, and goto state 23
+
+state 22 // SELECT VARIABLE LIMIT VARIABLE ','
+
+   69 SelectLimit: LIMIT VARIABLE ',' . VARIABLE
+
+    VARIABLE  shift, and goto state 25
+
+state 23 // SELECT VARIABLE LIMIT VARIABLE OFFSET
+
+   70 SelectLimit: LIMIT VARIABLE OFFSET . VARIABLE
+
+    VARIABLE  shift, and goto state 24
+
+state 24 // SELECT VARIABLE LIMIT VARIABLE OFFSET VARIABLE
+
+   70 SelectLimit: LIMIT VARIABLE OFFSET VARIABLE .  [';']
+
+    ';'  reduce using rule 70 (SelectLimit)
+
+state 25 // SELECT VARIABLE LIMIT VARIABLE ',' VARIABLE
+
+   69 SelectLimit: LIMIT VARIABLE ',' VARIABLE .  [';']
+
+    ';'  reduce using rule 69 (SelectLimit)
+
+state 26 // SELECT VARIABLE ',' VARIABLE [',']
+
+   55 SelectFieldList: SelectFieldList ',' Expr .  [',', ';', FROM, LIMIT]
+
+    ','    reduce using rule 55 (SelectFieldList)
+    ';'    reduce using rule 55 (SelectFieldList)
+    FROM   reduce using rule 55 (SelectFieldList)
+    LIMIT  reduce using rule 55 (SelectFieldList)
+
+state 27 // SELECT VARIABLE FROM VARIABLE [';']
+
+   53 SelectStmt: SELECT SelectFieldList FROM Expr . SelectWhere SelectOrder SelectLimit ';'
+   56 SelectWhere: .  [';', LIMIT, ORDER]
+
+    ';'    reduce using rule 56 (SelectWhere)
+    LIMIT  reduce using rule 56 (SelectWhere)
+    ORDER  reduce using rule 56 (SelectWhere)
+    WHERE  shift, and goto state 29
+
+    SelectWhere  goto state 28
+
+state 28 // SELECT VARIABLE FROM VARIABLE [';']
+
+   53 SelectStmt: SELECT SelectFieldList FROM Expr SelectWhere . SelectOrder SelectLimit ';'
+   63 SelectOrder: .  [';', LIMIT]
+
+    ';'    reduce using rule 63 (SelectOrder)
+    LIMIT  reduce using rule 63 (SelectOrder)
+    ORDER  shift, and goto state 55
+
+    SelectOrder  goto state 54
+
+state 29 // DELETE FROM VARIABLE WHERE
+
+   57 SelectWhere: WHERE . SelectWhereList
+
+    VARIABLE  shift, and goto state 14
+
+    Expr             goto state 31
+    SelectWhereList  goto state 30
+
+state 30 // DELETE FROM VARIABLE WHERE VARIABLE '<' VARIABLE [';']
+
+   57 SelectWhere: WHERE SelectWhereList .  [';', LIMIT, ORDER]
+   59 SelectWhereList: SelectWhereList . OR Expr CompareOperate Expr  // assoc %left, prec 1
+   60 SelectWhereList: SelectWhereList . AND Expr CompareOperate Expr  // assoc %left, prec 2
+   61 SelectWhereList: SelectWhereList . OR '(' SelectWhereList ')'  // assoc %left, prec 1
+   62 SelectWhereList: SelectWhereList . AND '(' SelectWhereList ')'  // assoc %left, prec 2
+
+    ';'    reduce using rule 57 (SelectWhere)
+    AND    shift, and goto state 41
+    LIMIT  reduce using rule 57 (SelectWhere)
+    OR     shift, and goto state 40
+    ORDER  reduce using rule 57 (SelectWhere)
+
+state 31 // DELETE FROM VARIABLE WHERE VARIABLE ['<']
+
+   58 SelectWhereList: Expr . CompareOperate Expr
+
+    '<'      shift, and goto state 33
+    '='      shift, and goto state 32
+    '>'      shift, and goto state 34
+    COMP_GE  shift, and goto state 36
+    COMP_LE  shift, and goto state 35
+    COMP_NE  shift, and goto state 37
+
+    CompareOperate  goto state 38
+
+state 32 // DELETE FROM VARIABLE WHERE VARIABLE '='
+
+   46 CompareOperate: '=' .  [VARIABLE]
+
+    VARIABLE  reduce using rule 46 (CompareOperate)
+
+state 33 // DELETE FROM VARIABLE WHERE VARIABLE '<'
+
+   47 CompareOperate: '<' .  [VARIABLE]
+
+    VARIABLE  reduce using rule 47 (CompareOperate)
+
+state 34 // DELETE FROM VARIABLE WHERE VARIABLE '>'
+
+   48 CompareOperate: '>' .  [VARIABLE]
+
+    VARIABLE  reduce using rule 48 (CompareOperate)
+
+state 35 // DELETE FROM VARIABLE WHERE VARIABLE COMP_LE
+
+   49 CompareOperate: COMP_LE .  [VARIABLE]
+
+    VARIABLE  reduce using rule 49 (CompareOperate)
+
+state 36 // DELETE FROM VARIABLE WHERE VARIABLE COMP_GE
+
+   50 CompareOperate: COMP_GE .  [VARIABLE]
+
+    VARIABLE  reduce using rule 50 (CompareOperate)
+
+state 37 // DELETE FROM VARIABLE WHERE VARIABLE COMP_NE
+
+   51 CompareOperate: COMP_NE .  [VARIABLE]
+
+    VARIABLE  reduce using rule 51 (CompareOperate)
+
+state 38 // DELETE FROM VARIABLE WHERE VARIABLE '<' [VARIABLE]
+
+   58 SelectWhereList: Expr CompareOperate . Expr
+
+    VARIABLE  shift, and goto state 14
+
+    Expr  goto state 39
+
+state 39 // DELETE FROM VARIABLE WHERE VARIABLE '<' VARIABLE [')']
+
+   58 SelectWhereList: Expr CompareOperate Expr .  [')', ';', AND, LIMIT, OR, ORDER]
+
+    ')'    reduce using rule 58 (SelectWhereList)
+    ';'    reduce using rule 58 (SelectWhereList)
+    AND    reduce using rule 58 (SelectWhereList)
+    LIMIT  reduce using rule 58 (SelectWhereList)
+    OR     reduce using rule 58 (SelectWhereList)
+    ORDER  reduce using rule 58 (SelectWhereList)
+
+state 40 // DELETE FROM VARIABLE WHERE VARIABLE '<' VARIABLE OR
+
+   59 SelectWhereList: SelectWhereList OR . Expr CompareOperate Expr  // assoc %left, prec 1
+   61 SelectWhereList: SelectWhereList OR . '(' SelectWhereList ')'  // assoc %left, prec 1
+
+    '('       shift, and goto state 49
+    VARIABLE  shift, and goto state 14
+
+    Expr  goto state 48
+
+state 41 // DELETE FROM VARIABLE WHERE VARIABLE '<' VARIABLE AND
+
+   60 SelectWhereList: SelectWhereList AND . Expr CompareOperate Expr  // assoc %left, prec 2
+   62 SelectWhereList: SelectWhereList AND . '(' SelectWhereList ')'  // assoc %left, prec 2
+
+    '('       shift, and goto state 43
+    VARIABLE  shift, and goto state 14
+
+    Expr  goto state 42
+
+state 42 // DELETE FROM VARIABLE WHERE VARIABLE '<' VARIABLE AND VARIABLE ['<']
+
+   60 SelectWhereList: SelectWhereList AND Expr . CompareOperate Expr  // assoc %left, prec 2
+
+    '<'      shift, and goto state 33
+    '='      shift, and goto state 32
+    '>'      shift, and goto state 34
+    COMP_GE  shift, and goto state 36
+    COMP_LE  shift, and goto state 35
+    COMP_NE  shift, and goto state 37
+
+    CompareOperate  goto state 46
+
+state 43 // DELETE FROM VARIABLE WHERE VARIABLE '<' VARIABLE AND '('
+
+   62 SelectWhereList: SelectWhereList AND '(' . SelectWhereList ')'  // assoc %left, prec 2
+
+    VARIABLE  shift, and goto state 14
+
+    Expr             goto state 31
+    SelectWhereList  goto state 44
+
+state 44 // DELETE FROM VARIABLE WHERE VARIABLE '<' VARIABLE AND '(' VARIABLE '<' VARIABLE [')']
+
+   59 SelectWhereList: SelectWhereList . OR Expr CompareOperate Expr  // assoc %left, prec 1
+   60 SelectWhereList: SelectWhereList . AND Expr CompareOperate Expr  // assoc %left, prec 2
+   61 SelectWhereList: SelectWhereList . OR '(' SelectWhereList ')'  // assoc %left, prec 1
+   62 SelectWhereList: SelectWhereList . AND '(' SelectWhereList ')'  // assoc %left, prec 2
+   62 SelectWhereList: SelectWhereList AND '(' SelectWhereList . ')'  // assoc %left, prec 2
+
+    ')'  shift, and goto state 45
+    AND  shift, and goto state 41
+    OR   shift, and goto state 40
+
+state 45 // DELETE FROM VARIABLE WHERE VARIABLE '<' VARIABLE AND '(' VARIABLE '<' VARIABLE ')'
+
+   62 SelectWhereList: SelectWhereList AND '(' SelectWhereList ')' .  [')', ';', AND, LIMIT, OR, ORDER]  // assoc %left, prec 2
+
+    ')'    reduce using rule 62 (SelectWhereList)
+    ';'    reduce using rule 62 (SelectWhereList)
+    AND    reduce using rule 62 (SelectWhereList)
+    LIMIT  reduce using rule 62 (SelectWhereList)
+    OR     reduce using rule 62 (SelectWhereList)
+    ORDER  reduce using rule 62 (SelectWhereList)
+
+state 46 // DELETE FROM VARIABLE WHERE VARIABLE '<' VARIABLE AND VARIABLE '<' [VARIABLE]
+
+   60 SelectWhereList: SelectWhereList AND Expr CompareOperate . Expr  // assoc %left, prec 2
+
+    VARIABLE  shift, and goto state 14
+
+    Expr  goto state 47
+
+state 47 // DELETE FROM VARIABLE WHERE VARIABLE '<' VARIABLE AND VARIABLE '<' VARIABLE [')']
+
+   60 SelectWhereList: SelectWhereList AND Expr CompareOperate Expr .  [')', ';', AND, LIMIT, OR, ORDER]  // assoc %left, prec 2
+
+    ')'    reduce using rule 60 (SelectWhereList)
+    ';'    reduce using rule 60 (SelectWhereList)
+    AND    reduce using rule 60 (SelectWhereList)
+    LIMIT  reduce using rule 60 (SelectWhereList)
+    OR     reduce using rule 60 (SelectWhereList)
+    ORDER  reduce using rule 60 (SelectWhereList)
+
+state 48 // DELETE FROM VARIABLE WHERE VARIABLE '<' VARIABLE OR VARIABLE ['<']
+
+   59 SelectWhereList: SelectWhereList OR Expr . CompareOperate Expr  // assoc %left, prec 1
+
+    '<'      shift, and goto state 33
+    '='      shift, and goto state 32
+    '>'      shift, and goto state 34
+    COMP_GE  shift, and goto state 36
+    COMP_LE  shift, and goto state 35
+    COMP_NE  shift, and goto state 37
+
+    CompareOperate  goto state 52
+
+state 49 // DELETE FROM VARIABLE WHERE VARIABLE '<' VARIABLE OR '('
+
+   61 SelectWhereList: SelectWhereList OR '(' . SelectWhereList ')'  // assoc %left, prec 1
+
+    VARIABLE  shift, and goto state 14
+
+    Expr             goto state 31
+    SelectWhereList  goto state 50
+
+state 50 // DELETE FROM VARIABLE WHERE VARIABLE '<' VARIABLE OR '(' VARIABLE '<' VARIABLE [')']
+
+   59 SelectWhereList: SelectWhereList . OR Expr CompareOperate Expr  // assoc %left, prec 1
+   60 SelectWhereList: SelectWhereList . AND Expr CompareOperate Expr  // assoc %left, prec 2
+   61 SelectWhereList: SelectWhereList . OR '(' SelectWhereList ')'  // assoc %left, prec 1
+   61 SelectWhereList: SelectWhereList OR '(' SelectWhereList . ')'  // assoc %left, prec 1
+   62 SelectWhereList: SelectWhereList . AND '(' SelectWhereList ')'  // assoc %left, prec 2
+
+    ')'  shift, and goto state 51
+    AND  shift, and goto state 41
+    OR   shift, and goto state 40
+
+state 51 // DELETE FROM VARIABLE WHERE VARIABLE '<' VARIABLE OR '(' VARIABLE '<' VARIABLE ')'
+
+   61 SelectWhereList: SelectWhereList OR '(' SelectWhereList ')' .  [')', ';', AND, LIMIT, OR, ORDER]  // assoc %left, prec 1
+
+    ')'    reduce using rule 61 (SelectWhereList)
+    ';'    reduce using rule 61 (SelectWhereList)
+    AND    reduce using rule 61 (SelectWhereList)
+    LIMIT  reduce using rule 61 (SelectWhereList)
+    OR     reduce using rule 61 (SelectWhereList)
+    ORDER  reduce using rule 61 (SelectWhereList)
+
+state 52 // DELETE FROM VARIABLE WHERE VARIABLE '<' VARIABLE OR VARIABLE '<' [VARIABLE]
+
+   59 SelectWhereList: SelectWhereList OR Expr CompareOperate . Expr  // assoc %left, prec 1
+
+    VARIABLE  shift, and goto state 14
+
+    Expr  goto state 53
+
+state 53 // DELETE FROM VARIABLE WHERE VARIABLE '<' VARIABLE OR VARIABLE '<' VARIABLE [')']
+
+   59 SelectWhereList: SelectWhereList OR Expr CompareOperate Expr .  [')', ';', AND, LIMIT, OR, ORDER]  // assoc %left, prec 1
+
+    ')'    reduce using rule 59 (SelectWhereList)
+    ';'    reduce using rule 59 (SelectWhereList)
+    AND    reduce using rule 59 (SelectWhereList)
+    LIMIT  reduce using rule 59 (SelectWhereList)
+    OR     reduce using rule 59 (SelectWhereList)
+    ORDER  reduce using rule 59 (SelectWhereList)
+
+state 54 // SELECT VARIABLE FROM VARIABLE [';']
+
+   53 SelectStmt: SELECT SelectFieldList FROM Expr SelectWhere SelectOrder . SelectLimit ';'
+   67 SelectLimit: .  [';']
+
+    ';'    reduce using rule 67 (SelectLimit)
+    LIMIT  shift, and goto state 20
+
+    SelectLimit  goto state 65
+
+state 55 // SELECT VARIABLE FROM VARIABLE ORDER
+
+   64 SelectOrder: ORDER . BY SelectOrderList
+
+    BY  shift, and goto state 56
+
+state 56 // SELECT VARIABLE FROM VARIABLE ORDER BY
+
+   64 SelectOrder: ORDER BY . SelectOrderList
+
+    VARIABLE  shift, and goto state 14
+
+    Expr             goto state 58
+    SelectOrderList  goto state 57
+
+state 57 // SELECT VARIABLE FROM VARIABLE ORDER BY VARIABLE [',']
+
+   64 SelectOrder: ORDER BY SelectOrderList .  [';', LIMIT]
+   66 SelectOrderList: SelectOrderList . ',' Expr Ascend
+
+    ','    shift, and goto state 62
+    ';'    reduce using rule 64 (SelectOrder)
+    LIMIT  reduce using rule 64 (SelectOrder)
+
+state 58 // SELECT VARIABLE FROM VARIABLE ORDER BY VARIABLE [',']
+
+   65 SelectOrderList: Expr . Ascend
+   43 Ascend: .  [',', ';', LIMIT]
+
+    ','    reduce using rule 43 (Ascend)
+    ';'    reduce using rule 43 (Ascend)
+    ASC    shift, and goto state 59
+    DESC   shift, and goto state 60
+    LIMIT  reduce using rule 43 (Ascend)
+
+    Ascend  goto state 61
+
+state 59 // SELECT VARIABLE FROM VARIABLE ORDER BY VARIABLE ASC
+
+   44 Ascend: ASC .  [',', ';', LIMIT]
+
+    ','    reduce using rule 44 (Ascend)
+    ';'    reduce using rule 44 (Ascend)
+    LIMIT  reduce using rule 44 (Ascend)
+
+state 60 // SELECT VARIABLE FROM VARIABLE ORDER BY VARIABLE DESC
+
+   45 Ascend: DESC .  [',', ';', LIMIT]
+
+    ','    reduce using rule 45 (Ascend)
+    ';'    reduce using rule 45 (Ascend)
+    LIMIT  reduce using rule 45 (Ascend)
+
+state 61 // SELECT VARIABLE FROM VARIABLE ORDER BY VARIABLE [',']
+
+   65 SelectOrderList: Expr Ascend .  [',', ';', LIMIT]
+
+    ','    reduce using rule 65 (SelectOrderList)
+    ';'    reduce using rule 65 (SelectOrderList)
+    LIMIT  reduce using rule 65 (SelectOrderList)
+
+state 62 // SELECT VARIABLE FROM VARIABLE ORDER BY VARIABLE ','
+
+   66 SelectOrderList: SelectOrderList ',' . Expr Ascend
+
+    VARIABLE  shift, and goto state 14
+
+    Expr  goto state 63
+
+state 63 // SELECT VARIABLE FROM VARIABLE ORDER BY VARIABLE ',' VARIABLE [',']
+
+   66 SelectOrderList: SelectOrderList ',' Expr . Ascend
+   43 Ascend: .  [',', ';', LIMIT]
+
+    ','    reduce using rule 43 (Ascend)
+    ';'    reduce using rule 43 (Ascend)
+    ASC    shift, and goto state 59
+    DESC   shift, and goto state 60
+    LIMIT  reduce using rule 43 (Ascend)
+
+    Ascend  goto state 64
+
+state 64 // SELECT VARIABLE FROM VARIABLE ORDER BY VARIABLE ',' VARIABLE [',']
+
+   66 SelectOrderList: SelectOrderList ',' Expr Ascend .  [',', ';', LIMIT]
+
+    ','    reduce using rule 66 (SelectOrderList)
+    ';'    reduce using rule 66 (SelectOrderList)
+    LIMIT  reduce using rule 66 (SelectOrderList)
+
+state 65 // SELECT VARIABLE FROM VARIABLE [';']
+
+   53 SelectStmt: SELECT SelectFieldList FROM Expr SelectWhere SelectOrder SelectLimit . ';'
+
+    ';'  shift, and goto state 66
+
+state 66 // SELECT VARIABLE FROM VARIABLE ';'
+
+   53 SelectStmt: SELECT SelectFieldList FROM Expr SelectWhere SelectOrder SelectLimit ';' .  [$end, CREATE, DELETE, INSERT, SELECT, UPDATE]
+
+    $end    reduce using rule 53 (SelectStmt)
+    CREATE  reduce using rule 53 (SelectStmt)
+    DELETE  reduce using rule 53 (SelectStmt)
+    INSERT  reduce using rule 53 (SelectStmt)
+    SELECT  reduce using rule 53 (SelectStmt)
+    UPDATE  reduce using rule 53 (SelectStmt)
+
+state 67 // SELECT VARIABLE ';'
+
+   52 SelectStmt: SELECT SelectFieldList SelectLimit ';' .  [$end, CREATE, DELETE, INSERT, SELECT, UPDATE]
+
+    $end    reduce using rule 52 (SelectStmt)
+    CREATE  reduce using rule 52 (SelectStmt)
+    DELETE  reduce using rule 52 (SelectStmt)
+    INSERT  reduce using rule 52 (SelectStmt)
+    SELECT  reduce using rule 52 (SelectStmt)
+    UPDATE  reduce using rule 52 (SelectStmt)
+
+state 68 // DELETE FROM
+
+   42 DeleteStmt: DELETE FROM . Expr SelectWhere ';'
+
+    VARIABLE  shift, and goto state 14
+
+    Expr  goto state 69
+
+state 69 // DELETE FROM VARIABLE [';']
+
+   42 DeleteStmt: DELETE FROM Expr . SelectWhere ';'
+   56 SelectWhere: .  [';']
+
+    ';'    reduce using rule 56 (SelectWhere)
+    WHERE  shift, and goto state 29
+
+    SelectWhere  goto state 70
+
+state 70 // DELETE FROM VARIABLE [';']
+
+   42 DeleteStmt: DELETE FROM Expr SelectWhere . ';'
+
+    ';'  shift, and goto state 71
+
+state 71 // DELETE FROM VARIABLE ';'
+
+   42 DeleteStmt: DELETE FROM Expr SelectWhere ';' .  [$end, CREATE, DELETE, INSERT, SELECT, UPDATE]
+
+    $end    reduce using rule 42 (DeleteStmt)
+    CREATE  reduce using rule 42 (DeleteStmt)
+    DELETE  reduce using rule 42 (DeleteStmt)
+    INSERT  reduce using rule 42 (DeleteStmt)
+    SELECT  reduce using rule 42 (DeleteStmt)
+    UPDATE  reduce using rule 42 (DeleteStmt)
+
+state 72 // UPDATE VARIABLE [SET]
+
+   39 UpdateStmt: UPDATE Expr . SET UpdateValue SelectWhere ';'
+
+    SET  shift, and goto state 73
+
+state 73 // UPDATE VARIABLE SET
+
+   39 UpdateStmt: UPDATE Expr SET . UpdateValue SelectWhere ';'
+
+    VARIABLE  shift, and goto state 14
+
+    Expr         goto state 75
+    UpdateValue  goto state 74
+
+state 74 // UPDATE VARIABLE SET VARIABLE '=' VARIABLE [',']
+
+   39 UpdateStmt: UPDATE Expr SET UpdateValue . SelectWhere ';'
+   41 UpdateValue: UpdateValue . ',' Expr '=' Expr
+   56 SelectWhere: .  [';']
+
+    ','    shift, and goto state 79
+    ';'    reduce using rule 56 (SelectWhere)
+    WHERE  shift, and goto state 29
+
+    SelectWhere  goto state 78
+
+state 75 // UPDATE VARIABLE SET VARIABLE ['=']
+
+   40 UpdateValue: Expr . '=' Expr
+
+    '='  shift, and goto state 76
+
+state 76 // UPDATE VARIABLE SET VARIABLE '='
+
+   40 UpdateValue: Expr '=' . Expr
+
+    VARIABLE  shift, and goto state 14
+
+    Expr  goto state 77
+
+state 77 // UPDATE VARIABLE SET VARIABLE '=' VARIABLE [',']
+
+   40 UpdateValue: Expr '=' Expr .  [',', ';', WHERE]
+
+    ','    reduce using rule 40 (UpdateValue)
+    ';'    reduce using rule 40 (UpdateValue)
+    WHERE  reduce using rule 40 (UpdateValue)
+
+state 78 // UPDATE VARIABLE SET VARIABLE '=' VARIABLE [';']
+
+   39 UpdateStmt: UPDATE Expr SET UpdateValue SelectWhere . ';'
+
+    ';'  shift, and goto state 83
+
+state 79 // UPDATE VARIABLE SET VARIABLE '=' VARIABLE ','
+
+   41 UpdateValue: UpdateValue ',' . Expr '=' Expr
+
+    VARIABLE  shift, and goto state 14
+
+    Expr  goto state 80
+
+state 80 // UPDATE VARIABLE SET VARIABLE '=' VARIABLE ',' VARIABLE ['=']
+
+   41 UpdateValue: UpdateValue ',' Expr . '=' Expr
+
+    '='  shift, and goto state 81
+
+state 81 // UPDATE VARIABLE SET VARIABLE '=' VARIABLE ',' VARIABLE '='
+
+   41 UpdateValue: UpdateValue ',' Expr '=' . Expr
+
+    VARIABLE  shift, and goto state 14
+
+    Expr  goto state 82
+
+state 82 // UPDATE VARIABLE SET VARIABLE '=' VARIABLE ',' VARIABLE '=' VARIABLE [',']
+
+   41 UpdateValue: UpdateValue ',' Expr '=' Expr .  [',', ';', WHERE]
+
+    ','    reduce using rule 41 (UpdateValue)
+    ';'    reduce using rule 41 (UpdateValue)
+    WHERE  reduce using rule 41 (UpdateValue)
+
+state 83 // UPDATE VARIABLE SET VARIABLE '=' VARIABLE ';'
+
+   39 UpdateStmt: UPDATE Expr SET UpdateValue SelectWhere ';' .  [$end, CREATE, DELETE, INSERT, SELECT, UPDATE]
+
+    $end    reduce using rule 39 (UpdateStmt)
+    CREATE  reduce using rule 39 (UpdateStmt)
+    DELETE  reduce using rule 39 (UpdateStmt)
+    INSERT  reduce using rule 39 (UpdateStmt)
+    SELECT  reduce using rule 39 (UpdateStmt)
+    UPDATE  reduce using rule 39 (UpdateStmt)
+
+state 84 // INSERT INTO
+
+   31 InsertStmt: INSERT INTO . Expr InsertField InsertValue ';'
+
+    VARIABLE  shift, and goto state 14
+
+    Expr  goto state 85
+
+state 85 // INSERT INTO VARIABLE ['(']
+
+   31 InsertStmt: INSERT INTO Expr . InsertField InsertValue ';'
+
+    '('  shift, and goto state 87
+
+    InsertField  goto state 86
+
+state 86 // INSERT INTO VARIABLE '(' ')' [VALUE]
+
+   31 InsertStmt: INSERT INTO Expr InsertField . InsertValue ';'
+
+    VALUE   shift, and goto state 95
+    VALUES  shift, and goto state 96
+
+    InsertValue  goto state 94
+
+state 87 // INSERT INTO VARIABLE '('
+
+   32 InsertField: '(' . InsertFieldList ')'
+   33 InsertFieldList: .  [')']
+
+    ')'       reduce using rule 33 (InsertFieldList)
+    VARIABLE  shift, and goto state 14
+
+    Expr             goto state 88
+    InsertFieldList  goto state 90
+    VaribleList      goto state 89
+
+state 88 // INSERT INTO VARIABLE '(' VARIABLE [')']
+
+    3 VaribleList: Expr .  [')', ',']
+
+    ')'  reduce using rule 3 (VaribleList)
+    ','  reduce using rule 3 (VaribleList)
+
+state 89 // INSERT INTO VARIABLE '(' VARIABLE [')']
+
+    4 VaribleList: VaribleList . ',' Expr
+   34 InsertFieldList: VaribleList .  [')']
+
+    ')'  reduce using rule 34 (InsertFieldList)
+    ','  shift, and goto state 92
+
+state 90 // INSERT INTO VARIABLE '(' [')']
+
+   32 InsertField: '(' InsertFieldList . ')'
+
+    ')'  shift, and goto state 91
+
+state 91 // INSERT INTO VARIABLE '(' ')'
+
+   32 InsertField: '(' InsertFieldList ')' .  [VALUE, VALUES]
+
+    VALUE   reduce using rule 32 (InsertField)
+    VALUES  reduce using rule 32 (InsertField)
+
+state 92 // INSERT INTO VARIABLE '(' VARIABLE ','
+
+    4 VaribleList: VaribleList ',' . Expr
+
+    VARIABLE  shift, and goto state 14
+
+    Expr  goto state 93
+
+state 93 // INSERT INTO VARIABLE '(' VARIABLE ',' VARIABLE [')']
+
+    4 VaribleList: VaribleList ',' Expr .  [')', ',']
+
+    ')'  reduce using rule 4 (VaribleList)
+    ','  reduce using rule 4 (VaribleList)
+
+state 94 // INSERT INTO VARIABLE '(' ')' VALUE '(' VARIABLE ')' [';']
+
+   31 InsertStmt: INSERT INTO Expr InsertField InsertValue . ';'
+
+    ';'  shift, and goto state 106
+
+state 95 // INSERT INTO VARIABLE '(' ')' VALUE
+
+   35 InsertValue: VALUE . InsertValueList
+
+    '('  shift, and goto state 98
+
+    InsertValueList  goto state 105
+
+state 96 // INSERT INTO VARIABLE '(' ')' VALUES
+
+   36 InsertValue: VALUES . InsertValueList
+
+    '('  shift, and goto state 98
+
+    InsertValueList  goto state 97
+
+state 97 // INSERT INTO VARIABLE '(' ')' VALUES '(' VARIABLE ')' [',']
+
+   36 InsertValue: VALUES InsertValueList .  [';']
+   38 InsertValueList: InsertValueList . ',' '(' VaribleList ')'
+
+    ','  shift, and goto state 101
+    ';'  reduce using rule 36 (InsertValue)
+
+state 98 // INSERT INTO VARIABLE '(' ')' VALUES '('
+
+   37 InsertValueList: '(' . VaribleList ')'
+
+    VARIABLE  shift, and goto state 14
+
+    Expr         goto state 88
+    VaribleList  goto state 99
+
+state 99 // INSERT INTO VARIABLE '(' ')' VALUES '(' VARIABLE [')']
+
+    4 VaribleList: VaribleList . ',' Expr
+   37 InsertValueList: '(' VaribleList . ')'
+
+    ')'  shift, and goto state 100
+    ','  shift, and goto state 92
+
+state 100 // INSERT INTO VARIABLE '(' ')' VALUES '(' VARIABLE ')'
+
+   37 InsertValueList: '(' VaribleList ')' .  [',', ';']
+
+    ','  reduce using rule 37 (InsertValueList)
+    ';'  reduce using rule 37 (InsertValueList)
+
+state 101 // INSERT INTO VARIABLE '(' ')' VALUES '(' VARIABLE ')' ','
+
+   38 InsertValueList: InsertValueList ',' . '(' VaribleList ')'
+
+    '('  shift, and goto state 102
+
+state 102 // INSERT INTO VARIABLE '(' ')' VALUES '(' VARIABLE ')' ',' '('
+
+   38 InsertValueList: InsertValueList ',' '(' . VaribleList ')'
+
+    VARIABLE  shift, and goto state 14
+
+    Expr         goto state 88
+    VaribleList  goto state 103
+
+state 103 // INSERT INTO VARIABLE '(' ')' VALUES '(' VARIABLE ')' ',' '(' VARIABLE [')']
+
+    4 VaribleList: VaribleList . ',' Expr
+   38 InsertValueList: InsertValueList ',' '(' VaribleList . ')'
+
+    ')'  shift, and goto state 104
+    ','  shift, and goto state 92
+
+state 104 // INSERT INTO VARIABLE '(' ')' VALUES '(' VARIABLE ')' ',' '(' VARIABLE ')'
+
+   38 InsertValueList: InsertValueList ',' '(' VaribleList ')' .  [',', ';']
+
+    ','  reduce using rule 38 (InsertValueList)
+    ';'  reduce using rule 38 (InsertValueList)
+
+state 105 // INSERT INTO VARIABLE '(' ')' VALUE '(' VARIABLE ')' [',']
+
+   35 InsertValue: VALUE InsertValueList .  [';']
+   38 InsertValueList: InsertValueList . ',' '(' VaribleList ')'
+
+    ','  shift, and goto state 101
+    ';'  reduce using rule 35 (InsertValue)
+
+state 106 // INSERT INTO VARIABLE '(' ')' VALUE '(' VARIABLE ')' ';'
+
+   31 InsertStmt: INSERT INTO Expr InsertField InsertValue ';' .  [$end, CREATE, DELETE, INSERT, SELECT, UPDATE]
+
+    $end    reduce using rule 31 (InsertStmt)
+    CREATE  reduce using rule 31 (InsertStmt)
+    DELETE  reduce using rule 31 (InsertStmt)
+    INSERT  reduce using rule 31 (InsertStmt)
+    SELECT  reduce using rule 31 (InsertStmt)
+    UPDATE  reduce using rule 31 (InsertStmt)
+
+state 107 // CREATE TABLE
+
+   20 CreateStmt: CREATE TABLE . Expr '(' CreateTable ')' CreateTableOption ';'
+
+    VARIABLE  shift, and goto state 14
+
+    Expr  goto state 108
+
+state 108 // CREATE TABLE VARIABLE ['(']
+
+   20 CreateStmt: CREATE TABLE Expr . '(' CreateTable ')' CreateTableOption ';'
+
+    '('  shift, and goto state 109
+
+state 109 // CREATE TABLE VARIABLE '('
+
+   20 CreateStmt: CREATE TABLE Expr '(' . CreateTable ')' CreateTableOption ';'
+
+    INDEX     shift, and goto state 115
+    PRIMARY   shift, and goto state 116
+    VARIABLE  shift, and goto state 14
+
+    CreateField    goto state 111
+    CreateIndex    goto state 112
+    CreatePrimary  goto state 113
+    CreateTable    goto state 110
+    Expr           goto state 114
+
+state 110 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE [')']
+
+   20 CreateStmt: CREATE TABLE Expr '(' CreateTable . ')' CreateTableOption ';'
+   24 CreateTable: CreateTable . ',' CreateField
+   25 CreateTable: CreateTable . ',' CreateIndex
+   26 CreateTable: CreateTable . ',' CreatePrimary
+
+    ')'  shift, and goto state 135
+    ','  shift, and goto state 136
+
+state 111 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE [')']
+
+   21 CreateTable: CreateField .  [')', ',']
+
+    ')'  reduce using rule 21 (CreateTable)
+    ','  reduce using rule 21 (CreateTable)
+
+state 112 // CREATE TABLE VARIABLE '(' INDEX VARIABLE '(' VARIABLE ')' [')']
+
+   22 CreateTable: CreateIndex .  [')', ',']
+
+    ')'  reduce using rule 22 (CreateTable)
+    ','  reduce using rule 22 (CreateTable)
+
+state 113 // CREATE TABLE VARIABLE '(' PRIMARY KEY '(' VARIABLE ')' [')']
+
+   23 CreateTable: CreatePrimary .  [')', ',']
+
+    ')'  reduce using rule 23 (CreateTable)
+    ','  reduce using rule 23 (CreateTable)
+
+state 114 // CREATE TABLE VARIABLE '(' VARIABLE [VARIABLE]
+
+   27 CreateField: Expr . FieldType AllowNull DefaultVal
+
+    VARIABLE  shift, and goto state 14
+
+    Expr       goto state 125
+    FieldType  goto state 126
+
+state 115 // CREATE TABLE VARIABLE '(' INDEX
+
+   28 CreateIndex: INDEX . Expr '(' Expr ')'
+
+    VARIABLE  shift, and goto state 14
+
+    Expr  goto state 121
+
+state 116 // CREATE TABLE VARIABLE '(' PRIMARY
+
+   29 CreatePrimary: PRIMARY . KEY '(' Expr ')'
+
+    KEY  shift, and goto state 117
+
+state 117 // CREATE TABLE VARIABLE '(' PRIMARY KEY
+
+   29 CreatePrimary: PRIMARY KEY . '(' Expr ')'
+
+    '('  shift, and goto state 118
+
+state 118 // CREATE TABLE VARIABLE '(' PRIMARY KEY '('
+
+   29 CreatePrimary: PRIMARY KEY '(' . Expr ')'
+
+    VARIABLE  shift, and goto state 14
+
+    Expr  goto state 119
+
+state 119 // CREATE TABLE VARIABLE '(' PRIMARY KEY '(' VARIABLE [')']
+
+   29 CreatePrimary: PRIMARY KEY '(' Expr . ')'
+
+    ')'  shift, and goto state 120
+
+state 120 // CREATE TABLE VARIABLE '(' PRIMARY KEY '(' VARIABLE ')'
+
+   29 CreatePrimary: PRIMARY KEY '(' Expr ')' .  [')', ',']
+
+    ')'  reduce using rule 29 (CreatePrimary)
+    ','  reduce using rule 29 (CreatePrimary)
+
+state 121 // CREATE TABLE VARIABLE '(' INDEX VARIABLE ['(']
+
+   28 CreateIndex: INDEX Expr . '(' Expr ')'
+
+    '('  shift, and goto state 122
+
+state 122 // CREATE TABLE VARIABLE '(' INDEX VARIABLE '('
+
+   28 CreateIndex: INDEX Expr '(' . Expr ')'
+
+    VARIABLE  shift, and goto state 14
+
+    Expr  goto state 123
+
+state 123 // CREATE TABLE VARIABLE '(' INDEX VARIABLE '(' VARIABLE [')']
+
+   28 CreateIndex: INDEX Expr '(' Expr . ')'
+
+    ')'  shift, and goto state 124
+
+state 124 // CREATE TABLE VARIABLE '(' INDEX VARIABLE '(' VARIABLE ')'
+
+   28 CreateIndex: INDEX Expr '(' Expr ')' .  [')', ',']
+
+    ')'  reduce using rule 28 (CreateIndex)
+    ','  reduce using rule 28 (CreateIndex)
+
+state 125 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE [')']
+
+   19 FieldType: Expr .  [')', ',', DEFAULT, NOT, NULL]
+
+    ')'      reduce using rule 19 (FieldType)
+    ','      reduce using rule 19 (FieldType)
+    DEFAULT  reduce using rule 19 (FieldType)
+    NOT      reduce using rule 19 (FieldType)
+    NULL     reduce using rule 19 (FieldType)
+
+state 126 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE [')']
+
+   27 CreateField: Expr FieldType . AllowNull DefaultVal
+   12 AllowNull: .  [')', ',', DEFAULT]
+
+    ')'      reduce using rule 12 (AllowNull)
+    ','      reduce using rule 12 (AllowNull)
+    DEFAULT  reduce using rule 12 (AllowNull)
+    NOT      shift, and goto state 128
+    NULL     shift, and goto state 127
+
+    AllowNull  goto state 129
+
+state 127 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE NULL
+
+   13 AllowNull: NULL .  [')', ',', DEFAULT]
+
+    ')'      reduce using rule 13 (AllowNull)
+    ','      reduce using rule 13 (AllowNull)
+    DEFAULT  reduce using rule 13 (AllowNull)
+
+state 128 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE NOT
+
+   14 AllowNull: NOT . NULL
+
+    NULL  shift, and goto state 134
+
+state 129 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE [')']
+
+   27 CreateField: Expr FieldType AllowNull . DefaultVal
+   15 DefaultVal: .  [')', ',']
+
+    ')'      reduce using rule 15 (DefaultVal)
+    ','      reduce using rule 15 (DefaultVal)
+    DEFAULT  shift, and goto state 130
+
+    DefaultVal  goto state 131
+
+state 130 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE DEFAULT
+
+   16 DefaultVal: DEFAULT .  [')', ',']
+   17 DefaultVal: DEFAULT . NULL
+   18 DefaultVal: DEFAULT . Expr
+
+    ')'       reduce using rule 16 (DefaultVal)
+    ','       reduce using rule 16 (DefaultVal)
+    NULL      shift, and goto state 132
+    VARIABLE  shift, and goto state 14
+
+    Expr  goto state 133
+
+state 131 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE [')']
+
+   27 CreateField: Expr FieldType AllowNull DefaultVal .  [')', ',']
+
+    ')'  reduce using rule 27 (CreateField)
+    ','  reduce using rule 27 (CreateField)
+
+state 132 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE DEFAULT NULL
+
+   17 DefaultVal: DEFAULT NULL .  [')', ',']
+
+    ')'  reduce using rule 17 (DefaultVal)
+    ','  reduce using rule 17 (DefaultVal)
+
+state 133 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE DEFAULT VARIABLE [')']
+
+   18 DefaultVal: DEFAULT Expr .  [')', ',']
+
+    ')'  reduce using rule 18 (DefaultVal)
+    ','  reduce using rule 18 (DefaultVal)
+
+state 134 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE NOT NULL
+
+   14 AllowNull: NOT NULL .  [')', ',', DEFAULT]
+
+    ')'      reduce using rule 14 (AllowNull)
+    ','      reduce using rule 14 (AllowNull)
+    DEFAULT  reduce using rule 14 (AllowNull)
+
+state 135 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE ')'
+
+   20 CreateStmt: CREATE TABLE Expr '(' CreateTable ')' . CreateTableOption ';'
+   30 CreateTableOption: .  [';']
+
+    ';'  reduce using rule 30 (CreateTableOption)
+
+    CreateTableOption  goto state 140
+
+state 136 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE ','
+
+   24 CreateTable: CreateTable ',' . CreateField
+   25 CreateTable: CreateTable ',' . CreateIndex
+   26 CreateTable: CreateTable ',' . CreatePrimary
+
+    INDEX     shift, and goto state 115
+    PRIMARY   shift, and goto state 116
+    VARIABLE  shift, and goto state 14
+
+    CreateField    goto state 137
+    CreateIndex    goto state 138
+    CreatePrimary  goto state 139
+    Expr           goto state 114
+
+state 137 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE ',' VARIABLE VARIABLE [')']
+
+   24 CreateTable: CreateTable ',' CreateField .  [')', ',']
+
+    ')'  reduce using rule 24 (CreateTable)
+    ','  reduce using rule 24 (CreateTable)
+
+state 138 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE ',' INDEX VARIABLE '(' VARIABLE ')' [')']
+
+   25 CreateTable: CreateTable ',' CreateIndex .  [')', ',']
+
+    ')'  reduce using rule 25 (CreateTable)
+    ','  reduce using rule 25 (CreateTable)
+
+state 139 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE ',' PRIMARY KEY '(' VARIABLE ')' [')']
+
+   26 CreateTable: CreateTable ',' CreatePrimary .  [')', ',']
+
+    ')'  reduce using rule 26 (CreateTable)
+    ','  reduce using rule 26 (CreateTable)
+
+state 140 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE ')' [';']
+
+   20 CreateStmt: CREATE TABLE Expr '(' CreateTable ')' CreateTableOption . ';'
+
+    ';'  shift, and goto state 141
+
+state 141 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE ')' ';'
+
+   20 CreateStmt: CREATE TABLE Expr '(' CreateTable ')' CreateTableOption ';' .  [$end, CREATE, DELETE, INSERT, SELECT, UPDATE]
+
+    $end    reduce using rule 20 (CreateStmt)
+    CREATE  reduce using rule 20 (CreateStmt)
+    DELETE  reduce using rule 20 (CreateStmt)
+    INSERT  reduce using rule 20 (CreateStmt)
+    SELECT  reduce using rule 20 (CreateStmt)
+    UPDATE  reduce using rule 20 (CreateStmt)
+
+state 142 // SELECT VARIABLE ';' SELECT VARIABLE ';' [$end]
+
+   11 StmtList: StmtList Stmt .  [$end, CREATE, DELETE, INSERT, SELECT, UPDATE]
+
+    $end    reduce using rule 11 (StmtList)
+    CREATE  reduce using rule 11 (StmtList)
+    DELETE  reduce using rule 11 (StmtList)
+    INSERT  reduce using rule 11 (StmtList)
+    SELECT  reduce using rule 11 (StmtList)
+    UPDATE  reduce using rule 11 (StmtList)
+

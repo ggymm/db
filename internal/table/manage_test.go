@@ -5,33 +5,33 @@ import (
 	"path/filepath"
 	"testing"
 
+	"db/internal/app"
 	"db/internal/boot"
 	"db/internal/data"
-	"db/internal/opt"
 	"db/internal/tx"
 	"db/internal/ver"
+
 	"db/pkg/sql"
-	"db/pkg/utils"
 	"db/test"
 )
 
 func openTbm() Manage {
-	base := utils.RunPath()
+	base := app.RunPath()
 	name := "test"
 	path := filepath.Join(base, "temp/table")
 
-	b := boot.New(&opt.Option{
+	b := boot.New(&app.Option{
 		Open: true,
 		Name: name,
 		Path: path,
 	})
 
-	tm := tx.NewManager(&opt.Option{
+	tm := tx.NewManager(&app.Option{
 		Open: true,
 		Name: name,
 		Path: path,
 	})
-	dm := data.NewManage(tm, &opt.Option{
+	dm := data.NewManage(tm, &app.Option{
 		Open:   true,
 		Name:   name,
 		Path:   path,
@@ -54,22 +54,22 @@ func TestTableManage_Show(t *testing.T) {
 }
 
 func TestTableManage_Create(t *testing.T) {
-	base := utils.RunPath()
+	base := app.RunPath()
 	name := "test"
 	path := filepath.Join(base, "temp/table")
 
-	b := boot.New(&opt.Option{
+	b := boot.New(&app.Option{
 		Open: false,
 		Name: name,
 		Path: path,
 	})
 
-	tm := tx.NewManager(&opt.Option{
+	tm := tx.NewManager(&app.Option{
 		Open: false,
 		Name: name,
 		Path: path,
 	})
-	dm := data.NewManage(tm, &opt.Option{
+	dm := data.NewManage(tm, &app.Option{
 		Open:   false,
 		Name:   name,
 		Path:   path,

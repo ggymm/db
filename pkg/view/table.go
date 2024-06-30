@@ -1,6 +1,8 @@
 package view
 
-import "strings"
+import (
+	"strings"
+)
 
 var (
 	padding = 1

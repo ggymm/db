@@ -1,6 +1,8 @@
 package page
 
-import "sync"
+import (
+	"sync"
+)
 
 // 内存中页面的结构
 //

@@ -1,26 +1,27 @@
 package tx
 
 import (
-	"db/internal/opt"
 	"math/rand"
 	"path/filepath"
 	"sync"
 	"testing"
 
+	"db/internal/app"
+
 	"db/pkg/utils"
 )
 
-func newOpt() *opt.Option {
-	base := utils.RunPath()
+func newOpt() *app.Option {
+	base := app.RunPath()
 	path := filepath.Join(base, "temp/tx")
 
 	if !utils.IsEmpty(path) {
-		return &opt.Option{
+		return &app.Option{
 			Open: true,
 			Path: path,
 		}
 	} else {
-		return &opt.Option{
+		return &app.Option{
 			Open: false,
 			Path: path,
 		}

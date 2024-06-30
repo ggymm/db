@@ -4,21 +4,22 @@ import (
 	"path/filepath"
 	"testing"
 
-	"db/internal/opt"
+	"db/internal/app"
+
 	"db/pkg/utils"
 )
 
-func newOpt() *opt.Option {
-	base := utils.RunPath()
+func newOpt() *app.Option {
+	base := app.RunPath()
 	path := filepath.Join(base, "temp/log")
 
 	if !utils.IsEmpty(path) {
-		return &opt.Option{
+		return &app.Option{
 			Open: true,
 			Path: path,
 		}
 	} else {
-		return &opt.Option{
+		return &app.Option{
 			Open: false,
 			Path: path,
 		}

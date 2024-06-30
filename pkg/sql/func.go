@@ -1,6 +1,8 @@
 package sql
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func ParseSQL(sql string) (Statement, error) {
 	stmts, err := ParseMultiSQL(sql)

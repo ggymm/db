@@ -8,15 +8,16 @@ import (
 	"sync"
 	"testing"
 
-	"db/internal/opt"
+	"db/internal/app"
 	"db/internal/tx"
+
 	"db/pkg/utils"
 )
 
-func newOpt(open bool) *opt.Option {
-	base := utils.RunPath()
+func newOpt(open bool) *app.Option {
+	base := app.RunPath()
 	path := filepath.Join(base, "temp/data")
-	return &opt.Option{
+	return &app.Option{
 		Open:   open,
 		Name:   "test",
 		Path:   path,
@@ -33,7 +34,7 @@ func TestNewManage(t *testing.T) {
 }
 
 func TestDataManage_DataHandle(t *testing.T) {
-	base := utils.RunPath()
+	base := app.RunPath()
 	path := filepath.Join(base, "temp/data")
 	err := os.RemoveAll(path)
 	if err != nil {
@@ -81,7 +82,7 @@ func TestDataManage_DataHandle(t *testing.T) {
 
 func TestDataManage_DataHandleAsync(t *testing.T) {
 	// 每次测试清空数据
-	base := utils.RunPath()
+	base := app.RunPath()
 	path := filepath.Join(base, "temp/data")
 	err := os.RemoveAll(path)
 	if err != nil {

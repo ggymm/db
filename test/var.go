@@ -1,6 +1,8 @@
 package test
 
-import _ "embed"
+import (
+	_ "embed"
+)
 
 //go:embed create.sql
 var CreateSQL string

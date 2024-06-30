@@ -1,6 +1,8 @@
 package ver
 
-import "db/internal/tx"
+import (
+	"db/internal/tx"
+)
 
 // 事务缓存
 //
