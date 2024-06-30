@@ -8,6 +8,7 @@ import (
 	"db/internal/tx"
 	"db/internal/ver/lock"
 
+	"db/pkg/bin"
 	"db/pkg/cache"
 )
 
@@ -149,7 +150,7 @@ func (vm *verManage) Insert(tid uint64, data []byte) (uint64, error) {
 
 	// 包装成 entry 数据
 	ent := make([]byte, offData+len(data))
-	tx.WriteId(ent[offMin:], tid)
+	bin.PutUint64(ent[offMin:], tid)
 	copy(ent[offData:], data)
 	return vm.dataManage.Insert(tid, ent)
 }

@@ -3,6 +3,8 @@ package ver
 import (
 	"db/internal/data"
 	"db/internal/tx"
+
+	"db/pkg/bin"
 )
 
 // 数据记录（带版本）
@@ -23,8 +25,8 @@ import (
 
 const (
 	offMin  = 0
-	offMax  = offMin + tx.IdLen
-	offData = offMax + tx.IdLen
+	offMax  = offMin + tx.TidLen
+	offData = offMax + tx.TidLen
 )
 
 type entry struct {
@@ -37,14 +39,14 @@ func (e *entry) Min() uint64 {
 	e.item.RLock()
 	defer e.item.RUnlock()
 
-	return tx.ReadId(e.item.DataBody()[offMin:])
+	return bin.Uint64(e.item.DataBody()[offMin:])
 }
 
 func (e *entry) Max() uint64 {
 	e.item.RLock()
 	defer e.item.RUnlock()
 
-	return tx.ReadId(e.item.DataBody()[offMax:])
+	return bin.Uint64(e.item.DataBody()[offMax:])
 }
 
 func (e *entry) Data() (data []byte) {
@@ -60,5 +62,5 @@ func (e *entry) SetMax(tid uint64) {
 	e.item.Before()
 	defer e.item.After(tid)
 
-	tx.WriteId(e.item.DataBody()[offMax:], tid)
+	bin.PutUint64(e.item.DataBody()[offMax:], tid)
 }

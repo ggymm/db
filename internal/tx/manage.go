@@ -8,6 +8,7 @@ import (
 
 	"db/internal/app"
 
+	"db/pkg/bin"
 	"db/pkg/file"
 	"db/pkg/utils"
 )
@@ -33,14 +34,17 @@ var (
 )
 
 const (
+	Super  uint64 = 0
+	TidLen        = 8
+
 	Active    byte = 0 // 事务正在进行中
 	Committed byte = 1 // 事务已经提交
 	Aborted   byte = 2 // 事务已经终止
 
 	suffix = ".tid" // tid 文件后缀
 
-	fieldLen  = 1     // 事务状态字段长度
-	headerLen = IdLen // 文件头长度
+	fieldLen  = 1      // 事务状态字段长度
+	headerLen = TidLen // 文件头长度
 )
 
 type Manage interface {
@@ -81,7 +85,7 @@ func open(tm *txManager) {
 	if err != nil {
 		panic(err)
 	}
-	tid := readId(buf)
+	tid := bin.Uint64(buf)
 
 	// 获取 tid 对应的状态位置
 	off := pos(tid)
@@ -115,7 +119,7 @@ func create(tm *txManager) {
 
 	// 写入文件头
 	buf := make([]byte, headerLen)
-	writeId(buf, 1) // tid 从 1 开始
+	bin.PutUint64(buf, 1) // tid 从 1 开始
 	_, err = f.WriteAt(buf, 0)
 	if err != nil {
 		panic(err)
@@ -142,7 +146,7 @@ func NewManager(opt *app.Option) Manage {
 func (tm *txManager) incr() {
 	tm.seq++
 	buf := make([]byte, 8)
-	writeId(buf, tm.seq)
+	bin.PutUint64(buf, tm.seq)
 
 	// 写入并同步文件
 	tm.write(buf, 0)
