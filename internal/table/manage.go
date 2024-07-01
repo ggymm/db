@@ -13,7 +13,6 @@ import (
 	"db/pkg/bin"
 	"db/pkg/cmap"
 	"db/pkg/sql"
-	"db/pkg/utils"
 	"db/pkg/view"
 )
 
@@ -176,8 +175,7 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 
 				// 格式化索引字段
 				val := sql.FieldFormat(f.fieldType, v)
-				key := utils.Hash(val)
-				err = f.idx.Insert(key, id)
+				err = f.idx.Insert(hash(val), id)
 				if err != nil {
 					return err
 				}

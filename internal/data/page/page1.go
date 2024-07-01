@@ -2,8 +2,8 @@ package page
 
 import (
 	"bytes"
-
-	"db/pkg/utils"
+	"math/rand"
+	"time"
 )
 
 // 第一页
@@ -18,12 +18,22 @@ const (
 	checkLen = 8
 )
 
+func randB(n int) []byte {
+	b := make([]byte, n)
+	// 为随机数生成器提供一个种子
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for i := range b {
+		b[i] = byte(r.Intn(256)) // 随机生成一个字节
+	}
+	return b
+}
+
 func setVcOpen(data []byte) {
 	// 将随机 byte 数组写入
 	// 100 ~ 107 字节
 	copy(
 		data[checkPos:checkPos+checkLen], // dst
-		utils.RandBytes(checkLen),        // src
+		randB(checkLen),                  // src
 	)
 }
 

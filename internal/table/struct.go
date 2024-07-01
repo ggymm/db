@@ -7,9 +7,7 @@ import (
 	"db/internal/index"
 	"db/internal/tx"
 
-	"db/pkg/bin"
 	"db/pkg/sql"
-	"db/pkg/str"
 )
 
 type entry map[string]any
@@ -49,16 +47,16 @@ func readTable(tbm Manage, id uint64) *table {
 	}
 
 	// 读取 name
-	name, pos := str.Deserialize(data)
+	name, pos := decodeString(data)
 
 	// 读取 next
-	next := bin.Uint64(data[pos:])
+	next := decodeUint64(data[pos:])
 
 	// 读取 fields
 	pos += 8
 	fields := make([]*field, 0)
 	for pos < len(data) {
-		f := bin.Uint64(data[pos:])
+		f := decodeUint64(data[pos:])
 		fields = append(fields, readField(tbm, f))
 		pos += 8
 	}
@@ -116,15 +114,15 @@ func createTable(tbm *tableManage, info *newTable) (*table, error) {
 
 func (t *table) persist(txId uint64) (err error) {
 	// name
-	data := str.Serialize(t.tableName)
+	data := encodeString(t.tableName)
 
 	// next
-	raw := bin.Uint64Raw(t.tableNext)
+	raw := encodeUint64(t.tableNext)
 	data = append(data, raw...)
 
 	// fields
 	for _, f := range t.tableFields {
-		raw = bin.Uint64Raw(f.itemId)
+		raw = encodeUint64(f.itemId)
 		data = append(data, raw...)
 	}
 
@@ -191,15 +189,15 @@ func readField(tbm Manage, id uint64) *field {
 	)
 
 	// fieldName
-	f.fieldName, shift = str.Deserialize(data)
+	f.fieldName, shift = decodeString(data)
 
 	// fieldType
 	pos += shift
-	f.fieldType, shift = str.Deserialize(data[pos:])
+	f.fieldType, shift = decodeString(data[pos:])
 
 	// defaultVal
 	pos += shift
-	f.defaultVal, shift = str.Deserialize(data[pos:])
+	f.defaultVal, shift = decodeString(data[pos:])
 
 	// allowNull
 	pos += shift
@@ -211,7 +209,7 @@ func readField(tbm Manage, id uint64) *field {
 
 	// fieldIndex
 	pos++
-	f.fieldIndex = bin.Uint64(data[pos:])
+	f.fieldIndex = decodeUint64(data[pos:])
 
 	// 读取索引
 	if f.fieldIndex != 0 {
@@ -261,13 +259,13 @@ func createField(tbm Manage, info *newField) (*field, error) {
 // +----------------+----------------+----------------+----------------+----------------+----------------+
 func (f *field) persist(txId uint64) (err error) {
 	// fieldName
-	data := str.Serialize(f.fieldName)
+	data := encodeString(f.fieldName)
 
 	// fieldType
-	data = append(data, str.Serialize(f.fieldType)...)
+	data = append(data, encodeString(f.fieldType)...)
 
 	// defaultVal
-	data = append(data, str.Serialize(f.defaultVal)...)
+	data = append(data, encodeString(f.defaultVal)...)
 
 	// allowNull
 	if f.allowNull {
@@ -284,7 +282,7 @@ func (f *field) persist(txId uint64) (err error) {
 	}
 
 	// fieldIndex
-	data = append(data, bin.Uint64Raw(f.fieldIndex)...)
+	data = append(data, encodeUint64(f.fieldIndex)...)
 
 	// 保存到磁盘
 	f.itemId, err = f.tbm.VerManage().Insert(txId, data)

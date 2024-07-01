@@ -7,11 +7,10 @@ import (
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
 	"db/internal/app"
 	"db/internal/tx"
-
-	"db/pkg/utils"
 )
 
 func newOpt(open bool) *app.Option {
@@ -23,6 +22,16 @@ func newOpt(open bool) *app.Option {
 		Path:   path,
 		Memory: (1 << 20) * 64,
 	}
+}
+
+func randB(n int) []byte {
+	b := make([]byte, n)
+	// 为随机数生成器提供一个种子
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for i := range b {
+		b[i] = byte(r.Intn(256)) // 随机生成一个字节
+	}
+	return b
 }
 
 func TestNewManage(t *testing.T) {
@@ -47,7 +56,7 @@ func TestDataManage_DataHandle(t *testing.T) {
 	dm := NewManage(tm, cfg)
 	t.Logf("%+v", dm)
 
-	data := utils.RandBytes(60)
+	data := randB(60)
 	t.Logf("data %+v", data)
 
 	tid := tm.Begin()
@@ -116,7 +125,7 @@ func TestDataManage_DataHandleAsync(t *testing.T) {
 		for i := 0; i < work; i++ {
 			op := rand.Int() % 100
 			if op < 50 { // Insert
-				data := utils.RandBytes(dataLen)
+				data := randB(dataLen)
 				id0, e := dm0.Insert(tid, data)
 				if e != nil {
 					continue
@@ -163,7 +172,7 @@ func TestDataManage_DataHandleAsync(t *testing.T) {
 				data1.RUnlock()
 
 				// 更新数据
-				data := utils.RandBytes(dataLen)
+				data := randB(dataLen)
 				data0.Before()
 				data1.Before()
 				copy(data0.DataBody(), data)

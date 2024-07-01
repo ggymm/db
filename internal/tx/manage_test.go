@@ -8,14 +8,14 @@ import (
 
 	"db/internal/app"
 
-	"db/pkg/utils"
+	"db/pkg/file"
 )
 
 func newOpt() *app.Option {
 	base := app.RunPath()
 	path := filepath.Join(base, "temp/tx")
 
-	if !utils.IsEmpty(path) {
+	if !file.IsEmpty(path) {
 		return &app.Option{
 			Open: true,
 			Path: path,

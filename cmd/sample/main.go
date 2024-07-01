@@ -16,8 +16,8 @@ import (
 	"db/internal/tx"
 	"db/internal/ver"
 
+	"db/pkg/file"
 	"db/pkg/sql"
-	"db/pkg/utils"
 )
 
 var (
@@ -41,7 +41,7 @@ func init() {
 	base := app.RunPath()
 	path := filepath.Join(base, name)
 
-	if !utils.IsExist(path) {
+	if !file.IsExist(path) {
 		err := os.MkdirAll(path, os.ModePerm)
 		if err != nil {
 			panic(err)
@@ -55,7 +55,7 @@ func init() {
 	}
 
 	// 判断目录是否为空
-	if !utils.IsEmpty(path) {
+	if !file.IsEmpty(path) {
 		opt.Open = true
 	} else {
 		opt.Open = false
@@ -63,7 +63,6 @@ func init() {
 
 	tm = tx.NewManager(opt)
 	dm = data.NewManage(tm, opt)
-
 	tbm = table.NewManage(boot.New(opt), ver.NewManage(tm, dm), dm)
 
 	// 初始化表

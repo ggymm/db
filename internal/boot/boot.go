@@ -9,7 +9,6 @@ import (
 
 	"db/pkg/bin"
 	"db/pkg/file"
-	"db/pkg/utils"
 )
 
 const (
@@ -47,7 +46,7 @@ func New(opt *app.Option) Boot {
 	} else {
 		// 创建父文件夹
 		dir := filepath.Dir(path)
-		if !utils.IsExist(dir) {
+		if !file.IsExist(dir) {
 			err = os.MkdirAll(dir, os.ModePerm)
 			if err != nil {
 				panic(err)

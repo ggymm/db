@@ -6,8 +6,6 @@ import (
 	"testing"
 
 	"db/internal/app"
-
-	"db/pkg/utils"
 )
 
 func newOpt(open bool) *app.Option {
@@ -34,7 +32,7 @@ func TestNewPage(t *testing.T) {
 	t.Logf("%+v", cache)
 
 	for i := 1; i <= 100; i++ {
-		data := utils.RandBytes(Size)
+		data := randB(Size)
 		no := cache.NewPage(data)
 		p, e := cache.ObtainPage(no)
 		if e != nil {

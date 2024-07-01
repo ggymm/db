@@ -6,14 +6,14 @@ import (
 
 	"db/internal/app"
 
-	"db/pkg/utils"
+	"db/pkg/file"
 )
 
 func newOpt() *app.Option {
 	base := app.RunPath()
 	path := filepath.Join(base, "temp/log")
 
-	if !utils.IsEmpty(path) {
+	if !file.IsEmpty(path) {
 		return &app.Option{
 			Open: true,
 			Path: path,
@@ -28,7 +28,7 @@ func newOpt() *app.Option {
 
 func TestNewLog(t *testing.T) {
 	log := NewLog(newOpt())
-	log.Log(utils.RandBytes(60))
+	log.Log([]byte("hello world"))
 }
 
 func TestLogger_Next(t *testing.T) {

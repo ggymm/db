@@ -15,7 +15,6 @@ import (
 	"db/internal/tx"
 
 	"db/pkg/file"
-	"db/pkg/utils"
 )
 
 func TestNewIndex(t *testing.T) {
@@ -89,7 +88,7 @@ func TestIndex_Func(t *testing.T) {
 		t.Fatalf("new index err %v", err)
 	}
 
-	lines, err = utils.ReadLines(filepath.Join(base, "temp/index/keys"))
+	lines, err = file.ReadLines(filepath.Join(base, "temp/index/keys"))
 	if err != nil {
 		t.Fatalf("read lines err %v", err)
 	}

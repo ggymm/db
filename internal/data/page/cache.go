@@ -11,7 +11,6 @@ import (
 
 	"db/pkg/cache"
 	"db/pkg/file"
-	"db/pkg/utils"
 )
 
 var ErrMemoryNotEnough = errors.New("memory not enough")
@@ -72,7 +71,7 @@ func create(c *pageCache) {
 
 	// 创建父文件夹
 	dir := filepath.Dir(path)
-	if !utils.IsExist(dir) {
+	if !file.IsExist(dir) {
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
 			panic(err)
