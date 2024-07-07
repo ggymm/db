@@ -7,6 +7,8 @@ import (
 	"os"
 )
 
+const Mode = 0o666
+
 func IsExist(path string) bool {
 	_, err := os.Stat(path)
 	if err == nil {

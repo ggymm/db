@@ -1,9 +1,9 @@
 package main
 
 import (
-	"db/internal/app"
+	"db"
 )
 
 func main() {
-	print(app.RunPath())
+	print(db.RunPath())
 }

@@ -9,15 +9,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"db/internal/app"
-	"db/internal/boot"
-	"db/internal/data"
-	"db/internal/table"
-	"db/internal/tx"
-	"db/internal/ver"
-
+	"db"
+	"db/boot"
+	"db/data"
 	"db/pkg/file"
 	"db/pkg/sql"
+	"db/table"
+	"db/tx"
+	"db/ver"
 )
 
 var (
@@ -38,7 +37,7 @@ var sampleStruct string
 func init() {
 	// 创建基础数据库
 	name := "sample"
-	base := app.RunPath()
+	base := db.RunPath()
 	path := filepath.Join(base, name)
 
 	if !file.IsExist(path) {
@@ -48,7 +47,7 @@ func init() {
 		}
 	}
 
-	opt := &app.Option{
+	opt := &db.Option{
 		Name:   name,
 		Path:   path,
 		Memory: (1 << 20) * 64,
