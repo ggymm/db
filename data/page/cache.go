@@ -15,10 +15,10 @@ import (
 var ErrMemoryNotEnough = errors.New("memory not enough")
 
 const (
+	name = ".DAT"
+
 	Size  = 1 << 13 // 页面大小 8KB
 	Limit = 10
-
-	suffix = ".data"
 )
 
 type Cache interface {
@@ -93,7 +93,7 @@ func NewCache(opt *db.Option) Cache {
 		panic(ErrMemoryNotEnough)
 	}
 	c := new(pageCache)
-	c.filepath = filepath.Join(opt.GetPath(suffix))
+	c.filepath = filepath.Join(opt.GetPath(name))
 
 	// 构造缓存对象
 	c.cache = cache.NewCache(&cache.Option{

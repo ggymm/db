@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	Name    = "boot"
-	NameTmp = "boot_tmp"
+	name = ".BT"
+	temp = ".BT_TMP"
 )
 
 type Boot interface {
@@ -30,8 +30,8 @@ func New(opt *db.Option) Boot {
 		err error
 
 		b  = new(boot)
-		f  = filepath.Join(opt.Path, Name)
-		ft = filepath.Join(opt.Path, NameTmp)
+		f  = filepath.Join(opt.Path, name)
+		ft = filepath.Join(opt.Path, temp)
 	)
 
 	_ = os.Remove(ft)
@@ -84,8 +84,8 @@ func (b *boot) Load() []byte {
 }
 
 func (b *boot) Update(data []byte) {
-	f := filepath.Join(b.path, Name)
-	ft := filepath.Join(b.path, NameTmp)
+	f := filepath.Join(b.path, name)
+	ft := filepath.Join(b.path, temp)
 	tmp, err := os.OpenFile(ft, os.O_RDWR|os.O_TRUNC|os.O_CREATE, file.Mode)
 	if err != nil {
 		panic(err)

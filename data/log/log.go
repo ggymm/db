@@ -31,14 +31,14 @@ import (
 var ErrBadLogFile = errors.New("bad log file")
 
 const (
+	name = ".LOG"
+
 	seed     = 12321
 	checkLen = 4
 
 	offSize  = 0
 	offCheck = offSize + 4
 	offData  = offCheck + 4
-
-	suffix = ".log"
 )
 
 type Log interface {
@@ -143,7 +143,7 @@ func updateChecksum(file *os.File, checksum uint32) {
 
 func NewLog(opt *db.Option) Log {
 	l := new(logger)
-	l.filepath = filepath.Join(opt.GetPath(suffix))
+	l.filepath = filepath.Join(opt.GetPath(name))
 
 	if opt.Open {
 		open(l)

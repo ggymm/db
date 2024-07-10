@@ -32,14 +32,14 @@ var (
 )
 
 const (
+	name = ".TXN" // 事务 id 文件
+
 	Super  uint64 = 0
 	TidLen        = 8
 
 	Active    byte = 0 // 事务正在进行中
 	Committed byte = 1 // 事务已经提交
 	Aborted   byte = 2 // 事务已经终止
-
-	name = "tid" // 事务 id 文件
 
 	fieldLen  = 1      // 事务状态字段长度
 	headerLen = TidLen // 文件头长度
