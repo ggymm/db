@@ -2,7 +2,6 @@ package table
 
 import (
 	"fmt"
-	"path/filepath"
 	"testing"
 
 	"db"
@@ -15,27 +14,13 @@ import (
 )
 
 func openTbm() Manage {
-	base := db.RunPath()
-	name := "test"
-	path := filepath.Join(base, "temp/table")
+	abs := db.RunPath()
+	opt := db.NewOption(abs, "temp/table")
+	opt.Memory = (1 << 20) * 64
 
-	b := boot.New(&db.Option{
-		Open: true,
-		Name: name,
-		Path: path,
-	})
-
-	tm := tx.NewManager(&db.Option{
-		Open: true,
-		Name: name,
-		Path: path,
-	})
-	dm := data.NewManage(tm, &db.Option{
-		Open:   true,
-		Name:   name,
-		Path:   path,
-		Memory: (1 << 20) * 64,
-	})
+	b := boot.New(opt)
+	tm := tx.NewManager(opt)
+	dm := data.NewManage(tm, opt)
 	return NewManage(b, ver.NewManage(tm, dm), dm)
 }
 
@@ -53,27 +38,13 @@ func TestTableManage_Show(t *testing.T) {
 }
 
 func TestTableManage_Create(t *testing.T) {
-	base := db.RunPath()
-	name := "test"
-	path := filepath.Join(base, "temp/table")
+	abs := db.RunPath()
+	opt := db.NewOption(abs, "temp/table")
+	opt.Memory = (1 << 20) * 64
 
-	b := boot.New(&db.Option{
-		Open: false,
-		Name: name,
-		Path: path,
-	})
-
-	tm := tx.NewManager(&db.Option{
-		Open: false,
-		Name: name,
-		Path: path,
-	})
-	dm := data.NewManage(tm, &db.Option{
-		Open:   false,
-		Name:   name,
-		Path:   path,
-		Memory: (1 << 20) * 64,
-	})
+	b := boot.New(opt)
+	tm := tx.NewManager(opt)
+	dm := data.NewManage(tm, opt)
 	tbm := NewManage(b, ver.NewManage(tm, dm), dm)
 
 	// 解析创建表语句

@@ -26,7 +26,7 @@ type Page interface {
 }
 
 type page struct {
-	lock sync.Mutex
+	mu sync.Mutex
 
 	no    uint32 // 编号（从 1 开始）
 	data  []byte // 数据内容
@@ -43,11 +43,11 @@ func NewPage(no uint32, data []byte, cache Cache) Page {
 }
 
 func (p *page) Lock() {
-	p.lock.Lock()
+	p.mu.Lock()
 }
 
 func (p *page) Unlock() {
-	p.lock.Unlock()
+	p.mu.Unlock()
 }
 
 func (p *page) No() uint32 {

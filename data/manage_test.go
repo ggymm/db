@@ -13,15 +13,10 @@ import (
 	"db/tx"
 )
 
-func newOpt(open bool) *db.Option {
-	base := db.RunPath()
-	path := filepath.Join(base, "temp/data")
-	return &db.Option{
-		Open:   open,
-		Name:   "test",
-		Path:   path,
-		Memory: (1 << 20) * 64,
-	}
+func newOpt() *db.Option {
+	opt := db.NewOption(db.RunPath(), "temp/data")
+	opt.Memory = (1 << 20) * 64
+	return opt
 }
 
 func randB(n int) []byte {
@@ -35,25 +30,25 @@ func randB(n int) []byte {
 }
 
 func TestNewManage(t *testing.T) {
-	cfg := newOpt(false)
-
-	tm := tx.NewManager(cfg)
-	dm := NewManage(tm, cfg)
+	opt := newOpt()
+	tm := tx.NewManager(opt)
+	dm := NewManage(tm, opt)
 	t.Logf("%+v", dm)
 }
 
 func TestDataManage_DataHandle(t *testing.T) {
-	base := db.RunPath()
-	path := filepath.Join(base, "temp/data")
+	abs := db.RunPath()
+	path := filepath.Join(abs, "temp/data")
+
 	err := os.RemoveAll(path)
 	if err != nil {
 		t.Fatalf("err %v", err)
 		return
 	}
-	cfg := newOpt(false)
+	opt := newOpt()
 
-	tm := tx.NewManager(cfg)
-	dm := NewManage(tm, cfg)
+	tm := tx.NewManager(opt)
+	dm := NewManage(tm, opt)
 	t.Logf("%+v", dm)
 
 	data := randB(60)
@@ -91,8 +86,9 @@ func TestDataManage_DataHandle(t *testing.T) {
 
 func TestDataManage_DataHandleAsync(t *testing.T) {
 	// 每次测试清空数据
-	base := db.RunPath()
-	path := filepath.Join(base, "temp/data")
+	abs := db.RunPath()
+	path := filepath.Join(abs, "temp/data")
+
 	err := os.RemoveAll(path)
 	if err != nil {
 		t.Fatalf("err %v", err)
@@ -100,7 +96,7 @@ func TestDataManage_DataHandleAsync(t *testing.T) {
 	}
 
 	// 数据管理
-	dm0 := NewManage(nil, newOpt(false))
+	dm0 := NewManage(nil, newOpt())
 	t.Logf("%+v", dm0)
 
 	// 模拟数据管理

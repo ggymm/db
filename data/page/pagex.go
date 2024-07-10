@@ -20,37 +20,37 @@ const (
 	headLen = 2
 )
 
-func readPageFSO(data []byte) uint16 {
+func readPageOffset(data []byte) uint16 {
 	return bin.Uint16(data[0:headLen])
 }
 
-func writePageFSO(data []byte, off uint16) {
+func writePageOffset(data []byte, off uint16) {
 	bin.PutUint16(data[0:headLen], off)
 }
 
 func InitPageX() []byte {
 	data := make([]byte, Size)
-	writePageFSO(data, headLen) // 初始化写入 FSO
+	writePageOffset(data, headLen) // 初始化写入 FSO
 	return data
 }
 
-func MaxPageFree() int {
+func MaxPageFree() uint32 {
 	return Size - headLen
 }
 
-func CalcPageFree(p Page) int {
-	return int(Size - ParsePageFSO(p))
+func CalcPageFree(p Page) uint32 {
+	return Size - uint32(readPageOffset(p.Data()))
 }
 
 func ParsePageFSO(p Page) uint16 {
-	return readPageFSO(p.Data())
+	return readPageOffset(p.Data())
 }
 
 func InsertPageData(p Page, data []byte) uint16 {
 	p.SetDirty(true)
-	off := ParsePageFSO(p)
+	off := readPageOffset(p.Data())
 	copy(p.Data()[off:], data)
-	writePageFSO(p.Data(), off+uint16(len(data)))
+	writePageOffset(p.Data(), off+uint16(len(data)))
 	return off
 }
 
@@ -59,9 +59,9 @@ func RecoverPageInsert(p Page, off uint16, data []byte) {
 	copy(p.Data()[off:], data)
 
 	// 更新 FSO
-	fso := ParsePageFSO(p)
+	fso := readPageOffset(p.Data())
 	if off+uint16(len(data)) > fso {
-		writePageFSO(p.Data(), off+uint16(len(data)))
+		writePageOffset(p.Data(), off+uint16(len(data)))
 	}
 }
 

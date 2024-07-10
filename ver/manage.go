@@ -31,7 +31,7 @@ type Manage interface {
 }
 
 type verManage struct {
-	lock sync.Mutex
+	mu sync.Mutex
 
 	txManage   tx.Manage
 	dataManage data.Manage
@@ -65,12 +65,12 @@ func NewManage(tm tx.Manage, dm data.Manage) Manage {
 // 手动撤销：
 // 自动撤销：
 func (vm *verManage) abort(tid uint64, manual bool) {
-	vm.lock.Lock()
+	vm.mu.Lock()
 	t := vm.txCache[tid]
 	if manual {
 		delete(vm.txCache, tid)
 	}
-	vm.lock.Unlock()
+	vm.mu.Unlock()
 
 	if t.AutoAborted {
 		return
@@ -105,8 +105,8 @@ func (vm *verManage) releaseForCache(data any) {
 //
 // 保存当前处于激活状态的事务
 func (vm *verManage) Begin(level int) uint64 {
-	vm.lock.Lock()
-	defer vm.lock.Unlock()
+	vm.mu.Lock()
+	defer vm.mu.Unlock()
 
 	// 开启一个事务，并且缓存当前处于激活状态该的事务
 	tid := vm.txManage.Begin()
@@ -121,17 +121,17 @@ func (vm *verManage) Abort(tid uint64) {
 
 // Commit 提交一个事务
 func (vm *verManage) Commit(tid uint64) error {
-	vm.lock.Lock()
+	vm.mu.Lock()
 	t := vm.txCache[tid]
-	vm.lock.Unlock()
+	vm.mu.Unlock()
 
 	if t.Err != nil {
 		return t.Err
 	}
 
-	vm.lock.Lock()
+	vm.mu.Lock()
 	delete(vm.txCache, tid)
-	vm.lock.Unlock()
+	vm.mu.Unlock()
 
 	vm.txLock.Remove(tid)
 	vm.txManage.Commit(tid)
@@ -139,9 +139,9 @@ func (vm *verManage) Commit(tid uint64) error {
 }
 
 func (vm *verManage) Insert(tid uint64, data []byte) (uint64, error) {
-	vm.lock.Lock()
+	vm.mu.Lock()
 	t := vm.txCache[tid]
-	vm.lock.Unlock()
+	vm.mu.Unlock()
 
 	if t.Err != nil {
 		return 0, t.Err
@@ -155,9 +155,9 @@ func (vm *verManage) Insert(tid uint64, data []byte) (uint64, error) {
 }
 
 func (vm *verManage) Delete(tid uint64, key uint64) (bool, error) {
-	vm.lock.Lock()
+	vm.mu.Lock()
 	t := vm.txCache[tid]
-	vm.lock.Unlock()
+	vm.mu.Unlock()
 
 	if t.Err != nil {
 		return false, t.Err
@@ -208,9 +208,9 @@ func (vm *verManage) Delete(tid uint64, key uint64) (bool, error) {
 }
 
 func (vm *verManage) Read(tid uint64, key uint64) ([]byte, bool, error) {
-	vm.lock.Lock()
+	vm.mu.Lock()
 	t := vm.txCache[tid]
-	vm.lock.Unlock()
+	vm.mu.Unlock()
 
 	if t.Err != nil {
 		return nil, false, t.Err

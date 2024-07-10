@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	Suffix    = ".boot"
-	SuffixTmp = ".boot_tmp"
+	Name    = "boot"
+	NameTmp = "boot_tmp"
 )
 
 type Boot interface {
@@ -26,34 +26,33 @@ type boot struct {
 }
 
 func New(opt *db.Option) Boot {
-	_ = os.Remove(opt.Path + SuffixTmp)
-
 	var (
 		err error
 
-		b    = new(boot)
-		path = opt.GetPath(Suffix)
+		b  = new(boot)
+		f  = filepath.Join(opt.Path, Name)
+		ft = filepath.Join(opt.Path, NameTmp)
 	)
 
-	b.path = opt.GetPath("") // 不带后缀的路径
+	_ = os.Remove(ft)
+	b.path = opt.Path
 	if opt.Open {
 		// 读取文件
-		b.f, err = os.OpenFile(path, os.O_RDWR, file.Mode)
+		b.f, err = os.OpenFile(f, os.O_RDWR, file.Mode)
 		if err != nil {
 			panic(err)
 		}
 	} else {
 		// 创建父文件夹
-		dir := filepath.Dir(path)
-		if !file.IsExist(dir) {
-			err = os.MkdirAll(dir, os.ModePerm)
+		if !file.IsExist(b.path) {
+			err = os.MkdirAll(b.path, os.ModePerm)
 			if err != nil {
 				panic(err)
 			}
 		}
 
 		// 创建文件
-		b.f, err = os.OpenFile(path, os.O_RDWR|os.O_TRUNC|os.O_CREATE, file.Mode)
+		b.f, err = os.OpenFile(f, os.O_RDWR|os.O_TRUNC|os.O_CREATE, file.Mode)
 		if err != nil {
 			panic(err)
 		}
@@ -85,33 +84,35 @@ func (b *boot) Load() []byte {
 }
 
 func (b *boot) Update(data []byte) {
-	tmpFile, err := os.OpenFile(b.path+SuffixTmp, os.O_RDWR|os.O_TRUNC|os.O_CREATE, file.Mode)
+	f := filepath.Join(b.path, Name)
+	ft := filepath.Join(b.path, NameTmp)
+	tmp, err := os.OpenFile(ft, os.O_RDWR|os.O_TRUNC|os.O_CREATE, file.Mode)
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = tmpFile.Write(data)
+	_, err = tmp.Write(data)
 	if err != nil {
 		panic(err)
 	}
-	err = tmpFile.Sync()
+	err = tmp.Sync()
 	if err != nil {
 		panic(err)
 	}
-	err = tmpFile.Close()
+	err = tmp.Close()
 	if err != nil {
 		panic(err)
 	}
 
 	// 文件重命名（保证原子性）
 	_ = b.f.Close()
-	err = os.Rename(b.path+SuffixTmp, b.path+Suffix)
+	err = os.Rename(ft, f)
 	if err != nil {
 		panic(err)
 	}
 
 	// 重新打开文件
-	b.f, err = os.OpenFile(b.path+Suffix, os.O_RDWR, file.Mode)
+	b.f, err = os.OpenFile(f, os.O_RDWR, file.Mode)
 	if err != nil {
 		panic(err)
 	}

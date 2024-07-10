@@ -48,7 +48,6 @@ func init() {
 	}
 
 	opt := &db.Option{
-		Name:   name,
 		Path:   path,
 		Memory: (1 << 20) * 64,
 	}

@@ -2,33 +2,24 @@ package page
 
 import (
 	"os"
-	"path/filepath"
 	"testing"
 
 	"db"
 )
 
-func newOpt(open bool) *db.Option {
-	base := db.RunPath()
-	path := filepath.Join(base, "temp/page")
-	return &db.Option{
-		Open:   open,
-		Path:   path,
-		Memory: (1 << 20) * 64,
-	}
-}
-
 func TestNewPage(t *testing.T) {
-	base := db.RunPath()
-	path := filepath.Join(base, "temp/page")
+	abs := db.RunPath()
+	opt := db.NewOption(abs, "temp/page")
+	opt.Memory = (1 << 20) * 64
+
 	// 清空目录
-	err := os.RemoveAll(path)
+	err := os.RemoveAll(opt.Path)
 	if err != nil {
 		t.Fatalf("err %v", err)
 		return
 	}
 
-	cache := NewCache(newOpt(false))
+	cache := NewCache(opt)
 	t.Logf("%+v", cache)
 
 	for i := 1; i <= 100; i++ {
@@ -45,7 +36,9 @@ func TestNewPage(t *testing.T) {
 	}
 	cache.Close()
 
-	cache = NewCache(newOpt(true))
+	opt = db.NewOption(abs, "temp/page")
+	opt.Memory = (1 << 20) * 64
+	cache = NewCache(opt)
 	for i := 1; i <= 100; i++ {
 		p, e := cache.ObtainPage(uint32(i))
 		if e != nil {

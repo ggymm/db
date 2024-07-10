@@ -1,7 +1,6 @@
 package ver
 
 import (
-	"path/filepath"
 	"testing"
 
 	"db"
@@ -10,21 +9,12 @@ import (
 )
 
 func TestVerManage_Handle(t *testing.T) {
-	base := db.RunPath()
-	name := "test"
-	path := filepath.Join(base, "temp/ver")
+	abs := db.RunPath()
+	opt := db.NewOption(abs, "temp/ver")
+	opt.Memory = (1 << 20) * 64
 
-	tm := tx.NewManager(&db.Option{
-		Open: false,
-		Name: name,
-		Path: path,
-	})
-	dm := data.NewManage(tm, &db.Option{
-		Open:   false,
-		Name:   name,
-		Path:   path,
-		Memory: (1 << 20) * 64,
-	})
+	tm := tx.NewManager(opt)
+	dm := data.NewManage(tm, opt)
 
 	vm := NewManage(tm, dm)
 	txId := vm.Begin(0)

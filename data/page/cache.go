@@ -18,15 +18,15 @@ const (
 	Size  = 1 << 13 // 页面大小 8KB
 	Limit = 10
 
-	suffix = ".db"
+	suffix = ".data"
 )
 
 type Cache interface {
 	Close()
 
-	NewPage(data []byte) uint32         // 创建新的页面，返回页面编号
-	ObtainPage(no uint32) (Page, error) // 跟觉页号获取页面
-	ReleasePage(p Page)                 // 释放页面
+	NewPage(data []byte) uint32        // 创建新的页面，返回页面编号
+	ObtainPage(n uint32) (Page, error) // 跟觉页号获取页面
+	ReleasePage(p Page)                // 释放页面
 
 	// 以下方法在 recovery 时使用
 
@@ -36,7 +36,7 @@ type Cache interface {
 }
 
 type pageCache struct {
-	lock sync.Mutex
+	mu sync.Mutex
 
 	num   uint32      // page 总数
 	file  *os.File    // 文件句柄
@@ -66,10 +66,10 @@ func open(c *pageCache) {
 }
 
 func create(c *pageCache) {
-	path := c.filepath
+	p := c.filepath
 
 	// 创建父文件夹
-	dir := filepath.Dir(path)
+	dir := filepath.Dir(p)
 	if !file.IsExist(dir) {
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
@@ -78,7 +78,7 @@ func create(c *pageCache) {
 	}
 
 	// 创建文件
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, file.Mode)
+	f, err := os.OpenFile(p, os.O_RDWR|os.O_CREATE|os.O_TRUNC, file.Mode)
 	if err != nil {
 		panic(err)
 	}
@@ -113,8 +113,8 @@ func NewCache(opt *db.Option) Cache {
 
 // 将页内容刷新到磁盘
 func (c *pageCache) flush(p Page) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	// 写入数据
 	_, err := c.file.WriteAt(p.Data(), pos(p.No()))
@@ -132,8 +132,8 @@ func (c *pageCache) flush(p Page) {
 // obtainForCache 需要支持并发
 // 缓存中不存在时，从磁盘中获取，并且包装成 Page 对象
 func (c *pageCache) obtainForCache(key uint64) (any, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	no := uint32(key)
 
@@ -169,8 +169,8 @@ func (c *pageCache) NewPage(data []byte) uint32 {
 	return no
 }
 
-func (c *pageCache) ObtainPage(no uint32) (Page, error) {
-	data, err := c.cache.Obtain(uint64(no))
+func (c *pageCache) ObtainPage(n uint32) (Page, error) {
+	data, err := c.cache.Obtain(uint64(n))
 	if err != nil {
 		return nil, err
 	}

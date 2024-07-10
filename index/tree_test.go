@@ -17,22 +17,14 @@ import (
 )
 
 func TestNewIndex(t *testing.T) {
-	base := db.RunPath()
-	path := filepath.Join(base, "temp/index")
+	abs := db.RunPath()
+	opt := db.NewOption(abs, "temp/index")
+	opt.Memory = page.Size * 10
 
-	txManage := tx.NewMockManage()
-	dataManage := data.NewManage(txManage, &db.Option{
-		Open:   false,
-		Name:   "test",
-		Path:   path,
-		Memory: page.Size * 10,
-	})
+	tm := tx.NewMockManage()
+	dm := data.NewManage(tm, opt)
 
-	index, err := NewIndex(dataManage, &db.Option{
-		Open: false,
-		Name: "test",
-		Path: path,
-	})
+	index, err := NewIndex(dm, opt)
 	if err != nil {
 		t.Fatalf("err %v", err)
 	}
@@ -41,8 +33,8 @@ func TestNewIndex(t *testing.T) {
 
 func TestTree_Gen(t *testing.T) {
 	// 生成包含 1000 个 随机 uint64 的文件
-	base := db.RunPath()
-	path := filepath.Join(base, "temp/index/keys")
+	abs := db.RunPath()
+	path := filepath.Join(abs, "temp/index/keys")
 
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, file.Mode)
 	if err != nil {
@@ -59,16 +51,12 @@ func TestTree_Gen(t *testing.T) {
 }
 
 func TestIndex_Func(t *testing.T) {
-	base := db.RunPath()
-	path := filepath.Join(base, "temp/index")
+	abs := db.RunPath()
+	opt := db.NewOption(abs, "temp/index")
+	opt.Memory = page.Size * 10
 
-	txManage := tx.NewMockManage()
-	dataManage := data.NewManage(txManage, &db.Option{
-		Open:   false,
-		Name:   "test",
-		Path:   path,
-		Memory: page.Size * 10,
-	})
+	tm := tx.NewMockManage()
+	dm := data.NewManage(tm, opt)
 
 	var (
 		err   error
@@ -78,16 +66,12 @@ func TestIndex_Func(t *testing.T) {
 		result []uint64
 	)
 
-	index, err = NewIndex(dataManage, &db.Option{
-		Open: false,
-		Name: "test",
-		Path: path,
-	})
+	index, err = NewIndex(dm, opt)
 	if err != nil {
 		t.Fatalf("new index err %v", err)
 	}
 
-	lines, err = file.ReadLines(filepath.Join(base, "temp/index/keys"))
+	lines, err = file.ReadLines(filepath.Join(abs, "temp/index/keys"))
 	if err != nil {
 		t.Fatalf("read lines err %v", err)
 	}
@@ -120,16 +104,12 @@ func TestIndex_Func(t *testing.T) {
 }
 
 func TestIndex_FuncAsync(t *testing.T) {
-	base := db.RunPath()
-	path := filepath.Join(base, "temp/index")
+	abs := db.RunPath()
+	opt := db.NewOption(abs, "temp/index")
+	opt.Memory = page.Size * 10
 
 	txManage := tx.NewMockManage()
-	dataManage := data.NewManage(txManage, &db.Option{
-		Open:   false,
-		Name:   "test",
-		Path:   path,
-		Memory: page.Size * 80,
-	})
+	dataManage := data.NewManage(txManage, opt)
 
 	var (
 		err   error
@@ -144,11 +124,7 @@ func TestIndex_FuncAsync(t *testing.T) {
 		cacheMap  = make(map[uint64]int)
 	)
 
-	index, err = NewIndex(dataManage, &db.Option{
-		Open: false,
-		Name: "test",
-		Path: path,
-	})
+	index, err = NewIndex(dataManage, opt)
 	if err != nil {
 		t.Fatalf("new index err %v", err)
 	}

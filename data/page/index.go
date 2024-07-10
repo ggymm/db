@@ -24,19 +24,19 @@ const (
 )
 
 type Index interface {
-	Add(no uint32, free int)
-	Select(free int) (uint32, int)
+	Add(no, free uint32)
+	Select(free uint32) (uint32, uint32)
 }
 
 type pageIndex struct {
-	lock sync.Mutex
+	mu sync.Mutex
 
 	spaceList [interval + 1]list.List
 }
 
 type indexItem struct {
 	no   uint32
-	free int
+	free uint32
 }
 
 func NewIndex() Index {
@@ -45,9 +45,9 @@ func NewIndex() Index {
 	}
 }
 
-func (pi *pageIndex) Add(no uint32, free int) {
-	pi.lock.Lock()
-	defer pi.lock.Unlock()
+func (pi *pageIndex) Add(no, free uint32) {
+	pi.mu.Lock()
+	defer pi.mu.Unlock()
 
 	i := free / threshold
 	i = min(i, interval)
@@ -57,9 +57,9 @@ func (pi *pageIndex) Add(no uint32, free int) {
 	})
 }
 
-func (pi *pageIndex) Select(free int) (uint32, int) {
-	pi.lock.Lock()
-	defer pi.lock.Unlock()
+func (pi *pageIndex) Select(free uint32) (uint32, uint32) {
+	pi.mu.Lock()
+	defer pi.mu.Unlock()
 
 	i := free / threshold
 	if i < interval {

@@ -29,7 +29,7 @@ type Option struct {
 }
 
 type cache struct {
-	lock sync.Mutex
+	mu sync.Mutex
 
 	opt   *Option
 	count uint32
@@ -49,8 +49,8 @@ func NewCache(opt *Option) Cache {
 }
 
 func (c *cache) Close() {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	for k, v := range c.cache {
 		c.opt.Release(v)
 		delete(c.refs, k)
@@ -60,11 +60,11 @@ func (c *cache) Close() {
 
 func (c *cache) Obtain(key uint64) (any, error) {
 	for {
-		c.lock.Lock()
+		c.mu.Lock()
 
 		// 如果正在被其他线程获取，则等待
 		if _, ok := c.obtain[key]; ok {
-			c.lock.Unlock()
+			c.mu.Unlock()
 			time.Sleep(time.Millisecond)
 			continue
 		}
@@ -72,45 +72,45 @@ func (c *cache) Obtain(key uint64) (any, error) {
 		// 如果在缓存中，则直接返回
 		if data, ok := c.cache[key]; ok {
 			c.refs[key]++
-			c.lock.Unlock()
+			c.mu.Unlock()
 			return data, nil
 		}
 
 		// 如果缓存中的数据已经达到上限，则抛出异常
 		if c.opt.MaxCount > 0 && c.count >= c.opt.MaxCount {
-			c.lock.Unlock()
+			c.mu.Unlock()
 			return nil, ErrCacheFull
 		}
 
 		// 尝试获取
 		c.count++
 		c.obtain[key] = true
-		c.lock.Unlock()
+		c.mu.Unlock()
 		break
 	}
 
 	// 获取数据
 	data, err := c.opt.Obtain(key)
 	if err != nil {
-		c.lock.Lock()
+		c.mu.Lock()
 		c.count--
 		delete(c.obtain, key)
-		c.lock.Unlock()
+		c.mu.Unlock()
 		return nil, err
 	}
 
 	// 缓存该数据
-	c.lock.Lock()
+	c.mu.Lock()
 	c.refs[key] = 1
 	c.cache[key] = data
 	delete(c.obtain, key)
-	c.lock.Unlock()
+	c.mu.Unlock()
 	return data, nil
 }
 
 func (c *cache) Release(key uint64) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
 	c.refs[key]--
 	if c.refs[key] == 0 {

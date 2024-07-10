@@ -31,12 +31,12 @@ import (
 var ErrBadLogFile = errors.New("bad log file")
 
 const (
-	seed        = 12321
-	checksumLen = 4
+	seed     = 12321
+	checkLen = 4
 
-	offSize     = 0
-	offChecksum = offSize + 4
-	offData     = offChecksum + 4
+	offSize  = 0
+	offCheck = offSize + 4
+	offData  = offCheck + 4
 
 	suffix = ".log"
 )
@@ -45,18 +45,16 @@ type Log interface {
 	Close()
 
 	Log(data []byte)
-	Truncate(size int64) error
-
 	Next() ([]byte, bool)
 	Rewind()
 }
 
 type logger struct {
-	lock sync.Mutex
+	mu sync.Mutex
 
 	pos      int64    // 迭代器的指针位置
 	file     *os.File // 文件句柄
-	filesize int64    // 文件大小
+	size     int64    // 文件大小
 	checksum uint32
 
 	filepath string
@@ -69,14 +67,14 @@ func open(l *logger) {
 		panic(err)
 	}
 
-	// 读取 filesize 和 checksum
+	// 读取 size 和 checksum
 	stat, _ := f.Stat()
 	size := stat.Size()
 	if size < 4 {
 		panic(ErrBadLogFile)
 	}
 
-	buf := make([]byte, checksumLen)
+	buf := make([]byte, checkLen)
 	_, err = f.ReadAt(buf, 0)
 	if err != nil {
 		panic(err)
@@ -85,15 +83,15 @@ func open(l *logger) {
 
 	// 字段信息
 	l.file = f
-	l.filesize = size
+	l.size = size
 	l.checksum = checksum
 }
 
 func create(l *logger) {
-	path := l.filepath
+	p := l.filepath
 
 	// 创建父文件夹
-	dir := filepath.Dir(path)
+	dir := filepath.Dir(p)
 	if !file.IsExist(dir) {
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
@@ -102,7 +100,7 @@ func create(l *logger) {
 	}
 
 	// 创建文件
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, file.Mode)
+	f, err := os.OpenFile(p, os.O_RDWR|os.O_CREATE|os.O_TRUNC, file.Mode)
 	if err != nil {
 		panic(err)
 	}
@@ -131,7 +129,7 @@ func calcChecksum(res uint32, data []byte) uint32 {
 }
 
 func updateChecksum(file *os.File, checksum uint32) {
-	buf := make([]byte, checksumLen)
+	buf := make([]byte, checkLen)
 	writeUint32(buf, checksum)
 	_, err := file.WriteAt(buf, 0)
 	if err != nil {
@@ -169,13 +167,13 @@ func NewLog(opt *db.Option) Log {
 // log 代表完整日志数据，即包含 size 和 checksum
 // data 只代表日志数据，即不包含 size 和 checksum
 func (l *logger) next() ([]byte, bool, error) {
-	// 如果要读取的数据超过 filesize，返回 false
-	if l.pos+offData >= l.filesize {
+	// 如果要读取的数据超过 size，返回 false
+	if l.pos+offData >= l.size {
 		return nil, false, nil
 	}
 
 	// 读取 size
-	buf := make([]byte, offChecksum-offSize)
+	buf := make([]byte, offCheck-offSize)
 	_, err := l.file.ReadAt(buf, l.pos+offSize)
 	if err != nil {
 		return nil, false, err
@@ -183,7 +181,7 @@ func (l *logger) next() ([]byte, bool, error) {
 	size := readUint32(buf)
 
 	// 数据不完整
-	if l.pos+offData+int64(size) > l.filesize {
+	if l.pos+offData+int64(size) > l.size {
 		return nil, false, nil
 	}
 
@@ -196,7 +194,7 @@ func (l *logger) next() ([]byte, bool, error) {
 
 	// 校验 checksum 是否正确
 	checksum1 := calcChecksum(0, log[offData:])
-	checksum2 := readUint32(log[offChecksum:offData])
+	checksum2 := readUint32(log[offCheck:offData])
 	if checksum1 != checksum2 {
 		return nil, false, nil
 	}
@@ -244,13 +242,13 @@ func (l *logger) Close() {
 // 首先包装日志数据，然后写入文件
 // 最后更新 checksum，并且同步文件内容到磁盘
 func (l *logger) Log(data []byte) {
-	l.lock.Lock()
-	defer l.lock.Unlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
 	// 包装日志数据
 	log := make([]byte, offData+len(data))
 	writeUint32(log[offSize:], uint32(len(data)))
-	writeUint32(log[offChecksum:], calcChecksum(0, data))
+	writeUint32(log[offCheck:], calcChecksum(0, data))
 	copy(log[offData:], data)
 
 	// 写入文件
@@ -265,18 +263,12 @@ func (l *logger) Log(data []byte) {
 	updateChecksum(l.file, l.checksum)
 }
 
-func (l *logger) Truncate(size int64) error {
-	l.lock.Lock()
-	defer l.lock.Unlock()
-	return l.file.Truncate(size)
-}
-
 // Next 读取日志
 // 使用迭代器模式，每次读取一条日志
 // 注意，返回的日志数据不包含 size 和 checksum
 func (l *logger) Next() ([]byte, bool) {
-	l.lock.Lock()
-	defer l.lock.Unlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
 	log, next, err := l.next()
 	if err != nil {
@@ -290,5 +282,5 @@ func (l *logger) Next() ([]byte, bool) {
 }
 
 func (l *logger) Rewind() {
-	l.pos = checksumLen
+	l.pos = checkLen
 }

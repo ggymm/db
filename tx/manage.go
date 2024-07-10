@@ -39,7 +39,7 @@ const (
 	Committed byte = 1 // 事务已经提交
 	Aborted   byte = 2 // 事务已经终止
 
-	suffix = ".tid" // tid 文件后缀
+	name = "tid" // 事务 id 文件
 
 	fieldLen  = 1      // 事务状态字段长度
 	headerLen = TidLen // 文件头长度
@@ -58,7 +58,7 @@ type Manage interface {
 }
 
 type txManager struct {
-	lock sync.Mutex
+	mu sync.Mutex
 
 	seq  uint64   // 当前事务Id
 	file *os.File // 文件句柄
@@ -98,10 +98,10 @@ func open(tm *txManager) {
 }
 
 func create(tm *txManager) {
-	path := tm.filepath
+	p := tm.filepath
 
 	// 创建父文件夹
-	dir := filepath.Dir(path)
+	dir := filepath.Dir(p)
 	if !file.IsExist(dir) {
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
@@ -110,7 +110,7 @@ func create(tm *txManager) {
 	}
 
 	// 创建文件
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, file.Mode)
+	f, err := os.OpenFile(p, os.O_RDWR|os.O_CREATE|os.O_TRUNC, file.Mode)
 	if err != nil {
 		panic(err)
 	}
@@ -130,7 +130,7 @@ func create(tm *txManager) {
 
 func NewManager(opt *db.Option) Manage {
 	tm := new(txManager)
-	tm.filepath = filepath.Join(opt.GetPath(suffix))
+	tm.filepath = filepath.Join(opt.GetPath(name))
 
 	// 判断文件是否存在
 	if opt.Open {
@@ -141,7 +141,7 @@ func NewManager(opt *db.Option) Manage {
 	return tm
 }
 
-func (tm *txManager) incr() {
+func (tm *txManager) inc() {
 	tm.seq++
 	buf := make([]byte, 8)
 	bin.PutUint64(buf, tm.seq)
@@ -188,11 +188,11 @@ func (tm *txManager) Close() {
 }
 
 func (tm *txManager) Begin() uint64 {
-	tm.lock.Lock()
-	defer tm.lock.Unlock()
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
 
 	tid := tm.seq
-	tm.incr()
+	tm.inc()
 	tm.update(tid, Active)
 	return tid
 }

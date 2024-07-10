@@ -19,7 +19,7 @@ type Lock interface {
 }
 
 type lock struct {
-	lock sync.Mutex
+	mu sync.Mutex
 
 	keyOwn   map[uint64]uint64        // 数据 被哪个事务 获取
 	waitKey  map[uint64]uint64        // 事务 在等待哪个 数据
@@ -156,8 +156,8 @@ func (l *lock) selectNextId(key uint64) {
 // bool: 是否添加成功
 // chan struct{}: 事务等待通道
 func (l *lock) Add(id, key uint64) (bool, chan struct{}) {
-	l.lock.Lock()
-	defer l.lock.Unlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
 	success := func() (bool, chan struct{}) {
 		ch := make(chan struct{})
@@ -197,8 +197,8 @@ func (l *lock) Add(id, key uint64) (bool, chan struct{}) {
 }
 
 func (l *lock) Remove(id uint64) {
-	l.lock.Lock()
-	defer l.lock.Unlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
 	keys := l.currKeys[id]
 	if keys != nil {
@@ -216,8 +216,8 @@ func (l *lock) Remove(id uint64) {
 }
 
 func (l *lock) String() string {
-	l.lock.Lock()
-	defer l.lock.Unlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
 	mapIntString := func(data map[uint64]uint64) string {
 		if len(data) == 0 {
