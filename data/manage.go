@@ -33,7 +33,7 @@ type Manage interface {
 	Close()
 
 	Read(id uint64) (Item, bool, error)
-	Insert(tid uint64, data []byte) (uint64, error)
+	Write(tid uint64, data []byte) (uint64, error)
 
 	LogDataItem(tid uint64, item Item)
 	ReleaseDataItem(item Item)
@@ -164,7 +164,7 @@ func (m *dataManage) Read(id uint64) (Item, bool, error) {
 	return item, true, nil
 }
 
-func (m *dataManage) Insert(tid uint64, data []byte) (uint64, error) {
+func (m *dataManage) Write(tid uint64, data []byte) (uint64, error) {
 	data = wrapDataItem(data)
 	length := uint32(len(data))
 	if length > page.MaxPageFree() {
@@ -210,7 +210,7 @@ func (m *dataManage) Insert(tid uint64, data []byte) (uint64, error) {
 	m.log.Log(wrapInsertLog(tid, p, data))
 
 	// 保存数据
-	off := page.InsertPageData(p, data)
+	off := page.WritePageData(p, data)
 
 	// 释放页面
 	p.Release()

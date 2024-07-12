@@ -19,6 +19,10 @@ type yySymType struct {
 	stmt     Statement
 	stmtList []Statement
 
+	beginStmt    *BeginStmt
+	commitStmt   *CommitStmt
+	rollbackStmt *RollbackStmt
+
 	createStmt        *CreateStmt
 	createTable       *CreateTable
 	createField       *CreateField
@@ -44,41 +48,44 @@ type yyXError struct {
 }
 
 const (
-	yyDefault = 57375
+	yyDefault = 57378
 	yyEofCode = 57344
-	AND       = 57364
-	ASC       = 57367
-	BY        = 57366
-	COMP_GE   = 57373
-	COMP_LE   = 57372
-	COMP_NE   = 57371
-	CREATE    = 57346
-	DEFAULT   = 57352
-	DELETE    = 57359
-	DESC      = 57368
-	FROM      = 57361
-	INDEX     = 57351
-	INSERT    = 57354
-	INTO      = 57355
-	KEY       = 57348
-	LIMIT     = 57369
-	NOT       = 57349
-	NULL      = 57350
-	OFFSET    = 57370
-	OR        = 57363
-	ORDER     = 57365
-	PRIMARY   = 57353
-	SELECT    = 57360
-	SET       = 57358
-	TABLE     = 57347
-	UPDATE    = 57357
-	VALUE     = 57356
-	VARIABLE  = 57374
-	WHERE     = 57362
+	AND       = 57367
+	ASC       = 57370
+	BEGIN     = 57346
+	BY        = 57369
+	COMMIT    = 57347
+	COMP_GE   = 57376
+	COMP_LE   = 57375
+	COMP_NE   = 57374
+	CREATE    = 57349
+	DEFAULT   = 57355
+	DELETE    = 57362
+	DESC      = 57371
+	FROM      = 57364
+	INDEX     = 57354
+	INSERT    = 57357
+	INTO      = 57358
+	KEY       = 57351
+	LIMIT     = 57372
+	NOT       = 57352
+	NULL      = 57353
+	OFFSET    = 57373
+	OR        = 57366
+	ORDER     = 57368
+	PRIMARY   = 57356
+	ROLLBACK  = 57348
+	SELECT    = 57363
+	SET       = 57361
+	TABLE     = 57350
+	UPDATE    = 57360
+	VALUE     = 57359
+	VARIABLE  = 57377
+	WHERE     = 57365
 	yyErrCode = 57345
 
 	yyMaxDepth = 200
-	yyTabOfs   = -70
+	yyTabOfs   = -76
 )
 
 var (
@@ -92,95 +99,104 @@ var (
 	}
 
 	yyXLAT = map[int]int{
-		57374: 0,  // VARIABLE (41x)
-		44:    1,  // ',' (37x)
-		41:    2,  // ')' (36x)
-		59:    3,  // ';' (35x)
-		57387: 4,  // Expr (31x)
-		57369: 5,  // LIMIT (20x)
-		57344: 6,  // $end (15x)
-		57346: 7,  // CREATE (15x)
-		57359: 8,  // DELETE (15x)
-		57354: 9,  // INSERT (15x)
-		57360: 10, // SELECT (15x)
-		57357: 11, // UPDATE (15x)
-		57364: 12, // AND (9x)
-		57363: 13, // OR (9x)
-		57365: 14, // ORDER (9x)
-		40:    15, // '(' (8x)
-		61:    16, // '=' (6x)
-		57352: 17, // DEFAULT (6x)
-		57362: 18, // WHERE (6x)
-		57361: 19, // FROM (5x)
-		57350: 20, // NULL (5x)
-		60:    21, // '<' (4x)
-		62:    22, // '>' (4x)
-		57373: 23, // COMP_GE (4x)
-		57372: 24, // COMP_LE (4x)
-		57371: 25, // COMP_NE (4x)
-		57367: 26, // ASC (3x)
-		57378: 27, // CompareOperate (3x)
-		57368: 28, // DESC (3x)
-		57349: 29, // NOT (3x)
-		57399: 30, // SelectWhere (3x)
-		57400: 31, // SelectWhereList (3x)
-		57377: 32, // Ascend (2x)
-		57379: 33, // CreateField (2x)
-		57380: 34, // CreateIndex (2x)
-		57381: 35, // CreatePrimary (2x)
-		57382: 36, // CreateStmt (2x)
-		57386: 37, // DeleteStmt (2x)
-		57351: 38, // INDEX (2x)
-		57391: 39, // InsertStmt (2x)
-		57353: 40, // PRIMARY (2x)
-		57395: 41, // SelectLimit (2x)
-		57398: 42, // SelectStmt (2x)
-		57358: 43, // SET (2x)
-		57401: 44, // Stmt (2x)
-		57403: 45, // UpdateStmt (2x)
-		57356: 46, // VALUE (2x)
-		57405: 47, // VaribleList (2x)
-		57376: 48, // AllowNull (1x)
-		57366: 49, // BY (1x)
-		57383: 50, // CreateTable (1x)
-		57384: 51, // CreateTableOption (1x)
-		57385: 52, // DefaultVal (1x)
-		57388: 53, // FieldType (1x)
-		57389: 54, // InsertField (1x)
-		57390: 55, // InsertFieldList (1x)
-		57392: 56, // InsertValue (1x)
-		57393: 57, // InsertValueList (1x)
-		57355: 58, // INTO (1x)
-		57348: 59, // KEY (1x)
-		57370: 60, // OFFSET (1x)
-		57394: 61, // SelectFieldList (1x)
-		57396: 62, // SelectOrder (1x)
-		57397: 63, // SelectOrderList (1x)
-		57406: 64, // start (1x)
-		57402: 65, // StmtList (1x)
-		57347: 66, // TABLE (1x)
-		57404: 67, // UpdateValue (1x)
-		57375: 68, // $default (0x)
-		42:    69, // '*' (0x)
-		43:    70, // '+' (0x)
-		45:    71, // '-' (0x)
-		47:    72, // '/' (0x)
-		57345: 73, // error (0x)
+		57377: 0,  // VARIABLE (42x)
+		59:    1,  // ';' (38x)
+		44:    2,  // ',' (37x)
+		41:    3,  // ')' (36x)
+		57392: 4,  // Expr (32x)
+		57344: 5,  // $end (21x)
+		57346: 6,  // BEGIN (21x)
+		57347: 7,  // COMMIT (21x)
+		57349: 8,  // CREATE (21x)
+		57362: 9,  // DELETE (21x)
+		57357: 10, // INSERT (21x)
+		57348: 11, // ROLLBACK (21x)
+		57363: 12, // SELECT (21x)
+		57360: 13, // UPDATE (21x)
+		57372: 14, // LIMIT (20x)
+		57367: 15, // AND (9x)
+		57366: 16, // OR (9x)
+		57368: 17, // ORDER (9x)
+		40:    18, // '(' (8x)
+		61:    19, // '=' (6x)
+		57355: 20, // DEFAULT (6x)
+		57365: 21, // WHERE (6x)
+		57364: 22, // FROM (5x)
+		57353: 23, // NULL (5x)
+		60:    24, // '<' (4x)
+		62:    25, // '>' (4x)
+		57376: 26, // COMP_GE (4x)
+		57375: 27, // COMP_LE (4x)
+		57374: 28, // COMP_NE (4x)
+		57370: 29, // ASC (3x)
+		57383: 30, // CompareOperate (3x)
+		57371: 31, // DESC (3x)
+		57352: 32, // NOT (3x)
+		57405: 33, // SelectWhere (3x)
+		57406: 34, // SelectWhereList (3x)
+		57380: 35, // Ascend (2x)
+		57381: 36, // BeginStmt (2x)
+		57382: 37, // CommitStmt (2x)
+		57384: 38, // CreateField (2x)
+		57385: 39, // CreateIndex (2x)
+		57386: 40, // CreatePrimary (2x)
+		57387: 41, // CreateStmt (2x)
+		57391: 42, // DeleteStmt (2x)
+		57354: 43, // INDEX (2x)
+		57396: 44, // InsertStmt (2x)
+		57356: 45, // PRIMARY (2x)
+		57399: 46, // RollbackStmt (2x)
+		57401: 47, // SelectLimit (2x)
+		57404: 48, // SelectStmt (2x)
+		57361: 49, // SET (2x)
+		57407: 50, // Stmt (2x)
+		57409: 51, // UpdateStmt (2x)
+		57359: 52, // VALUE (2x)
+		57411: 53, // VaribleList (2x)
+		57379: 54, // AllowNull (1x)
+		57369: 55, // BY (1x)
+		57388: 56, // CreateTable (1x)
+		57389: 57, // CreateTableOption (1x)
+		57390: 58, // DefaultVal (1x)
+		57393: 59, // FieldType (1x)
+		57394: 60, // InsertField (1x)
+		57395: 61, // InsertFieldList (1x)
+		57397: 62, // InsertValue (1x)
+		57398: 63, // InsertValueList (1x)
+		57358: 64, // INTO (1x)
+		57351: 65, // KEY (1x)
+		57373: 66, // OFFSET (1x)
+		57400: 67, // SelectFieldList (1x)
+		57402: 68, // SelectOrder (1x)
+		57403: 69, // SelectOrderList (1x)
+		57412: 70, // start (1x)
+		57408: 71, // StmtList (1x)
+		57350: 72, // TABLE (1x)
+		57410: 73, // UpdateValue (1x)
+		57378: 74, // $default (0x)
+		42:    75, // '*' (0x)
+		43:    76, // '+' (0x)
+		45:    77, // '-' (0x)
+		47:    78, // '/' (0x)
+		57345: 79, // error (0x)
 	}
 
 	yySymNames = []string{
 		"VARIABLE",
+		"';'",
 		"','",
 		"')'",
-		"';'",
 		"Expr",
-		"LIMIT",
 		"$end",
+		"BEGIN",
+		"COMMIT",
 		"CREATE",
 		"DELETE",
 		"INSERT",
+		"ROLLBACK",
 		"SELECT",
 		"UPDATE",
+		"LIMIT",
 		"AND",
 		"OR",
 		"ORDER",
@@ -202,6 +218,8 @@ var (
 		"SelectWhere",
 		"SelectWhereList",
 		"Ascend",
+		"BeginStmt",
+		"CommitStmt",
 		"CreateField",
 		"CreateIndex",
 		"CreatePrimary",
@@ -210,6 +228,7 @@ var (
 		"INDEX",
 		"InsertStmt",
 		"PRIMARY",
+		"RollbackStmt",
 		"SelectLimit",
 		"SelectStmt",
 		"SET",
@@ -246,277 +265,298 @@ var (
 	}
 
 	yyTokenLiteralStrings = map[int]string{
-		57369: "LIMIT",
-		57346: "CREATE",
-		57359: "DELETE",
-		57354: "INSERT",
-		57360: "SELECT",
-		57357: "UPDATE",
-		57364: "AND",
-		57363: "OR",
-		57365: "ORDER",
-		57352: "DEFAULT",
-		57362: "WHERE",
-		57361: "FROM",
-		57350: "NULL",
-		57373: ">=",
-		57372: "<=",
-		57371: "!=",
-		57367: "ASC",
-		57368: "DESC",
-		57349: "NOT",
-		57351: "INDEX",
-		57353: "PRIMARY",
-		57358: "SET",
-		57356: "VALUE",
-		57366: "BY",
-		57355: "INTO",
-		57348: "KEY",
-		57370: "OFFSET",
-		57347: "TABLE",
+		57346: "BEGIN",
+		57347: "COMMIT",
+		57349: "CREATE",
+		57362: "DELETE",
+		57357: "INSERT",
+		57348: "ROLLBACK",
+		57363: "SELECT",
+		57360: "UPDATE",
+		57372: "LIMIT",
+		57367: "AND",
+		57366: "OR",
+		57368: "ORDER",
+		57355: "DEFAULT",
+		57365: "WHERE",
+		57364: "FROM",
+		57353: "NULL",
+		57376: ">=",
+		57375: "<=",
+		57374: "!=",
+		57370: "ASC",
+		57371: "DESC",
+		57352: "NOT",
+		57354: "INDEX",
+		57356: "PRIMARY",
+		57361: "SET",
+		57359: "VALUE",
+		57369: "BY",
+		57358: "INTO",
+		57351: "KEY",
+		57373: "OFFSET",
+		57350: "TABLE",
 	}
 
 	yyReductions = map[int]struct{ xsym, components int }{
 		0:  {0, 1},
-		1:  {64, 1},
+		1:  {70, 1},
 		2:  {4, 1},
-		3:  {47, 1},
-		4:  {47, 3},
-		5:  {44, 1},
-		6:  {44, 1},
-		7:  {44, 1},
-		8:  {44, 1},
-		9:  {44, 1},
-		10: {65, 1},
-		11: {65, 2},
-		12: {48, 0},
-		13: {48, 1},
-		14: {48, 2},
-		15: {52, 0},
-		16: {52, 1},
-		17: {52, 2},
-		18: {52, 2},
-		19: {53, 1},
-		20: {36, 8},
-		21: {50, 1},
-		22: {50, 1},
-		23: {50, 1},
-		24: {50, 3},
-		25: {50, 3},
-		26: {50, 3},
-		27: {33, 4},
-		28: {34, 5},
-		29: {35, 5},
-		30: {51, 0},
-		31: {39, 6},
-		32: {54, 3},
-		33: {55, 0},
-		34: {55, 1},
-		35: {56, 4},
+		3:  {53, 1},
+		4:  {53, 3},
+		5:  {50, 1},
+		6:  {50, 1},
+		7:  {50, 1},
+		8:  {50, 1},
+		9:  {50, 1},
+		10: {50, 1},
+		11: {50, 1},
+		12: {50, 1},
+		13: {71, 1},
+		14: {71, 2},
+		15: {54, 0},
+		16: {54, 1},
+		17: {54, 2},
+		18: {58, 0},
+		19: {58, 1},
+		20: {58, 2},
+		21: {58, 2},
+		22: {59, 1},
+		23: {36, 3},
+		24: {37, 2},
+		25: {46, 2},
+		26: {41, 8},
+		27: {56, 1},
+		28: {56, 1},
+		29: {56, 1},
+		30: {56, 3},
+		31: {56, 3},
+		32: {56, 3},
+		33: {38, 4},
+		34: {39, 5},
+		35: {40, 5},
 		36: {57, 0},
-		37: {57, 1},
-		38: {45, 6},
-		39: {67, 3},
-		40: {67, 5},
-		41: {37, 5},
-		42: {32, 0},
-		43: {32, 1},
-		44: {32, 1},
-		45: {27, 1},
-		46: {27, 1},
-		47: {27, 1},
-		48: {27, 1},
-		49: {27, 1},
-		50: {27, 1},
-		51: {42, 4},
-		52: {42, 8},
-		53: {61, 1},
-		54: {61, 3},
-		55: {30, 0},
-		56: {30, 2},
-		57: {31, 3},
-		58: {31, 5},
-		59: {31, 5},
-		60: {31, 5},
-		61: {31, 5},
-		62: {62, 0},
-		63: {62, 3},
-		64: {63, 2},
-		65: {63, 4},
-		66: {41, 0},
-		67: {41, 2},
-		68: {41, 4},
-		69: {41, 4},
+		37: {44, 6},
+		38: {60, 3},
+		39: {61, 0},
+		40: {61, 1},
+		41: {62, 4},
+		42: {63, 0},
+		43: {63, 1},
+		44: {51, 6},
+		45: {73, 3},
+		46: {73, 5},
+		47: {42, 5},
+		48: {35, 0},
+		49: {35, 1},
+		50: {35, 1},
+		51: {30, 1},
+		52: {30, 1},
+		53: {30, 1},
+		54: {30, 1},
+		55: {30, 1},
+		56: {30, 1},
+		57: {48, 4},
+		58: {48, 8},
+		59: {67, 1},
+		60: {67, 3},
+		61: {33, 0},
+		62: {33, 2},
+		63: {34, 3},
+		64: {34, 5},
+		65: {34, 5},
+		66: {34, 5},
+		67: {34, 5},
+		68: {68, 0},
+		69: {68, 3},
+		70: {69, 2},
+		71: {69, 4},
+		72: {47, 0},
+		73: {47, 2},
+		74: {47, 4},
+		75: {47, 4},
 	}
 
 	yyXErrors = map[yyXError]string{}
 
-	yyParseTab = [137][]uint16{
+	yyParseTab = [147][]uint16{
 		// 0
-		{7: 79, 82, 80, 83, 81, 36: 73, 77, 39: 75, 42: 74, 44: 78, 76, 64: 71, 72},
-		{6: 70},
-		{6: 69, 79, 82, 80, 83, 81, 36: 73, 77, 39: 75, 42: 74, 44: 206, 76},
-		{6: 65, 65, 65, 65, 65, 65},
-		{6: 64, 64, 64, 64, 64, 64},
+		{6: 88, 89, 91, 94, 92, 90, 95, 93, 36: 79, 80, 41: 82, 86, 44: 84, 46: 81, 48: 83, 50: 87, 85, 70: 77, 78},
+		{5: 76},
+		{5: 75, 88, 89, 91, 94, 92, 90, 95, 93, 36: 79, 80, 41: 82, 86, 44: 84, 46: 81, 48: 83, 50: 222, 85},
+		{5: 71, 71, 71, 71, 71, 71, 71, 71, 71},
+		{5: 70, 70, 70, 70, 70, 70, 70, 70, 70},
 		// 5
-		{6: 63, 63, 63, 63, 63, 63},
-		{6: 62, 62, 62, 62, 62, 62},
-		{6: 61, 61, 61, 61, 61, 61},
-		{6: 60, 60, 60, 60, 60, 60},
-		{66: 171},
+		{5: 69, 69, 69, 69, 69, 69, 69, 69, 69},
+		{5: 68, 68, 68, 68, 68, 68, 68, 68, 68},
+		{5: 67, 67, 67, 67, 67, 67, 67, 67, 67},
+		{5: 66, 66, 66, 66, 66, 66, 66, 66, 66},
+		{5: 65, 65, 65, 65, 65, 65, 65, 65, 65},
 		// 10
-		{58: 154},
-		{84, 4: 142},
-		{19: 138},
-		{84, 4: 86, 61: 85},
-		{68, 68, 68, 68, 5: 68, 12: 68, 68, 68, 68, 68, 68, 68, 68, 68, 68, 68, 68, 68, 68, 68, 28: 68, 68, 43: 68},
+		{5: 64, 64, 64, 64, 64, 64, 64, 64, 64},
+		{5: 63, 63, 63, 63, 63, 63, 63, 63, 63},
+		{96, 4: 220},
+		{1: 219},
+		{1: 218},
 		// 15
-		{1: 89, 3: 4, 5: 90, 19: 88, 41: 87},
-		{1: 17, 3: 17, 5: 17, 19: 17},
-		{3: 137},
-		{84, 4: 97},
-		{84, 4: 96},
+		{72: 183},
+		{64: 166},
+		{96, 4: 154},
+		{22: 150},
+		{96, 4: 98, 67: 97},
 		// 20
-		{91},
-		{1: 92, 3: 3, 60: 93},
-		{95},
-		{94},
-		{3: 1},
+		{74, 74, 74, 74, 14: 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 74, 31: 74, 74, 49: 74},
+		{1: 4, 101, 14: 102, 22: 100, 47: 99},
+		{1: 17, 17, 14: 17, 22: 17},
+		{1: 149},
+		{96, 4: 109},
 		// 25
-		{3: 2},
-		{1: 16, 3: 16, 5: 16, 19: 16},
-		{3: 15, 5: 15, 14: 15, 18: 99, 30: 98},
-		{3: 8, 5: 8, 14: 125, 62: 124},
-		{84, 4: 101, 31: 100},
+		{96, 4: 108},
+		{103},
+		{1: 3, 104, 66: 105},
+		{107},
+		{106},
 		// 30
-		{3: 14, 5: 14, 12: 111, 110, 14},
-		{16: 102, 21: 103, 104, 106, 105, 107, 27: 108},
+		{1: 1},
+		{1: 2},
+		{1: 16, 16, 14: 16, 22: 16},
+		{1: 15, 14: 15, 17: 15, 21: 111, 33: 110},
+		{1: 8, 14: 8, 17: 137, 68: 136},
+		// 35
+		{96, 4: 113, 34: 112},
+		{1: 14, 14: 14, 123, 122, 14},
+		{19: 114, 24: 115, 116, 118, 117, 119, 30: 120},
 		{25},
 		{24},
+		// 40
 		{23},
-		// 35
 		{22},
 		{21},
 		{20},
-		{84, 4: 109},
-		{2: 13, 13, 5: 13, 12: 13, 13, 13},
-		// 40
-		{84, 4: 118, 15: 119},
-		{84, 4: 112, 15: 113},
-		{16: 102, 21: 103, 104, 106, 105, 107, 27: 116},
-		{84, 4: 101, 31: 114},
-		{2: 115, 12: 111, 110},
+		{96, 4: 121},
 		// 45
-		{2: 9, 9, 5: 9, 12: 9, 9, 9},
-		{84, 4: 117},
-		{2: 11, 11, 5: 11, 12: 11, 11, 11},
-		{16: 102, 21: 103, 104, 106, 105, 107, 27: 122},
-		{84, 4: 101, 31: 120},
+		{1: 13, 3: 13, 14: 13, 13, 13, 13},
+		{96, 4: 130, 18: 131},
+		{96, 4: 124, 18: 125},
+		{19: 114, 24: 115, 116, 118, 117, 119, 30: 128},
+		{96, 4: 113, 34: 126},
 		// 50
-		{2: 121, 12: 111, 110},
-		{2: 10, 10, 5: 10, 12: 10, 10, 10},
-		{84, 4: 123},
-		{2: 12, 12, 5: 12, 12: 12, 12, 12},
-		{3: 4, 5: 90, 41: 135},
+		{3: 127, 15: 123, 122},
+		{1: 9, 3: 9, 14: 9, 9, 9, 9},
+		{96, 4: 129},
+		{1: 11, 3: 11, 14: 11, 11, 11, 11},
+		{19: 114, 24: 115, 116, 118, 117, 119, 30: 134},
 		// 55
-		{49: 126},
-		{84, 4: 128, 63: 127},
-		{1: 132, 3: 7, 5: 7},
-		{1: 28, 3: 28, 5: 28, 26: 129, 28: 130, 32: 131},
-		{1: 27, 3: 27, 5: 27},
+		{96, 4: 113, 34: 132},
+		{3: 133, 15: 123, 122},
+		{1: 10, 3: 10, 14: 10, 10, 10, 10},
+		{96, 4: 135},
+		{1: 12, 3: 12, 14: 12, 12, 12, 12},
 		// 60
-		{1: 26, 3: 26, 5: 26},
-		{1: 6, 3: 6, 5: 6},
-		{84, 4: 133},
-		{1: 28, 3: 28, 5: 28, 26: 129, 28: 130, 32: 134},
-		{1: 5, 3: 5, 5: 5},
+		{1: 4, 14: 102, 47: 147},
+		{55: 138},
+		{96, 4: 140, 69: 139},
+		{1: 7, 144, 14: 7},
+		{1: 28, 28, 14: 28, 29: 141, 31: 142, 35: 143},
 		// 65
-		{3: 136},
-		{6: 18, 18, 18, 18, 18, 18},
-		{6: 19, 19, 19, 19, 19, 19},
-		{84, 4: 139},
-		{3: 15, 18: 99, 30: 140},
+		{1: 27, 27, 14: 27},
+		{1: 26, 26, 14: 26},
+		{1: 6, 6, 14: 6},
+		{96, 4: 145},
+		{1: 28, 28, 14: 28, 29: 141, 31: 142, 35: 146},
 		// 70
-		{3: 141},
-		{6: 29, 29, 29, 29, 29, 29},
-		{43: 143},
-		{84, 4: 145, 67: 144},
-		{1: 149, 3: 15, 18: 99, 30: 148},
+		{1: 5, 5, 14: 5},
+		{1: 148},
+		{5: 18, 18, 18, 18, 18, 18, 18, 18, 18},
+		{5: 19, 19, 19, 19, 19, 19, 19, 19, 19},
+		{96, 4: 151},
 		// 75
-		{16: 146},
-		{84, 4: 147},
-		{1: 31, 3: 31, 18: 31},
-		{3: 153},
-		{84, 4: 150},
+		{1: 15, 21: 111, 33: 152},
+		{1: 153},
+		{5: 29, 29, 29, 29, 29, 29, 29, 29, 29},
+		{49: 155},
+		{96, 4: 157, 73: 156},
 		// 80
-		{16: 151},
-		{84, 4: 152},
-		{1: 30, 3: 30, 18: 30},
-		{6: 32, 32, 32, 32, 32, 32},
-		{84, 4: 155},
+		{1: 15, 161, 21: 111, 33: 160},
+		{19: 158},
+		{96, 4: 159},
+		{1: 31, 31, 21: 31},
+		{1: 165},
 		// 85
-		{15: 157, 54: 156},
-		{46: 165, 56: 164},
-		{84, 2: 37, 4: 158, 47: 159, 55: 160},
-		{1: 67, 67},
-		{1: 162, 36},
+		{96, 4: 162},
+		{19: 163},
+		{96, 4: 164},
+		{1: 30, 30, 21: 30},
+		{5: 32, 32, 32, 32, 32, 32, 32, 32, 32},
 		// 90
-		{2: 161},
-		{46: 38},
-		{84, 4: 163},
-		{1: 66, 66},
-		{3: 170},
+		{96, 4: 167},
+		{18: 169, 60: 168},
+		{52: 177, 62: 176},
+		{96, 3: 37, 170, 53: 171, 61: 172},
+		{2: 73, 73},
 		// 95
-		{15: 166},
-		{84, 2: 34, 4: 158, 47: 167, 57: 168},
-		{1: 162, 33},
-		{2: 169},
-		{3: 35},
+		{2: 174, 36},
+		{3: 173},
+		{52: 38},
+		{96, 4: 175},
+		{2: 72, 72},
 		// 100
-		{6: 39, 39, 39, 39, 39, 39},
-		{84, 4: 172},
-		{15: 173},
-		{84, 4: 178, 33: 175, 176, 177, 38: 179, 40: 180, 50: 174},
-		{1: 200, 199},
+		{1: 182},
+		{18: 178},
+		{96, 3: 34, 170, 53: 179, 63: 180},
+		{2: 174, 33},
+		{3: 181},
 		// 105
-		{1: 49, 49},
-		{1: 48, 48},
-		{1: 47, 47},
-		{84, 4: 189, 53: 190},
-		{84, 4: 185},
+		{1: 35},
+		{5: 39, 39, 39, 39, 39, 39, 39, 39, 39},
+		{96, 4: 184},
+		{18: 185},
+		{96, 4: 190, 38: 187, 188, 189, 43: 191, 45: 192, 56: 186},
 		// 110
-		{59: 181},
-		{15: 182},
-		{84, 4: 183},
-		{2: 184},
-		{1: 41, 41},
+		{2: 212, 211},
+		{2: 49, 49},
+		{2: 48, 48},
+		{2: 47, 47},
+		{96, 4: 201, 59: 202},
 		// 115
-		{15: 186},
-		{84, 4: 187},
-		{2: 188},
-		{1: 42, 42},
-		{1: 51, 51, 17: 51, 20: 51, 29: 51},
+		{96, 4: 197},
+		{65: 193},
+		{18: 194},
+		{96, 4: 195},
+		{3: 196},
 		// 120
-		{1: 58, 58, 17: 58, 20: 191, 29: 192, 48: 193},
-		{1: 57, 57, 17: 57},
-		{20: 198},
-		{1: 55, 55, 17: 194, 52: 195},
-		{84, 54, 54, 4: 197, 20: 196},
+		{2: 41, 41},
+		{18: 198},
+		{96, 4: 199},
+		{3: 200},
+		{2: 42, 42},
 		// 125
-		{1: 43, 43},
-		{1: 53, 53},
-		{1: 52, 52},
-		{1: 56, 56, 17: 56},
-		{3: 40, 51: 204},
+		{2: 54, 54, 20: 54, 23: 54, 32: 54},
+		{2: 61, 61, 20: 61, 23: 203, 32: 204, 54: 205},
+		{2: 60, 60, 20: 60},
+		{23: 210},
+		{2: 58, 58, 20: 206, 58: 207},
 		// 130
-		{84, 4: 178, 33: 201, 202, 203, 38: 179, 40: 180},
-		{1: 46, 46},
-		{1: 45, 45},
-		{1: 44, 44},
-		{3: 205},
+		{96, 2: 57, 57, 209, 23: 208},
+		{2: 43, 43},
+		{2: 56, 56},
+		{2: 55, 55},
+		{2: 59, 59, 20: 59},
 		// 135
-		{6: 50, 50, 50, 50, 50, 50},
-		{6: 59, 59, 59, 59, 59, 59},
+		{1: 40, 57: 216},
+		{96, 4: 190, 38: 213, 214, 215, 43: 191, 45: 192},
+		{2: 46, 46},
+		{2: 45, 45},
+		{2: 44, 44},
+		// 140
+		{1: 217},
+		{5: 50, 50, 50, 50, 50, 50, 50, 50, 50},
+		{5: 51, 51, 51, 51, 51, 51, 51, 51, 51},
+		{5: 52, 52, 52, 52, 52, 52, 52, 52, 52},
+		{1: 221},
+		// 145
+		{5: 53, 53, 53, 53, 53, 53, 53, 53, 53},
+		{5: 62, 62, 62, 62, 62, 62, 62, 62, 62},
 	}
 )
 
@@ -557,7 +597,7 @@ func yylex1(yylex yyLexer, lval *yySymType) (n int) {
 }
 
 func yyParse(yylex yyLexer) int {
-	const yyError = 73
+	const yyError = 79
 
 	yyEx, _ := yylex.(yyLexerEx)
 	var yyn int
@@ -764,61 +804,73 @@ yynewstate:
 		}
 	case 5:
 		{
-			yyVAL.stmt = Statement(yyS[yypt-0].createStmt)
+			yyVAL.stmt = Statement(yyS[yypt-0].beginStmt)
 		}
 	case 6:
 		{
-			yyVAL.stmt = Statement(yyS[yypt-0].selectStmt)
+			yyVAL.stmt = Statement(yyS[yypt-0].commitStmt)
 		}
 	case 7:
 		{
-			yyVAL.stmt = Statement(yyS[yypt-0].insertStmt)
+			yyVAL.stmt = Statement(yyS[yypt-0].rollbackStmt)
 		}
 	case 8:
 		{
-			yyVAL.stmt = Statement(yyS[yypt-0].updateStmt)
+			yyVAL.stmt = Statement(yyS[yypt-0].createStmt)
 		}
 	case 9:
 		{
-			yyVAL.stmt = Statement(yyS[yypt-0].deleteStmt)
+			yyVAL.stmt = Statement(yyS[yypt-0].selectStmt)
 		}
 	case 10:
 		{
-			yyVAL.stmtList = append(yyVAL.stmtList, yyS[yypt-0].stmt)
+			yyVAL.stmt = Statement(yyS[yypt-0].insertStmt)
 		}
 	case 11:
 		{
-			yyVAL.stmtList = append(yyVAL.stmtList, yyS[yypt-0].stmt)
+			yyVAL.stmt = Statement(yyS[yypt-0].updateStmt)
 		}
 	case 12:
 		{
-			yyVAL.boolean = true
+			yyVAL.stmt = Statement(yyS[yypt-0].deleteStmt)
 		}
 	case 13:
 		{
-			yyVAL.boolean = true
+			yyVAL.stmtList = append(yyVAL.stmtList, yyS[yypt-0].stmt)
 		}
 	case 14:
 		{
-			yyVAL.boolean = false
+			yyVAL.stmtList = append(yyVAL.stmtList, yyS[yypt-0].stmt)
 		}
 	case 15:
 		{
-			yyVAL.str = ""
+			yyVAL.boolean = true
 		}
 	case 16:
 		{
-			yyVAL.str = ""
+			yyVAL.boolean = true
 		}
 	case 17:
 		{
-			yyVAL.str = ""
+			yyVAL.boolean = false
 		}
 	case 18:
 		{
-			yyVAL.str = yyS[yypt-0].str
+			yyVAL.str = ""
 		}
 	case 19:
+		{
+			yyVAL.str = ""
+		}
+	case 20:
+		{
+			yyVAL.str = ""
+		}
+	case 21:
+		{
+			yyVAL.str = yyS[yypt-0].str
+		}
+	case 22:
 		{
 			t, ok := typeMapping[yyS[yypt-0].str]
 			if ok {
@@ -828,7 +880,19 @@ yynewstate:
 				goto ret1
 			}
 		}
-	case 20:
+	case 23:
+		{
+			yyVAL.beginStmt = &BeginStmt{yyS[yypt-1].str}
+		}
+	case 24:
+		{
+			yyVAL.commitStmt = &CommitStmt{}
+		}
+	case 25:
+		{
+			yyVAL.rollbackStmt = &RollbackStmt{}
+		}
+	case 26:
 		{
 			yyVAL.createStmt = &CreateStmt{
 				Name:   yyS[yypt-5].str,
@@ -836,21 +900,21 @@ yynewstate:
 				Option: yyS[yypt-1].createTableOption,
 			}
 		}
-	case 21:
+	case 27:
 		{
 			yyVAL.createTable = &CreateTable{
 				Field: []*CreateField{yyS[yypt-0].createField},
 				Index: []*CreateIndex{},
 			}
 		}
-	case 22:
+	case 28:
 		{
 			yyVAL.createTable = &CreateTable{
 				Field: []*CreateField{},
 				Index: []*CreateIndex{yyS[yypt-0].createIndex},
 			}
 		}
-	case 23:
+	case 29:
 		{
 			yyVAL.createTable = &CreateTable{
 				Pk:    yyS[yypt-0].createIndex,
@@ -858,15 +922,15 @@ yynewstate:
 				Index: []*CreateIndex{},
 			}
 		}
-	case 24:
+	case 30:
 		{
 			yyVAL.createTable.Field = append(yyVAL.createTable.Field, yyS[yypt-0].createField)
 		}
-	case 25:
+	case 31:
 		{
 			yyVAL.createTable.Index = append(yyVAL.createTable.Index, yyS[yypt-0].createIndex)
 		}
-	case 26:
+	case 32:
 		{
 			if yyVAL.createTable.Pk == nil {
 				yyVAL.createTable.Pk = yyS[yypt-0].createIndex
@@ -875,7 +939,7 @@ yynewstate:
 				goto ret1
 			}
 		}
-	case 27:
+	case 33:
 		{
 			yyVAL.createField = &CreateField{
 				Name:       yyS[yypt-3].str,
@@ -884,25 +948,25 @@ yynewstate:
 				DefaultVal: yyS[yypt-0].str,
 			}
 		}
-	case 28:
+	case 34:
 		{
 			yyVAL.createIndex = &CreateIndex{
 				Name:  yyS[yypt-3].str,
 				Field: yyS[yypt-1].str,
 			}
 		}
-	case 29:
+	case 35:
 		{
 			yyVAL.createIndex = &CreateIndex{
 				Pk:    true,
 				Field: yyS[yypt-1].str,
 			}
 		}
-	case 30:
+	case 36:
 		{
 			yyVAL.createTableOption = nil
 		}
-	case 31:
+	case 37:
 		{
 			yyVAL.insertStmt = &InsertStmt{
 				Table: yyS[yypt-3].str,
@@ -910,23 +974,23 @@ yynewstate:
 				Value: yyS[yypt-1].strList,
 			}
 		}
-	case 32:
-		{
-			yyVAL.strList = yyS[yypt-1].strList
-		}
-	case 33:
-		{
-			yyVAL.strList = nil
-		}
-	case 35:
-		{
-			yyVAL.strList = yyS[yypt-1].strList
-		}
-	case 36:
-		{
-			yyVAL.strList = nil
-		}
 	case 38:
+		{
+			yyVAL.strList = yyS[yypt-1].strList
+		}
+	case 39:
+		{
+			yyVAL.strList = nil
+		}
+	case 41:
+		{
+			yyVAL.strList = yyS[yypt-1].strList
+		}
+	case 42:
+		{
+			yyVAL.strList = nil
+		}
+	case 44:
 		{
 			yyVAL.updateStmt = &UpdateStmt{
 				Table: yyS[yypt-4].str,
@@ -934,67 +998,67 @@ yynewstate:
 				Where: yyS[yypt-1].selectWhereList,
 			}
 		}
-	case 39:
+	case 45:
 		{
 			yyVAL.updateValue = map[string]string{
 				yyS[yypt-2].str: yyS[yypt-0].str,
 			}
 		}
-	case 40:
+	case 46:
 		{
 			yyVAL.updateValue[yyS[yypt-2].str] = yyS[yypt-0].str
 		}
-	case 41:
+	case 47:
 		{
 			yyVAL.deleteStmt = &DeleteStmt{
 				Table: yyS[yypt-2].str,
 				Where: yyS[yypt-1].selectWhereList,
 			}
 		}
-	case 42:
-		{
-			yyVAL.boolean = true
-		}
-	case 43:
-		{
-			yyVAL.boolean = true
-		}
-	case 44:
-		{
-			yyVAL.boolean = false
-		}
-	case 45:
-		{
-			yyVAL.compareOperate = EQ
-		}
-	case 46:
-		{
-			yyVAL.compareOperate = LT
-		}
-	case 47:
-		{
-			yyVAL.compareOperate = GT
-		}
 	case 48:
 		{
-			yyVAL.compareOperate = LE
+			yyVAL.boolean = true
 		}
 	case 49:
 		{
-			yyVAL.compareOperate = GE
+			yyVAL.boolean = true
 		}
 	case 50:
 		{
-			yyVAL.compareOperate = NE
+			yyVAL.boolean = false
 		}
 	case 51:
+		{
+			yyVAL.compareOperate = EQ
+		}
+	case 52:
+		{
+			yyVAL.compareOperate = LT
+		}
+	case 53:
+		{
+			yyVAL.compareOperate = GT
+		}
+	case 54:
+		{
+			yyVAL.compareOperate = LE
+		}
+	case 55:
+		{
+			yyVAL.compareOperate = GE
+		}
+	case 56:
+		{
+			yyVAL.compareOperate = NE
+		}
+	case 57:
 		{
 			yyVAL.selectStmt = &SelectStmt{
 				Field: yyS[yypt-2].selectFieldList,
 				Limit: yyS[yypt-1].selectLimit,
 			}
 		}
-	case 52:
+	case 58:
 		{
 			yyVAL.selectStmt = &SelectStmt{
 				Table: yyS[yypt-4].str,
@@ -1004,7 +1068,7 @@ yynewstate:
 				Limit: yyS[yypt-1].selectLimit,
 			}
 		}
-	case 53:
+	case 59:
 		{
 			yyVAL.selectFieldList = []*SelectField{
 				&SelectField{
@@ -1012,21 +1076,21 @@ yynewstate:
 				},
 			}
 		}
-	case 54:
+	case 60:
 		{
 			yyVAL.selectFieldList = append(yyS[yypt-2].selectFieldList, &SelectField{
 				Name: yyS[yypt-0].str,
 			})
 		}
-	case 55:
+	case 61:
 		{
 			yyVAL.selectWhereList = nil
 		}
-	case 56:
+	case 62:
 		{
 			yyVAL.selectWhereList = yyS[yypt-0].selectWhereList
 		}
-	case 57:
+	case 63:
 		{
 			yyVAL.selectWhereList = []SelectWhere{
 				&SelectWhereField{
@@ -1036,7 +1100,7 @@ yynewstate:
 				},
 			}
 		}
-	case 58:
+	case 64:
 		{
 			yyS[yypt-1].compareOperate.Negate()
 			field := &SelectWhereField{
@@ -1068,7 +1132,7 @@ yynewstate:
 				}
 			}
 		}
-	case 59:
+	case 65:
 		{
 			yyVAL.selectWhereList = append(yyVAL.selectWhereList, &SelectWhereField{
 				Field:   yyS[yypt-2].str,
@@ -1076,7 +1140,7 @@ yynewstate:
 				Operate: yyS[yypt-1].compareOperate,
 			})
 		}
-	case 60:
+	case 66:
 		{
 			expr := &SelectWhereExpr{
 				Negation: true,
@@ -1106,19 +1170,19 @@ yynewstate:
 				}
 			}
 		}
-	case 61:
+	case 67:
 		{
 			yyVAL.selectWhereList = append(yyVAL.selectWhereList, yyS[yypt-1].selectWhereList...)
 		}
-	case 62:
+	case 68:
 		{
 			yyVAL.selectOrderList = nil
 		}
-	case 63:
+	case 69:
 		{
 			yyVAL.selectOrderList = yyS[yypt-0].selectOrderList
 		}
-	case 64:
+	case 70:
 		{
 			yyVAL.selectOrderList = []*SelectOrder{
 				&SelectOrder{
@@ -1127,18 +1191,18 @@ yynewstate:
 				},
 			}
 		}
-	case 65:
+	case 71:
 		{
 			yyVAL.selectOrderList = append(yyS[yypt-3].selectOrderList, &SelectOrder{
 				Asc:   yyS[yypt-0].boolean,
 				Field: yyS[yypt-1].str,
 			})
 		}
-	case 66:
+	case 72:
 		{
 			yyVAL.selectLimit = nil
 		}
-	case 67:
+	case 73:
 		{
 			limit, err := strconv.Atoi(yyS[yypt-0].str)
 			if err != nil {
@@ -1149,7 +1213,7 @@ yynewstate:
 				Limit: limit,
 			}
 		}
-	case 68:
+	case 74:
 		{
 			limit, err := strconv.Atoi(yyS[yypt-2].str)
 			if err != nil {
@@ -1166,7 +1230,7 @@ yynewstate:
 				Offset: offset,
 			}
 		}
-	case 69:
+	case 75:
 		{
 			limit, err := strconv.Atoi(yyS[yypt-2].str)
 			if err != nil {

@@ -23,9 +23,9 @@ import (
 // 事务Id(tid) 起始为 1 按顺序递增
 //
 // 每个事务有三种状态
-//         0. active     事务正在进行中
-//         1. committed  事务已经提交
-//         2. aborted    事务已经终止
+//         0. active        事务正在进行中
+//         1. committed     事务已经提交
+//         2. rolledBack    事务已经回滚
 
 var (
 	ErrBadIdFile = errors.New("bad Id File")
@@ -37,9 +37,9 @@ const (
 	Super  uint64 = 0
 	TidLen        = 8
 
-	Active    byte = 0 // 事务正在进行中
-	Committed byte = 1 // 事务已经提交
-	Aborted   byte = 2 // 事务已经终止
+	Active     byte = 0 // 事务正在进行中
+	Committed  byte = 1 // 事务已经提交
+	RolledBack byte = 2 // 事务已经回滚
 
 	fieldLen  = 1      // 事务状态字段长度
 	headerLen = TidLen // 文件头长度
@@ -48,13 +48,13 @@ const (
 type Manage interface {
 	Close() // 关闭事务管理器
 
-	Begin() uint64     // 开启一个事务
-	Abort(tid uint64)  // 取消一个事务
-	Commit(tid uint64) // 提交一个事务
+	Begin() uint64       // 开启一个事务
+	Commit(tid uint64)   // 提交一个事务
+	Rollback(tid uint64) // 回滚一个事务
 
-	IsActive(tid uint64) bool    // 判断事务是否处于进行中
-	IsCommitted(tid uint64) bool // 判断事务是否已经提交
-	IsAborted(tid uint64) bool   // 判断事务是否已经取消
+	IsActive(tid uint64) bool     // 判断事务是否处于进行中
+	IsCommitted(tid uint64) bool  // 判断事务是否已经提交
+	IsRolledBack(tid uint64) bool // 判断事务是否已经取消
 }
 
 type txManager struct {
@@ -197,12 +197,12 @@ func (m *txManager) Begin() uint64 {
 	return tid
 }
 
-func (m *txManager) Abort(tid uint64) {
-	m.update(tid, Aborted)
-}
-
 func (m *txManager) Commit(tid uint64) {
 	m.update(tid, Committed)
+}
+
+func (m *txManager) Rollback(tid uint64) {
+	m.update(tid, RolledBack)
 }
 
 func (m *txManager) IsActive(tid uint64) bool {
@@ -219,9 +219,9 @@ func (m *txManager) IsCommitted(tid uint64) bool {
 	return m.state(tid) == Committed
 }
 
-func (m *txManager) IsAborted(tid uint64) bool {
+func (m *txManager) IsRolledBack(tid uint64) bool {
 	if tid == Super {
 		return false
 	}
-	return m.state(tid) == Aborted
+	return m.state(tid) == RolledBack
 }

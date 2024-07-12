@@ -34,8 +34,8 @@ func TestTxnManager_State(t *testing.T) {
 	tid2 := tm.Begin()
 	t.Logf("%d is active %t", tid2, tm.IsActive(tid2))
 
-	tm.Abort(tid2)
-	t.Logf("%d is abord %t", tid2, tm.IsAborted(tid2))
+	tm.Rollback(tid2)
+	t.Logf("%d is abord %t", tid2, tm.IsRolledBack(tid2))
 
 	tm.Close()
 }
@@ -78,7 +78,7 @@ func TestTxnManager_StageAsync(t *testing.T) {
 					case 1:
 						tm.Commit(tid)
 					case 2:
-						tm.Abort(tid)
+						tm.Rollback(tid)
 					}
 					temp[tid] = byte(state) // 更新事务状态
 					isBegin = false
@@ -97,7 +97,7 @@ func TestTxnManager_StageAsync(t *testing.T) {
 					case 1:
 						ok = tm.IsCommitted(tid)
 					case 2:
-						ok = tm.IsAborted(tid)
+						ok = tm.IsRolledBack(tid)
 					}
 					if ok {
 						t.Log("check ok")

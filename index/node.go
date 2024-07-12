@@ -179,7 +179,7 @@ func (n *node) split() (uint64, uint64, error) {
 	writeInitData(balanceNum, buf, n.data)
 
 	// 插入新节点
-	newChild, err := n.tree.DataManage.Insert(tx.Super, buf)
+	newChild, err := n.tree.DataManage.Write(tx.Super, buf)
 	if err != nil {
 		return 0, 0, err
 	}

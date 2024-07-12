@@ -46,7 +46,7 @@ func ParsePageFSO(p Page) uint16 {
 	return readPageOffset(p.Data())
 }
 
-func InsertPageData(p Page, data []byte) uint16 {
+func WritePageData(p Page, data []byte) uint16 {
 	p.SetDirty(true)
 	off := readPageOffset(p.Data())
 	copy(p.Data()[off:], data)

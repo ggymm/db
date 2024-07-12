@@ -43,13 +43,13 @@ func NewIndex(dm data.Manage, opt *db.Option) (Index, error) {
 		bootId = opt.RootId
 	} else {
 		root := initRoot()
-		rootId, err = dm.Insert(tx.Super, root)
+		rootId, err = dm.Write(tx.Super, root)
 		if err != nil {
 			return nil, err
 		}
 
 		raw := bin.Uint64Raw(rootId)
-		bootId, err = dm.Insert(tx.Super, raw)
+		bootId, err = dm.Write(tx.Super, raw)
 		if err != nil {
 			return nil, err
 		}
@@ -81,7 +81,7 @@ func (t *tree) updateRootId(key, prev, next uint64) error {
 
 	// 插入根节点
 	root := createRoot(key, prev, next)
-	rootId, err := t.DataManage.Insert(tx.Super, root)
+	rootId, err := t.DataManage.Write(tx.Super, root)
 	if err != nil {
 		return err
 	}

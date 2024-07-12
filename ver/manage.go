@@ -22,11 +22,11 @@ var (
 
 type Manage interface {
 	Begin(level int) uint64
-	Abort(tid uint64)
 	Commit(tid uint64) error
+	Rollback(tid uint64)
 
 	Read(tid uint64, key uint64) ([]byte, bool, error)
-	Insert(tid uint64, data []byte) (uint64, error)
+	Write(tid uint64, data []byte) (uint64, error)
 	Delete(tid uint64, key uint64) (bool, error)
 }
 
@@ -60,11 +60,11 @@ func NewManage(tm tx.Manage, dm data.Manage) Manage {
 	return vm
 }
 
-// 撤销事务
+// 回滚事务
 //
-// 手动撤销：
-// 自动撤销：
-func (vm *verManage) abort(tid uint64, manual bool) {
+// 手动回滚：
+// 自动回滚：
+func (vm *verManage) rollback(tid uint64, manual bool) {
 	vm.mu.Lock()
 	t := vm.txCache[tid]
 	if manual {
@@ -72,12 +72,12 @@ func (vm *verManage) abort(tid uint64, manual bool) {
 	}
 	vm.mu.Unlock()
 
-	if t.AutoAborted {
+	if t.AutoRollback {
 		return
 	}
 
 	vm.txLock.Remove(tid)
-	vm.txManage.Abort(tid)
+	vm.txManage.Rollback(tid)
 }
 
 // obtainForCache 需要支持并发
@@ -114,11 +114,6 @@ func (vm *verManage) Begin(level int) uint64 {
 	return tid
 }
 
-// Abort 取消一个事务
-func (vm *verManage) Abort(tid uint64) {
-	vm.abort(tid, true)
-}
-
 // Commit 提交一个事务
 func (vm *verManage) Commit(tid uint64) error {
 	vm.mu.Lock()
@@ -138,7 +133,38 @@ func (vm *verManage) Commit(tid uint64) error {
 	return nil
 }
 
-func (vm *verManage) Insert(tid uint64, data []byte) (uint64, error) {
+// Rollback 回滚一个事务
+func (vm *verManage) Rollback(tid uint64) {
+	vm.rollback(tid, true)
+}
+
+func (vm *verManage) Read(tid uint64, key uint64) ([]byte, bool, error) {
+	vm.mu.Lock()
+	t := vm.txCache[tid]
+	vm.mu.Unlock()
+
+	if t.Err != nil {
+		return nil, false, t.Err
+	}
+
+	// 读取数据
+	val, err := vm.cache.Obtain(key)
+	if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+	ent := val.(*entry)
+	defer vm.cache.Release(tid) // 释放缓存
+
+	if !t.IsVisible(vm.txManage, ent) {
+		return nil, false, nil
+	}
+	return ent.Data(), true, nil
+}
+
+func (vm *verManage) Write(tid uint64, data []byte) (uint64, error) {
 	vm.mu.Lock()
 	t := vm.txCache[tid]
 	vm.mu.Unlock()
@@ -151,7 +177,7 @@ func (vm *verManage) Insert(tid uint64, data []byte) (uint64, error) {
 	ent := make([]byte, offData+len(data))
 	bin.PutUint64(ent[offMin:], tid)
 	copy(ent[offData:], data)
-	return vm.dataManage.Insert(tid, ent)
+	return vm.dataManage.Write(tid, ent)
 }
 
 func (vm *verManage) Delete(tid uint64, key uint64) (bool, error) {
@@ -182,9 +208,9 @@ func (vm *verManage) Delete(tid uint64, key uint64) (bool, error) {
 	// 添加锁并判断是否死锁
 	ok, ch := vm.txLock.Add(tid, key)
 	if !ok {
-		vm.abort(tid, false) // 自动取消
+		vm.rollback(tid, false) // 自动回滚
 		t.Err = ErrCannotHandle
-		t.AutoAborted = true
+		t.AutoRollback = true
 		return false, t.Err
 	}
 	<-ch // 等待锁释放
@@ -196,39 +222,13 @@ func (vm *verManage) Delete(tid uint64, key uint64) (bool, error) {
 
 	// 判断是否发生了版本跳跃
 	if t.IsSkip(vm.txManage, ent) {
-		vm.abort(tid, false) // 自动取消
+		vm.rollback(tid, false) // 自动回滚
 		t.Err = ErrCannotHandle
-		t.AutoAborted = true
+		t.AutoRollback = true
 		return false, t.Err
 	}
 
 	// 更新 max
 	ent.SetMax(tid) // 执行删除操作
 	return true, nil
-}
-
-func (vm *verManage) Read(tid uint64, key uint64) ([]byte, bool, error) {
-	vm.mu.Lock()
-	t := vm.txCache[tid]
-	vm.mu.Unlock()
-
-	if t.Err != nil {
-		return nil, false, t.Err
-	}
-
-	// 读取数据
-	val, err := vm.cache.Obtain(key)
-	if err != nil {
-		if errors.Is(err, ErrNotFound) {
-			return nil, false, nil
-		}
-		return nil, false, err
-	}
-	ent := val.(*entry)
-	defer vm.cache.Release(tid) // 释放缓存
-
-	if !t.IsVisible(vm.txManage, ent) {
-		return nil, false, nil
-	}
-	return ent.Data(), true, nil
 }

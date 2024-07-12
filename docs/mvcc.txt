@@ -1,0 +1,18 @@
+参考文章：
+https://juejin.cn/post/6844903808376504327
+https://www.cnblogs.com/jelly12345/p/14889331.html
+https://www.cnblogs.com/bytesfly/p/mysql-transaction-innodb-mvcc.html
+
+
+事务被设计成自动提交的
+这意味着如果你不显式地开始一个事务，每个查询都将被当做一个事务来自动创建并提交。
+
+事务的隔离级别
+读未提交（Read Uncommitted）
+读已提交（Read Committed）
+可重复读（Repeatable Read）
+串行化（Serializable）
+
+当前数据库设计支持的是
+读已提交（Read Committed）
+可重复读（Repeatable Read）

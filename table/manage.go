@@ -22,8 +22,8 @@ var (
 
 type Manage interface {
 	Begin(level int) uint64
-	Abort(txId uint64)
 	Commit(txId uint64) error
+	Rollback(txId uint64)
 
 	Create(txId uint64, stmt *sql.CreateStmt) error
 	Insert(txId uint64, stmt *sql.InsertStmt) error
@@ -40,20 +40,21 @@ type Manage interface {
 }
 
 type tableManage struct {
+	mu     sync.Mutex
+	tables cmap.CMap[string, *table]
+
 	boot       boot.Boot
 	verManage  ver.Manage
 	dataManage data.Manage
-
-	lock   sync.Mutex
-	tables cmap.CMap[string, *table]
 }
 
 func NewManage(boot boot.Boot, verManage ver.Manage, dataManage data.Manage) Manage {
 	tbm := &tableManage{
+		tables: cmap.New[*table](),
+
 		boot:       boot,
 		verManage:  verManage,
 		dataManage: dataManage,
-		tables:     cmap.New[*table](),
 	}
 
 	id := tbm.readTableId()
@@ -72,16 +73,15 @@ func (tbm *tableManage) readTableId() uint64 {
 }
 
 func (tbm *tableManage) updateTableId(id uint64) {
-	raw := bin.Uint64Raw(id)
-	tbm.boot.Update(raw)
+	tbm.boot.Update(bin.Uint64Raw(id))
 }
 
 func (tbm *tableManage) Begin(level int) uint64 {
 	return tbm.verManage.Begin(level)
 }
 
-func (tbm *tableManage) Abort(txId uint64) {
-	tbm.verManage.Abort(txId)
+func (tbm *tableManage) Rollback(txId uint64) {
+	tbm.verManage.Rollback(txId)
 }
 
 func (tbm *tableManage) Commit(txId uint64) error {
@@ -89,8 +89,8 @@ func (tbm *tableManage) Commit(txId uint64) error {
 }
 
 func (tbm *tableManage) Create(txId uint64, stmt *sql.CreateStmt) error {
-	tbm.lock.Lock()
-	defer tbm.lock.Unlock()
+	tbm.mu.Lock()
+	defer tbm.mu.Unlock()
 
 	if exist := tbm.tables.Has(stmt.Name); exist {
 		return nil
@@ -154,7 +154,7 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 	// 写入数据
 	var id uint64
 	// 写入数据
-	id, err = tbm.verManage.Insert(txId, raw)
+	id, err = tbm.verManage.Write(txId, raw)
 	if err != nil {
 		return err
 	}

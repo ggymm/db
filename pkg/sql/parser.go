@@ -1,6 +1,7 @@
 package sql
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -18,6 +19,44 @@ func init() {
 	for _, v := range singleCharToken {
 		mapping[v] = int(int8(v[0]))
 	}
+}
+
+func ParseSQL(sql string) (Statement, error) {
+	lex := &Lexer{
+		sql: sql,
+	}
+
+	r := yyParse(lex)
+	if r != 0 {
+		return nil, fmt.Errorf("parse sql error %v", lex.errs)
+	}
+
+	if len(lex.stmts) == 0 {
+		return nil, fmt.Errorf("parse sql error")
+	}
+	return lex.stmts[0], nil
+}
+
+func TrimQuote(str string) (string, error) {
+	end := len(str) - 1
+	switch str[0] {
+	case '`':
+		if str[end] != '`' {
+			return "", fmt.Errorf("%s missing back quote", str)
+		}
+		return str[1:end], nil
+	case '\'':
+		if str[end] != '\'' {
+			return "", fmt.Errorf("%s missing single quote", str)
+		}
+		return str[1:end], nil
+	case '"':
+		if str[end] != '"' {
+			return "", fmt.Errorf("%s missing double quote", str)
+		}
+		return str[1:end], nil
+	}
+	return str, nil
 }
 
 type Lexer struct {

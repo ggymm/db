@@ -56,7 +56,7 @@ func TestDataManage_DataHandle(t *testing.T) {
 
 	tid := tm.Begin()
 	defer tm.Commit(tid)
-	id, err := dm.Insert(tid, data)
+	id, err := dm.Write(tid, data)
 	if err != nil {
 		t.Fatalf("err %v", err)
 		return
@@ -120,13 +120,13 @@ func TestDataManage_DataHandleAsync(t *testing.T) {
 		defer waitGroup.Done()
 		for i := 0; i < work; i++ {
 			op := rand.Int() % 100
-			if op < 50 { // Insert
+			if op < 50 { // Write
 				data := randB(dataLen)
-				id0, e := dm0.Insert(tid, data)
+				id0, e := dm0.Write(tid, data)
 				if e != nil {
 					continue
 				}
-				id1, e := dm1.Insert(tid, data)
+				id1, e := dm1.Write(tid, data)
 				if e != nil {
 					continue
 				}

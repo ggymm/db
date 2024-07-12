@@ -14,10 +14,10 @@ func (m *mockManager) Begin() uint64 {
 	return Super
 }
 
-func (m *mockManager) Abort(_ uint64) {
+func (m *mockManager) Commit(_ uint64) {
 }
 
-func (m *mockManager) Commit(_ uint64) {
+func (m *mockManager) Rollback(_ uint64) {
 }
 
 func (m *mockManager) IsActive(_ uint64) bool {
@@ -28,6 +28,6 @@ func (m *mockManager) IsCommitted(_ uint64) bool {
 	return false
 }
 
-func (m *mockManager) IsAborted(_ uint64) bool {
+func (m *mockManager) IsRolledBack(_ uint64) bool {
 	return false
 }

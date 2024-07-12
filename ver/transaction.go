@@ -13,9 +13,9 @@ import (
 type transaction struct {
 	Err error
 
-	Id          uint64
-	Level       int
-	AutoAborted bool
+	Id           uint64
+	Level        int
+	AutoRollback bool
 
 	snapshot map[uint64]bool // 当前事务的快照数据
 }

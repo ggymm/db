@@ -17,6 +17,10 @@ import (
 	stmt Statement
 	stmtList []Statement
 
+	beginStmt *BeginStmt
+	commitStmt *CommitStmt
+	rollbackStmt *RollbackStmt
+
 	createStmt *CreateStmt
 	createTable *CreateTable
 	createField *CreateField
@@ -38,6 +42,10 @@ import (
 }
 
 %token <str>
+	// 关键字（事务）
+	BEGIN "BEGIN"
+	COMMIT "COMMIT"
+	ROLLBACK "ROLLBACK"
 	// 关键字（创建表）
 	CREATE "CREATE"
 	TABLE "TABLE"
@@ -86,6 +94,10 @@ import (
 %type <str> DefaultVal
 %type <boolean> AllowNull
 %type <fieldType> FieldType
+
+%type <beginStmt> BeginStmt
+%type <commitStmt> CommitStmt
+%type <rollbackStmt> RollbackStmt
 
 %type <createStmt> CreateStmt
 %type <createTable> CreateTable
@@ -150,7 +162,19 @@ VaribleList:
 	}
 
 Stmt:
-	CreateStmt
+	BeginStmt
+	{
+		$$ = Statement($1)
+	}
+	| CommitStmt
+	{
+		$$ = Statement($1)
+	}
+	| RollbackStmt
+	{
+		$$ = Statement($1)
+	}
+	| CreateStmt
 	{
 		$$ = Statement($1)
 	}
@@ -223,6 +247,24 @@ FieldType:
 			goto ret1
 		}
 	}
+
+BeginStmt:
+    "BEGIN" Expr ';'
+    {
+        $$ = &BeginStmt{ $2 }
+    }
+
+CommitStmt:
+    "COMMIT" ';'
+    {
+        $$ = &CommitStmt{}
+    }
+
+RollbackStmt:
+    "ROLLBACK" ';'
+    {
+        $$ = &RollbackStmt{}
+    }
 
 CreateStmt:
 	"CREATE" "TABLE" Expr '(' CreateTable ')' CreateTableOption ';'

@@ -30,7 +30,7 @@ func (m *mockManage) Read(id uint64) (Item, bool, error) {
 	return m.cache[id], true, nil
 }
 
-func (m *mockManage) Insert(_ uint64, data []byte) (uint64, error) {
+func (m *mockManage) Write(_ uint64, data []byte) (uint64, error) {
 	m.lock.Lock()
 	defer m.lock.Unlock()
 	var id uint64

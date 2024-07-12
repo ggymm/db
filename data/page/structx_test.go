@@ -14,7 +14,7 @@ func Test_PageX(t *testing.T) {
 
 	// 模拟插入数据
 	data := []byte("hello world")
-	InsertPageData(p, data)
+	WritePageData(p, data)
 	t.Logf("%+v", p)
 	t.Logf("data len %d", len(data))
 	t.Logf("current fso %d", ParsePageFSO(p))

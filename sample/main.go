@@ -20,9 +20,8 @@ import (
 )
 
 var (
-	tm tx.Manage
-	dm data.Manage
-
+	tm  tx.Manage
+	dm  data.Manage
 	tbm table.Manage
 )
 
@@ -62,39 +61,19 @@ func init() {
 	tm = tx.NewManager(opt)
 	dm = data.NewManage(tm, opt)
 	tbm = table.NewManage(boot.New(opt), ver.NewManage(tm, dm), dm)
-
-	// 初始化表
-	if !opt.Open {
-		stmt, err := sql.ParseSQL(sampleStruct)
-		if err != nil {
-			panic(err)
-		}
-		err = tbm.Create(tx.Super, stmt.(*sql.CreateStmt))
-		if err != nil {
-			panic(err)
-		}
-
-		// 初始化数据
-		stmt, err = sql.ParseSQL(sampleData)
-		if err != nil {
-			panic(err)
-		}
-		txId := tbm.Begin(0)
-		err = tbm.Insert(txId, stmt.(*sql.InsertStmt))
-		if err != nil {
-			panic(err)
-		}
-		err = tbm.Commit(txId)
-		if err != nil {
-			panic(err)
-		}
-	}
 }
 
 // 同步数据到磁盘
 func exit() {
 	tm.Close()
 	dm.Close()
+
+	// 退出
+	os.Exit(0)
+}
+
+func output(s ...string) {
+	fmt.Println(s)
 }
 
 func main() {
@@ -108,45 +87,29 @@ func main() {
 	)
 
 	for {
-		fmt.Print("db> ")
+		output("db> ")
 		in, err = reader.ReadString(';')
 		if err != nil {
-			println("Error reading input:", err)
+			output("Error reading input:", err.Error())
 			continue
 		}
 
 		in = strings.TrimSpace(in)
 		if in == "exit;" {
 			exit()
-			break
-		}
-		if in == "test;" {
-			// 测试
-			stmt, err = sql.ParseSQL("select * from user;")
-			txId := tbm.Begin(0)
-			entries, err := tbm.Select(txId, stmt.(*sql.SelectStmt))
-			if err != nil {
-				panic(err)
-			}
-			err = tbm.Commit(txId)
-			if err != nil {
-				panic(err)
-			}
-			println(tbm.ShowResult(stmt.TableName(), entries))
-			continue
 		}
 
 		// 解析 sql 语句
 		stmt, err = sql.ParseSQL(in)
 		if err != nil {
-			println("Error parsing sql:", err)
+			output("Error parsing input sql:", err.Error())
 			continue
 		}
 
 		switch stmt.StmtType() {
 		case sql.Select:
 		default:
-			println("Error Unsupported statement type:", stmt.StmtType())
+			println("Error Unsupported stmt type:", stmt.StmtType())
 		}
 	}
 }

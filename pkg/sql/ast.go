@@ -9,6 +9,10 @@ type Type int
 
 const (
 	_ Type = iota
+	Begin
+	Commit
+	Rollback
+
 	Create
 	Select
 	Insert
@@ -74,6 +78,40 @@ func (o *CompareOperate) Negate() {
 type Statement interface {
 	StmtType() Type
 	TableName() string
+}
+
+type BeginStmt struct {
+	Level string
+}
+
+func (*BeginStmt) StmtType() Type {
+	return Begin
+}
+
+func (*BeginStmt) TableName() string {
+	return ""
+}
+
+type CommitStmt struct {
+}
+
+func (*CommitStmt) StmtType() Type {
+	return Commit
+}
+
+func (*CommitStmt) TableName() string {
+	return ""
+}
+
+type RollbackStmt struct {
+}
+
+func (*RollbackStmt) StmtType() Type {
+	return Rollback
+}
+
+func (*RollbackStmt) TableName() string {
+	return ""
 }
 
 type CreateStmt struct {

@@ -126,7 +126,7 @@ func (t *table) persist(txId uint64) (err error) {
 	}
 
 	// 持久化
-	t.itemId, err = t.tbm.VerManage().Insert(txId, data)
+	t.itemId, err = t.tbm.VerManage().Write(txId, data)
 	return
 }
 
@@ -284,7 +284,7 @@ func (f *field) persist(txId uint64) (err error) {
 	data = append(data, encodeUint64(f.fieldIndex)...)
 
 	// 保存到磁盘
-	f.itemId, err = f.tbm.VerManage().Insert(txId, data)
+	f.itemId, err = f.tbm.VerManage().Write(txId, data)
 	return
 }
 

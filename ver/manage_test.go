@@ -19,9 +19,9 @@ func TestVerManage_Handle(t *testing.T) {
 	vm := NewManage(tm, dm)
 	txId := vm.Begin(0)
 
-	// insert
+	// write
 	src := []byte("test")
-	dataId, err := vm.Insert(txId, src)
+	dataId, err := vm.Write(txId, src)
 	if err != nil {
 		t.Fatalf("insert error: %s", err)
 	}
