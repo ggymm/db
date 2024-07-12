@@ -9,11 +9,11 @@ import (
 	"sync"
 	"testing"
 
-	"db"
-	"db/data"
-	"db/data/page"
-	"db/pkg/file"
-	"db/tx"
+	"github.com/ggymm/db"
+	"github.com/ggymm/db/data"
+	"github.com/ggymm/db/data/page"
+	"github.com/ggymm/db/pkg/file"
+	"github.com/ggymm/db/tx"
 )
 
 func TestNewIndex(t *testing.T) {

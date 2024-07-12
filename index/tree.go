@@ -3,10 +3,10 @@ package index
 import (
 	"sync"
 
-	"db"
-	"db/data"
-	"db/pkg/bin"
-	"db/tx"
+	"github.com/ggymm/db"
+	"github.com/ggymm/db/data"
+	"github.com/ggymm/db/pkg/bin"
+	"github.com/ggymm/db/tx"
 )
 
 type Index interface {

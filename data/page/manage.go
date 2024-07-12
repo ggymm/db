@@ -7,9 +7,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"db"
-	"db/pkg/cache"
-	"db/pkg/file"
+	"github.com/ggymm/db"
+	"github.com/ggymm/db/pkg/cache"
+	"github.com/ggymm/db/pkg/file"
 )
 
 var ErrMemoryNotEnough = errors.New("memory not enough")

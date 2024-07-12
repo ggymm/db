@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"sync"
 
-	"db"
-	"db/pkg/bin"
-	"db/pkg/file"
+	"github.com/ggymm/db"
+	"github.com/ggymm/db/pkg/bin"
+	"github.com/ggymm/db/pkg/file"
 )
 
 // 事务管理器

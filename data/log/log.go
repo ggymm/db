@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"sync"
 
-	"db"
-	"db/pkg/bin"
-	"db/pkg/file"
+	"github.com/ggymm/db"
+	"github.com/ggymm/db/pkg/bin"
+	"github.com/ggymm/db/pkg/file"
 )
 
 // 日志文件的读写
@@ -31,7 +31,7 @@ import (
 var ErrBadLogFile = errors.New("bad log file")
 
 const (
-	name = "DB.LOG"
+	name = "github.com/ggymm/db.LOG"
 
 	seed     = 12321
 	checkLen = 4

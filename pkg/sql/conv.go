@@ -4,7 +4,7 @@ import (
 	"slices"
 	"strconv"
 
-	"db/pkg/bin"
+	"github.com/ggymm/db/pkg/bin"
 )
 
 const (

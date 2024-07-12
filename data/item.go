@@ -3,8 +3,8 @@ package data
 import (
 	"sync"
 
-	"db/data/page"
-	"db/pkg/bin"
+	"github.com/ggymm/db/data/page"
+	"github.com/ggymm/db/pkg/bin"
 )
 
 // 数据对象（保存在 page 中的数据对象）

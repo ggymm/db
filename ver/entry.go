@@ -1,9 +1,9 @@
 package ver
 
 import (
-	"db/data"
-	"db/pkg/bin"
-	"db/tx"
+	"github.com/ggymm/db/data"
+	"github.com/ggymm/db/pkg/bin"
+	"github.com/ggymm/db/tx"
 )
 
 // 数据记录（带版本）

@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"db"
-	"db/tx"
+	"github.com/ggymm/db"
+	"github.com/ggymm/db/tx"
 )
 
 func newOpt() *db.Option {

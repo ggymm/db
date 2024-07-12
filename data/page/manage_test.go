@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"db"
+	"github.com/ggymm/db"
 )
 
 func TestNewPage(t *testing.T) {

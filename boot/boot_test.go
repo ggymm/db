@@ -3,7 +3,7 @@ package boot
 import (
 	"testing"
 
-	"db"
+	"github.com/ggymm/db"
 )
 
 func TestNew(t *testing.T) {

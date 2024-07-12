@@ -3,7 +3,7 @@ package log
 import (
 	"testing"
 
-	"db"
+	"github.com/ggymm/db"
 )
 
 func TestNewLog(t *testing.T) {

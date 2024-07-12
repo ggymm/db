@@ -1,13 +1,13 @@
 package boot
 
 import (
-	"db"
 	"io"
 	"os"
 	"path/filepath"
 
-	"db/pkg/bin"
-	"db/pkg/file"
+	"github.com/ggymm/db"
+	"github.com/ggymm/db/pkg/bin"
+	"github.com/ggymm/db/pkg/file"
 )
 
 const (

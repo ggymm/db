@@ -3,7 +3,7 @@ package data
 import (
 	"sync"
 
-	"db/data/page"
+	"github.com/ggymm/db/data/page"
 )
 
 type mockItem struct {

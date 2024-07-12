@@ -6,13 +6,13 @@ import (
 	"math"
 	"sync"
 
-	"db/boot"
-	"db/data"
-	"db/pkg/bin"
-	"db/pkg/cmap"
-	"db/pkg/sql"
-	"db/pkg/view"
-	"db/ver"
+	"github.com/ggymm/db/boot"
+	"github.com/ggymm/db/data"
+	"github.com/ggymm/db/pkg/bin"
+	"github.com/ggymm/db/pkg/cmap"
+	"github.com/ggymm/db/pkg/sql"
+	"github.com/ggymm/db/pkg/view"
+	"github.com/ggymm/db/ver"
 )
 
 var (

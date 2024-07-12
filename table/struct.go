@@ -3,10 +3,10 @@ package table
 import (
 	"slices"
 
-	"db"
-	"db/index"
-	"db/pkg/sql"
-	"db/tx"
+	"github.com/ggymm/db"
+	"github.com/ggymm/db/index"
+	"github.com/ggymm/db/pkg/sql"
+	"github.com/ggymm/db/tx"
 )
 
 type entry map[string]any

@@ -1,7 +1,7 @@
 package page
 
 import (
-	"db/pkg/bin"
+	"github.com/ggymm/db/pkg/bin"
 )
 
 // 普通页

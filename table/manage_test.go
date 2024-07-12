@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	"db"
-	"db/boot"
-	"db/data"
-	"db/pkg/sql"
-	"db/test"
-	"db/tx"
-	"db/ver"
+	"github.com/ggymm/db"
+	"github.com/ggymm/db/boot"
+	"github.com/ggymm/db/data"
+	"github.com/ggymm/db/pkg/sql"
+	"github.com/ggymm/db/test"
+	"github.com/ggymm/db/tx"
+	"github.com/ggymm/db/ver"
 )
 
 func openTbm() Manage {

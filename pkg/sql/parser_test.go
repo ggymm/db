@@ -2,10 +2,11 @@ package sql
 
 import (
 	_ "embed"
+
 	"encoding/json"
 	"testing"
 
-	"db/test"
+	"github.com/ggymm/db/test"
 )
 
 func TestParseSQL_Create(t *testing.T) {

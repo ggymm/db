@@ -3,9 +3,9 @@ package index
 import (
 	"math"
 
-	"db/data"
-	"db/pkg/bin"
-	"db/tx"
+	"github.com/ggymm/db/data"
+	"github.com/ggymm/db/pkg/bin"
+	"github.com/ggymm/db/tx"
 )
 
 // node

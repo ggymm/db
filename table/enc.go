@@ -1,7 +1,7 @@
 package table
 
 import (
-	"db/pkg/bin"
+	"github.com/ggymm/db/pkg/bin"
 )
 
 func encode(value any) []byte {

@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"sync"
 
-	"db/tx"
+	"github.com/ggymm/db/tx"
 )
 
 type mockManage struct {

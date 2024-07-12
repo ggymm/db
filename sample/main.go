@@ -9,14 +9,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"db"
-	"db/boot"
-	"db/data"
-	"db/pkg/file"
-	"db/pkg/sql"
-	"db/table"
-	"db/tx"
-	"db/ver"
+	"github.com/ggymm/db"
+	"github.com/ggymm/db/boot"
+	"github.com/ggymm/db/data"
+	"github.com/ggymm/db/pkg/file"
+	"github.com/ggymm/db/pkg/sql"
+	"github.com/ggymm/db/table"
+	"github.com/ggymm/db/tx"
+	"github.com/ggymm/db/ver"
 )
 
 var (

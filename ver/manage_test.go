@@ -3,9 +3,9 @@ package ver
 import (
 	"testing"
 
-	"db"
-	"db/data"
-	"db/tx"
+	"github.com/ggymm/db"
+	"github.com/ggymm/db/data"
+	"github.com/ggymm/db/tx"
 )
 
 func TestVerManage_Handle(t *testing.T) {

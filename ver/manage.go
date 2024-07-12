@@ -4,11 +4,11 @@ import (
 	"errors"
 	"sync"
 
-	"db/data"
-	"db/pkg/bin"
-	"db/pkg/cache"
-	"db/tx"
-	"db/ver/lock"
+	"github.com/ggymm/db/data"
+	"github.com/ggymm/db/pkg/bin"
+	"github.com/ggymm/db/pkg/cache"
+	"github.com/ggymm/db/tx"
+	"github.com/ggymm/db/ver/lock"
 )
 
 // 版本管理器

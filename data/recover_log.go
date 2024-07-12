@@ -1,9 +1,9 @@
 package data
 
 import (
-	"db/data/page"
-	"db/pkg/bin"
-	"db/tx"
+	"github.com/ggymm/db/data/page"
+	"github.com/ggymm/db/pkg/bin"
+	"github.com/ggymm/db/tx"
 )
 
 // 数据日志

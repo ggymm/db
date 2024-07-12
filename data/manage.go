@@ -3,11 +3,11 @@ package data
 import (
 	"errors"
 
-	"db"
-	"db/data/log"
-	"db/data/page"
-	"db/pkg/cache"
-	"db/tx"
+	"github.com/ggymm/db"
+	"github.com/ggymm/db/data/log"
+	"github.com/ggymm/db/data/page"
+	"github.com/ggymm/db/pkg/cache"
+	"github.com/ggymm/db/tx"
 )
 
 // 数据管理器（磁盘管理器）

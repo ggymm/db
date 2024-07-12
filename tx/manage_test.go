@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"db"
+	"github.com/ggymm/db"
 )
 
 func TestNewTxnManager(t *testing.T) {

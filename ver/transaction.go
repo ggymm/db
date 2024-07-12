@@ -1,7 +1,7 @@
 package ver
 
 import (
-	"db/tx"
+	"github.com/ggymm/db/tx"
 )
 
 // 事务缓存
