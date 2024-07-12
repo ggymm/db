@@ -28,7 +28,7 @@ func writePageOffset(data []byte, off uint16) {
 	bin.PutUint16(data[0:headLen], off)
 }
 
-func InitPageX() []byte {
+func NewPageX() []byte {
 	data := make([]byte, Size)
 	writePageOffset(data, headLen) // 初始化写入 FSO
 	return data

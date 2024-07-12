@@ -119,7 +119,7 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 	var (
 		err error
 
-		maps []map[string]string
+		row map[string]string
 	)
 
 	// 获取表对象
@@ -129,55 +129,49 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 	}
 
 	// 格式化插入数据
-	maps, err = stmt.Format()
+	row, err = stmt.FormatData()
 	if err != nil {
 		return err
 	}
 
-	// 构建插入的数据条目
-	raws := make([][]byte, 0)
-	for _, row := range maps {
-		raw := make([]byte, 0)
-		for _, f := range t.tableFields {
-			// 获取字段值
-			val, exist := row[f.fieldName]
-			if !exist {
-				if len(f.defaultVal) != 0 {
-					val = f.defaultVal
-				} else if !f.allowNull {
-					return fmt.Errorf("field %s is not allowed to be null", f.fieldName)
-				}
+	// 构建数据
+	raw := make([]byte, 0)
+	for _, f := range t.tableFields {
+		// 获取字段值
+		val, exist := row[f.fieldName]
+		if !exist {
+			if len(f.defaultVal) != 0 {
+				val = f.defaultVal
+			} else if !f.allowNull {
+				return fmt.Errorf("field %s is not allowed to be null", f.fieldName)
 			}
-
-			// 获取字段二进制值
-			raw = append(raw, sql.FieldRaw(f.fieldType, val)...)
 		}
-		raws = append(raws, raw)
+
+		// 获取字段二进制值
+		raw = sql.FieldRaw(f.fieldType, val)
 	}
 
-	// 遍历插入的数据条目，写入数据
+	// 写入数据
 	var id uint64
-	for _, raw := range raws {
-		// 写入数据
-		id, err = tbm.verManage.Insert(txId, raw)
-		if err != nil {
-			return err
-		}
+	// 写入数据
+	id, err = tbm.verManage.Insert(txId, raw)
+	if err != nil {
+		return err
+	}
 
-		// 判断是否有字段需要索引
-		for i, f := range t.tableFields {
-			if f.isIndex() { // 主键同时也是索引
-				v, exist := maps[i][f.fieldName]
-				if !exist {
-					return errors.New("index is not allowed to be null")
-				}
+	// 判断是否有字段需要索引
+	for _, f := range t.tableFields {
+		if f.isIndex() { // 主键同时也是索引
+			v, exist := row[f.fieldName]
+			if !exist {
+				return errors.New("index is not allowed to be null")
+			}
 
-				// 格式化索引字段
-				val := sql.FieldFormat(f.fieldType, v)
-				err = f.idx.Insert(hash(val), id)
-				if err != nil {
-					return err
-				}
+			// 格式化索引字段
+			val := sql.FieldFormat(f.fieldType, v)
+			err = f.idx.Insert(hash(val), id)
+			if err != nil {
+				return err
 			}
 		}
 	}

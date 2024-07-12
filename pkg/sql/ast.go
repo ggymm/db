@@ -114,7 +114,7 @@ type CreateTableOption struct{}
 type InsertStmt struct {
 	Table string
 	Field []string
-	Value [][]string
+	Value []string
 }
 
 func (*InsertStmt) StmtType() Type {
@@ -125,18 +125,15 @@ func (s *InsertStmt) TableName() string {
 	return s.Table
 }
 
-func (s *InsertStmt) Format() ([]map[string]string, error) {
-	maps := make([]map[string]string, len(s.Value))
-	for i, row := range s.Value {
-		if len(row) != len(s.Field) {
+func (s *InsertStmt) FormatData() (map[string]string, error) {
+	row := make(map[string]string)
+	for i, v := range s.Value {
+		if len(v) != len(s.Field) {
 			return nil, fmt.Errorf("插入列数与值数不匹配")
 		}
-		maps[i] = make(map[string]string)
-		for j, col := range row {
-			maps[i][s.Field[j]] = col
-		}
+		row[s.Field[i]] = v
 	}
-	return maps, nil
+	return row, nil
 }
 
 type UpdateStmt struct {

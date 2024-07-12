@@ -31,10 +31,10 @@ type page struct {
 	no    uint32 // 编号（从 1 开始）
 	data  []byte // 数据内容
 	dirty bool   // 是否是脏页面
-	cache Cache  // 页面缓存
+	cache Manage // 页面缓存
 }
 
-func NewPage(no uint32, data []byte, cache Cache) Page {
+func NewPage(no uint32, data []byte, cache Manage) Page {
 	return &page{
 		no:    no,
 		data:  data,

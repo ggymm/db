@@ -32,7 +32,7 @@ var (
 )
 
 const (
-	name = ".TXN" // 事务 id 文件
+	name = "DB.TXN" // 事务 id 文件
 
 	Super  uint64 = 0
 	TidLen        = 8
@@ -70,9 +70,9 @@ func pos(tid uint64) int64 {
 	return headerLen + int64(tid-1)*fieldLen
 }
 
-func open(tm *txManager) {
+func open(m *txManager) {
 	// 打开文件
-	f, err := os.OpenFile(tm.filepath, os.O_RDWR, file.Mode)
+	f, err := os.OpenFile(m.filepath, os.O_RDWR, file.Mode)
 	if err != nil {
 		panic(err)
 	}
@@ -93,12 +93,12 @@ func open(tm *txManager) {
 	}
 
 	// 字段信息
-	tm.seq = tid
-	tm.file = f
+	m.seq = tid
+	m.file = f
 }
 
-func create(tm *txManager) {
-	p := tm.filepath
+func create(m *txManager) {
+	p := m.filepath
 
 	// 创建父文件夹
 	dir := filepath.Dir(p)
@@ -124,104 +124,104 @@ func create(tm *txManager) {
 	}
 
 	// 字段信息
-	tm.seq = 1
-	tm.file = f
+	m.seq = 1
+	m.file = f
 }
 
 func NewManager(opt *db.Option) Manage {
-	tm := new(txManager)
-	tm.filepath = filepath.Join(opt.GetPath(name))
+	m := new(txManager)
+	m.filepath = filepath.Join(opt.GetPath(name))
 
 	// 判断文件是否存在
 	if opt.Open {
-		open(tm)
+		open(m)
 	} else {
-		create(tm)
+		create(m)
 	}
-	return tm
+	return m
 }
 
-func (tm *txManager) inc() {
-	tm.seq++
+func (m *txManager) inc() {
+	m.seq++
 	buf := make([]byte, 8)
-	bin.PutUint64(buf, tm.seq)
+	bin.PutUint64(buf, m.seq)
 
 	// 写入并同步文件
-	tm.write(buf, 0)
+	m.write(buf, 0)
 }
 
-func (tm *txManager) state(tid uint64) byte {
+func (m *txManager) state(tid uint64) byte {
 	off := pos(tid)
 
 	// 读取对应位置状态
 	buf := make([]byte, 1)
-	_, err := tm.file.ReadAt(buf, off)
+	_, err := m.file.ReadAt(buf, off)
 	if err != nil {
 		panic(err)
 	}
 	return buf[0]
 }
 
-func (tm *txManager) update(tid uint64, state byte) {
+func (m *txManager) update(tid uint64, state byte) {
 	off := pos(tid)
 
 	// 写入并同步文件
-	tm.write([]byte{state}, off)
+	m.write([]byte{state}, off)
 }
 
-func (tm *txManager) write(buf []byte, off int64) {
-	_, err := tm.file.WriteAt(buf, off)
+func (m *txManager) write(buf []byte, off int64) {
+	_, err := m.file.WriteAt(buf, off)
 	if err != nil {
 		panic(err)
 	}
-	err = tm.file.Sync()
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (tm *txManager) Close() {
-	err := tm.file.Close()
+	err = m.file.Sync()
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (tm *txManager) Begin() uint64 {
-	tm.mu.Lock()
-	defer tm.mu.Unlock()
+func (m *txManager) Close() {
+	err := m.file.Close()
+	if err != nil {
+		panic(err)
+	}
+}
 
-	tid := tm.seq
-	tm.inc()
-	tm.update(tid, Active)
+func (m *txManager) Begin() uint64 {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	tid := m.seq
+	m.inc()
+	m.update(tid, Active)
 	return tid
 }
 
-func (tm *txManager) Abort(tid uint64) {
-	tm.update(tid, Aborted)
+func (m *txManager) Abort(tid uint64) {
+	m.update(tid, Aborted)
 }
 
-func (tm *txManager) Commit(tid uint64) {
-	tm.update(tid, Committed)
+func (m *txManager) Commit(tid uint64) {
+	m.update(tid, Committed)
 }
 
-func (tm *txManager) IsActive(tid uint64) bool {
+func (m *txManager) IsActive(tid uint64) bool {
 	if tid == Super {
 		return false
 	}
-	return tm.state(tid) == Active
+	return m.state(tid) == Active
 }
 
-func (tm *txManager) IsCommitted(tid uint64) bool {
+func (m *txManager) IsCommitted(tid uint64) bool {
 	if tid == Super {
 		return true
 	}
-	return tm.state(tid) == Committed
+	return m.state(tid) == Committed
 }
 
-func (tm *txManager) IsAborted(tid uint64) bool {
+func (m *txManager) IsAborted(tid uint64) bool {
 	if tid == Super {
 		return false
 	}
-	return tm.state(tid) == Aborted
+	return m.state(tid) == Aborted
 }

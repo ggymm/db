@@ -5,14 +5,14 @@ import (
 )
 
 func ParseSQL(sql string) (Statement, error) {
-	stmts, err := ParseMultiSQL(sql)
+	ss, err := ParseMultiSQL(sql)
 	if err != nil {
 		return nil, err
 	}
-	if len(stmts) == 0 {
+	if len(ss) == 0 {
 		return nil, fmt.Errorf("解析sql为空")
 	}
-	return stmts[0], nil
+	return ss[0], nil
 }
 
 func ParseMultiSQL(sql string) ([]Statement, error) {

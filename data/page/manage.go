@@ -15,13 +15,13 @@ import (
 var ErrMemoryNotEnough = errors.New("memory not enough")
 
 const (
-	name = ".DAT"
+	name = "DB.BIN"
 
 	Size  = 1 << 13 // 页面大小 8KB
 	Limit = 10
 )
 
-type Cache interface {
+type Manage interface {
 	Close()
 
 	NewPage(data []byte) uint32        // 创建新的页面，返回页面编号
@@ -35,7 +35,7 @@ type Cache interface {
 	PageTruncate(maxNo uint32) // 截断页面
 }
 
-type pageCache struct {
+type pageManage struct {
 	mu sync.Mutex
 
 	num   uint32      // page 总数
@@ -49,9 +49,9 @@ func pos(no uint32) int64 {
 	return int64(no-1) * Size
 }
 
-func open(c *pageCache) {
+func open(m *pageManage) {
 	// 打开文件
-	f, err := os.OpenFile(c.filepath, os.O_RDWR, file.Mode)
+	f, err := os.OpenFile(m.filepath, os.O_RDWR, file.Mode)
 	if err != nil {
 		panic(err)
 	}
@@ -61,15 +61,13 @@ func open(c *pageCache) {
 	size := stat.Size()
 
 	// 字段信息
-	c.num = uint32(size / Size)
-	c.file = f
+	m.num = uint32(size / Size)
+	m.file = f
 }
 
-func create(c *pageCache) {
-	p := c.filepath
-
+func create(m *pageManage) {
 	// 创建父文件夹
-	dir := filepath.Dir(p)
+	dir := filepath.Dir(m.filepath)
 	if !file.IsExist(dir) {
 		err := os.MkdirAll(dir, os.ModePerm)
 		if err != nil {
@@ -78,52 +76,52 @@ func create(c *pageCache) {
 	}
 
 	// 创建文件
-	f, err := os.OpenFile(p, os.O_RDWR|os.O_CREATE|os.O_TRUNC, file.Mode)
+	f, err := os.OpenFile(m.filepath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, file.Mode)
 	if err != nil {
 		panic(err)
 	}
 
 	// 字段信息
-	c.num = 0
-	c.file = f
+	m.num = 0
+	m.file = f
 }
 
-func NewCache(opt *db.Option) Cache {
+func NewManage(opt *db.Option) Manage {
 	if opt.Memory/Size < Limit {
 		panic(ErrMemoryNotEnough)
 	}
-	c := new(pageCache)
-	c.filepath = filepath.Join(opt.GetPath(name))
+	m := new(pageManage)
+	m.filepath = filepath.Join(opt.GetPath(name))
 
 	// 构造缓存对象
-	c.cache = cache.NewCache(&cache.Option{
-		Obtain:   c.obtainForCache,
-		Release:  c.releaseForCache,
+	m.cache = cache.NewCache(&cache.Option{
+		Obtain:   m.obtainForCache,
+		Release:  m.releaseForCache,
 		MaxCount: uint32(opt.Memory / Size),
 	})
 
 	// 判断文件是否存在
 	if opt.Open {
-		open(c)
+		open(m)
 	} else {
-		create(c)
+		create(m)
 	}
-	return c
+	return m
 }
 
 // 将页内容刷新到磁盘
-func (c *pageCache) flush(p Page) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+func (m *pageManage) flush(p Page) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	// 写入数据
-	_, err := c.file.WriteAt(p.Data(), pos(p.No()))
+	_, err := m.file.WriteAt(p.Data(), pos(p.No()))
 	if err != nil {
 		panic(err)
 	}
 
 	// 刷新文件
-	err = c.file.Sync()
+	err = m.file.Sync()
 	if err != nil {
 		panic(err)
 	}
@@ -131,69 +129,69 @@ func (c *pageCache) flush(p Page) {
 
 // obtainForCache 需要支持并发
 // 缓存中不存在时，从磁盘中获取，并且包装成 Page 对象
-func (c *pageCache) obtainForCache(key uint64) (any, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+func (m *pageManage) obtainForCache(key uint64) (any, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 
 	no := uint32(key)
 
 	// 读取数据
 	buf := make([]byte, Size)
-	_, err := c.file.ReadAt(buf, pos(no))
+	_, err := m.file.ReadAt(buf, pos(no))
 	if err != nil {
 		panic(err)
 	}
-	return NewPage(no, buf, c), nil
+	return NewPage(no, buf, m), nil
 }
 
 // releaseForCache 需要是同步方法
 // 释放缓存，需要将 Page 对象内存刷新到磁盘
-func (c *pageCache) releaseForCache(data any) {
+func (m *pageManage) releaseForCache(data any) {
 	p := data.(Page)
 	if p.Dirty() {
-		c.flush(p)
+		m.flush(p)
 		p.SetDirty(false)
 	}
 }
 
-func (c *pageCache) Close() {
-	c.cache.Close()
+func (m *pageManage) Close() {
+	m.cache.Close()
 }
 
-func (c *pageCache) NewPage(data []byte) uint32 {
-	no := atomic.AddUint32(&c.num, 1)
+func (m *pageManage) NewPage(data []byte) uint32 {
+	no := atomic.AddUint32(&m.num, 1)
 
 	// 创建页面
-	p := NewPage(no, data, c)
-	c.flush(p)
+	p := NewPage(no, data, m)
+	m.flush(p)
 	return no
 }
 
-func (c *pageCache) ObtainPage(n uint32) (Page, error) {
-	data, err := c.cache.Obtain(uint64(n))
+func (m *pageManage) ObtainPage(n uint32) (Page, error) {
+	data, err := m.cache.Obtain(uint64(n))
 	if err != nil {
 		return nil, err
 	}
 	return data.(Page), nil
 }
 
-func (c *pageCache) ReleasePage(p Page) {
-	c.cache.Release(uint64(p.No()))
+func (m *pageManage) ReleasePage(p Page) {
+	m.cache.Release(uint64(p.No()))
 }
 
-func (c *pageCache) PageNum() int {
-	return int(c.num)
+func (m *pageManage) PageNum() int {
+	return int(m.num)
 }
 
-func (c *pageCache) PageFlush(p Page) {
-	c.flush(p)
+func (m *pageManage) PageFlush(p Page) {
+	m.flush(p)
 }
 
-func (c *pageCache) PageTruncate(maxNo uint32) {
+func (m *pageManage) PageTruncate(maxNo uint32) {
 	size := pos(maxNo + 1)
-	err := c.file.Truncate(size)
+	err := m.file.Truncate(size)
 	if err != nil {
 		panic(err)
 	}
-	c.num = maxNo
+	m.num = maxNo
 }

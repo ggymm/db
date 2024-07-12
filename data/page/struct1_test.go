@@ -5,7 +5,7 @@ import (
 )
 
 func Test_Page1(t *testing.T) {
-	p := NewPage(1, InitPage1(), nil)
+	p := NewPage(1, NewPage1(), nil)
 
 	// 模拟正常启动
 	SetVcOpen(p)
@@ -23,7 +23,7 @@ func Test_Page1(t *testing.T) {
 }
 
 func Test_Page1_Error(t *testing.T) {
-	p := NewPage(1, InitPage1(), nil)
+	p := NewPage(1, NewPage1(), nil)
 
 	// 模拟正常启动
 	SetVcOpen(p)

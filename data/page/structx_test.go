@@ -5,7 +5,7 @@ import (
 )
 
 func Test_PageX(t *testing.T) {
-	p := NewPage(1, InitPageX(), nil)
+	p := NewPage(1, NewPageX(), nil)
 
 	t.Logf("%+v", p)
 	t.Logf("max free %d", MaxPageFree())

@@ -53,7 +53,7 @@ func checkVc(data []byte) bool {
 	) == 0
 }
 
-func InitPage1() []byte {
+func NewPage1() []byte {
 	data := make([]byte, Size)
 	setVcOpen(data)
 	return data

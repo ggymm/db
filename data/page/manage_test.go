@@ -19,7 +19,7 @@ func TestNewPage(t *testing.T) {
 		return
 	}
 
-	cache := NewCache(opt)
+	cache := NewManage(opt)
 	t.Logf("%+v", cache)
 
 	for i := 1; i <= 100; i++ {
@@ -38,7 +38,7 @@ func TestNewPage(t *testing.T) {
 
 	opt = db.NewOption(abs, "temp/page")
 	opt.Memory = (1 << 20) * 64
-	cache = NewCache(opt)
+	cache = NewManage(opt)
 	for i := 1; i <= 100; i++ {
 		p, e := cache.ObtainPage(uint32(i))
 		if e != nil {

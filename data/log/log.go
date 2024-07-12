@@ -31,7 +31,7 @@ import (
 var ErrBadLogFile = errors.New("bad log file")
 
 const (
-	name = ".LOG"
+	name = "DB.LOG"
 
 	seed     = 12321
 	checkLen = 4

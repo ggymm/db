@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	name = ".BT"
-	temp = ".BT_TMP"
+	name = "BOOT"
+	temp = "BOOT_TMP"
 )
 
 type Boot interface {

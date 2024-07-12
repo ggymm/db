@@ -24,7 +24,6 @@ import (
 	createTableOption *CreateTableOption
 
 	insertStmt *InsertStmt
-    insertValue [][]string
 
     updateStmt *UpdateStmt
     updateValue map[string]string
@@ -52,7 +51,6 @@ import (
 	INSERT "INSERT"
 	INTO "INTO"
 	VALUE "VALUE"
-	VALUES "VALUES"
 	// 关键字（更新数据）
 	UPDATE "UPDATE"
 	SET "SET"
@@ -99,7 +97,7 @@ import (
 // 语法定义（插入数据）
 %type <insertStmt> InsertStmt
 %type <strList> InsertField InsertFieldList
-%type <insertValue> InsertValue InsertValueList
+%type <strList> InsertValue InsertValueList
 
 // 语法定义（更新数据）
 %type <updateStmt> UpdateStmt
@@ -335,24 +333,16 @@ InsertFieldList:
 	| VaribleList
 
 InsertValue:
-	"VALUE" InsertValueList
+	"VALUE" '(' InsertValueList ')'
 	{
-		$$ = $2
-	}
-	| "VALUES" InsertValueList
-	{
-		$$ = $2
+		$$ = $3
 	}
 
 InsertValueList:
-	'(' VaribleList ')'
 	{
-		$$ = [][]string{$2}
+		$$ = nil
 	}
-	| InsertValueList ',' '(' VaribleList ')'
-	{
-		$$ = append($1, $4)
-	}
+	| VaribleList
 
 // 语法规则（更新数据）
 UpdateStmt:
