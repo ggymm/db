@@ -3,7 +3,10 @@ package table
 import (
 	"errors"
 	"fmt"
+	"github.com/ggymm/db"
+	"github.com/ggymm/db/index"
 	"math"
+	"slices"
 	"sync"
 
 	"github.com/ggymm/db/boot"
@@ -57,13 +60,13 @@ func NewManage(boot boot.Boot, verManage ver.Manage, dataManage data.Manage) Man
 		dataManage: dataManage,
 	}
 
-	id := tbm.readTableId()
-	for id != 0 {
-		t := readTable(tbm, id)
-		tbm.tables.Set(t.tableName, t)
+	itemId := tbm.readTableId()
+	for itemId != 0 {
+		t := readTable(tbm, itemId)
+		tbm.tables.Set(t.Name, t)
 
 		// 读取下一个表的信息
-		id = t.tableNext
+		itemId = t.Next
 	}
 	return tbm
 }
@@ -91,34 +94,81 @@ func (tbm *tableManage) Commit(txId uint64) error {
 func (tbm *tableManage) Create(txId uint64, stmt *sql.CreateStmt) error {
 	tbm.mu.Lock()
 	defer tbm.mu.Unlock()
-
 	if exist := tbm.tables.Has(stmt.Name); exist {
 		return nil
 	}
 
-	t, err := createTable(tbm, &newTable{
-		txId: txId,
+	t := &table{
+		tbm: tbm,
 
-		tableName: stmt.Name,
-		tableNext: tbm.readTableId(),
+		Name: stmt.Name,
+		Next: tbm.readTableId(), // 上一张表的 itemId
+	}
 
-		pk:    stmt.Table.Pk,
-		index: stmt.Table.Index,
-		field: stmt.Table.Field,
-	})
+	// 读取 主键 和 索引
+	indexList := make([]string, 0)
+	for _, i := range stmt.Table.Index {
+		indexList = append(indexList, i.Field)
+	}
+
+	// 读取 field
+	for _, tf := range stmt.Table.Field {
+		f := new(field)
+		f.Name = tf.Name
+		f.Type = tf.Type.String()
+		f.IndexId = 0
+		f.AllowNull = tf.AllowNull
+		f.DefaultVal = tf.DefaultVal
+
+		indexed := false
+		if slices.Contains(indexList, tf.Name) {
+			indexed = true
+			f.AllowNull = false
+		}
+
+		// 如果是主键
+		// 则不允许为空，且是索引
+		if stmt.Table.Pk.Field == tf.Name {
+			indexed = true
+			f.AllowNull = false
+			f.PrimaryKey = true
+		}
+
+		if indexed {
+			idx, err := index.NewIndex(tbm.DataManage(), &db.Option{
+				Open: false,
+			})
+			if err != nil {
+				return err
+			}
+			f.index = idx
+			f.IndexId = idx.GetBootId()
+		}
+
+		// 保存字段信息
+		err := f.persist(txId)
+		if err != nil {
+			return err
+		}
+
+		t.Fields = append(t.Fields, f)
+	}
+
+	// 保存表信息
+	err := t.persist(txId)
 	if err != nil {
 		return err
 	}
 
-	tbm.tables.Set(t.tableName, t)
-	tbm.updateTableId(t.itemId)
+	// 更新表信息
+	tbm.tables.Set(t.Name, t)
+	tbm.updateTableId(t.itemId) // 更新为当前表的 itemId
 	return nil
 }
 
 func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 	var (
 		err error
-
 		row map[string]string
 	)
 
@@ -136,40 +186,38 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 
 	// 构建数据
 	raw := make([]byte, 0)
-	for _, f := range t.tableFields {
+	for _, f := range t.Fields {
 		// 获取字段值
-		val, exist := row[f.fieldName]
+		val, exist := row[f.Name]
 		if !exist {
-			if len(f.defaultVal) != 0 {
-				val = f.defaultVal
-			} else if !f.allowNull {
-				return fmt.Errorf("field %s is not allowed to be null", f.fieldName)
+			if len(f.DefaultVal) != 0 {
+				val = f.DefaultVal
+			} else if !f.AllowNull {
+				return fmt.Errorf("field %s is not allowed to be null", f.Name)
 			}
 		}
 
 		// 获取字段二进制值
-		raw = sql.FieldRaw(f.fieldType, val)
+		raw = sql.FieldRaw(f.Type, val)
 	}
 
 	// 写入数据
-	var id uint64
-	// 写入数据
-	id, err = tbm.verManage.Write(txId, raw)
-	if err != nil {
-		return err
+	itemId, err1 := tbm.verManage.Write(txId, raw)
+	if err1 != nil {
+		return err1
 	}
 
 	// 判断是否有字段需要索引
-	for _, f := range t.tableFields {
+	for _, f := range t.Fields {
 		if f.isIndex() { // 主键同时也是索引
-			v, exist := row[f.fieldName]
+			v, exist := row[f.Name]
 			if !exist {
 				return errors.New("index is not allowed to be null")
 			}
 
 			// 格式化索引字段
-			val := sql.FieldFormat(f.fieldType, v)
-			err = f.idx.Insert(hash(val), id)
+			val := sql.FieldFormat(f.Type, v)
+			err = f.index.Insert(hash(val), itemId)
 			if err != nil {
 				return err
 			}
@@ -203,27 +251,26 @@ func (tbm *tableManage) Select(txId uint64, stmt *sql.SelectStmt) ([]entry, erro
 	}
 
 	var (
-		err error
-
-		fd  *field
-		ids []uint64
+		err     error
+		itemIds []uint64
 	)
 
-	// 遍历条件，如果有索引，则使用索引进行查询
+	// 遍历条件，没有查询条件则查询全部数据
 	if len(stmt.Where) == 0 {
-		// 找到主键索引
-		for _, f := range t.tableFields {
-			if f.primaryKey {
-				fd = f
+		// 找到主键索引字段
+		f := &field{}
+		for _, tf := range t.Fields {
+			if tf.PrimaryKey {
+				f = tf
 				break
 			}
 		}
-		if fd == nil {
+		if f == nil {
 			return nil, ErrNoPrimaryKey
 		}
 
-		// 查询全部数据的 item id
-		ids, err = fd.idx.SearchRange(0, math.MaxUint64)
+		// 查询全部数据的
+		itemIds, err = f.index.SearchRange(0, math.MaxUint64)
 		if err != nil {
 			return nil, err
 		}
@@ -236,8 +283,8 @@ func (tbm *tableManage) Select(txId uint64, stmt *sql.SelectStmt) ([]entry, erro
 	// 读取数据
 	raw := make([]byte, 0)
 	rows := make([]entry, 0)
-	for _, id := range ids {
-		raw, ok, err = tbm.verManage.Read(txId, id)
+	for _, itemId := range itemIds {
+		raw, ok, err = tbm.verManage.Read(txId, itemId)
 		if err != nil {
 			return nil, err
 		}
@@ -248,12 +295,12 @@ func (tbm *tableManage) Select(txId uint64, stmt *sql.SelectStmt) ([]entry, erro
 		// 解析数据
 		pos := 0
 		row := make(entry)
-		for _, f := range t.tableFields {
-			val, shift := sql.FieldParse(f.fieldType, raw[pos:])
+		for _, f := range t.Fields {
+			val, shift := sql.FieldParse(f.Type, raw[pos:])
 			if err != nil {
 				return nil, err
 			}
-			row[f.fieldName] = val
+			row[f.Name] = val
 			pos += shift
 		}
 		rows = append(rows, row)
@@ -284,24 +331,24 @@ func (tbm *tableManage) ShowField(table string) string {
 		return "no such table"
 	}
 
-	for _, f := range t.tableFields {
-		index := ""
+	for _, f := range t.Fields {
+		indexed := ""
 		if f.isIndex() {
-			index = "YES"
-			if f.primaryKey {
-				index = "PRI"
+			indexed = "YES"
+			if f.PrimaryKey {
+				indexed = "PRI"
 			}
 		}
 		allowNull := "NO"
-		if f.allowNull {
+		if f.AllowNull {
 			allowNull = "YES"
 		}
 		tbody = append(tbody, []string{
-			f.fieldName,
-			f.fieldType,
+			f.Name,
+			f.Type,
 			allowNull,
-			index,
-			f.defaultVal,
+			indexed,
+			f.DefaultVal,
 		})
 	}
 
@@ -322,8 +369,8 @@ func (tbm *tableManage) ShowResult(table string, entries []entry) string {
 	thead := make([]string, 0)
 	tbody := make([][]string, 0)
 
-	for _, f := range t.tableFields {
-		thead = append(thead, f.fieldName)
+	for _, f := range t.Fields {
+		thead = append(thead, f.Name)
 	}
 
 	for _, ent := range entries {

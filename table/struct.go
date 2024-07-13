@@ -1,11 +1,8 @@
 package table
 
 import (
-	"slices"
-
 	"github.com/ggymm/db"
 	"github.com/ggymm/db/index"
-	"github.com/ggymm/db/pkg/sql"
 	"github.com/ggymm/db/tx"
 )
 
@@ -19,28 +16,16 @@ type entry map[string]any
 // |    string      |     uint64     |    uint64[]    |
 // +----------------+----------------+----------------+
 type table struct {
-	tbm Manage
-
+	tbm    Manage
 	itemId uint64
 
-	tableName   string
-	tableNext   uint64
-	tableFields []*field
+	Name   string
+	Next   uint64
+	Fields []*field
 }
 
-type newTable struct {
-	txId uint64
-
-	tableName string
-	tableNext uint64
-
-	pk    *sql.CreateIndex
-	index []*sql.CreateIndex
-	field []*sql.CreateField
-}
-
-func readTable(tbm Manage, id uint64) *table {
-	data, exist, err := tbm.VerManage().Read(tx.Super, id)
+func readTable(tbm Manage, itemId uint64) *table {
+	data, exist, err := tbm.VerManage().Read(tx.Super, itemId)
 	if err != nil || !exist {
 		panic(err)
 	}
@@ -61,66 +46,25 @@ func readTable(tbm Manage, id uint64) *table {
 	}
 
 	return &table{
-		tbm:         tbm,
-		itemId:      id,
-		tableName:   name,
-		tableNext:   next,
-		tableFields: fields,
+		tbm:    tbm,
+		itemId: itemId,
+
+		Name:   name,
+		Next:   next,
+		Fields: fields,
 	}
-}
-
-func createTable(tbm *tableManage, info *newTable) (*table, error) {
-	t := &table{
-		tbm:       tbm,
-		tableName: info.tableName,
-		tableNext: info.tableNext,
-	}
-
-	// 读取 主键 和 索引
-	indexList := make([]string, 0)
-	for _, i := range info.index {
-		indexList = append(indexList, i.Field)
-	}
-
-	// 读取 field
-	for _, f := range info.field {
-		nfd := new(newField)
-		nfd.txId = info.txId
-		nfd.fieldName = f.Name
-		nfd.fieldType = f.Type.String()
-		nfd.fieldIndex = slices.Contains(indexList, f.Name)
-		nfd.allowNull = f.AllowNull
-		nfd.defaultVal = f.DefaultVal
-
-		// 如果是主键
-		// 则不允许为空，且是索引
-		if info.pk.Field == f.Name {
-			nfd.allowNull = false
-			nfd.fieldIndex = true
-			nfd.primaryKey = true
-		}
-
-		fd, err := createField(tbm, nfd)
-		if err != nil {
-			return nil, err
-		}
-		t.tableFields = append(t.tableFields, fd)
-	}
-
-	// 持久化
-	return t, t.persist(info.txId)
 }
 
 func (t *table) persist(txId uint64) (err error) {
 	// name
-	data := encodeString(t.tableName)
+	data := encodeString(t.Name)
 
 	// next
-	raw := encodeUint64(t.tableNext)
+	raw := encodeUint64(t.Next)
 	data = append(data, raw...)
 
 	// fields
-	for _, f := range t.tableFields {
+	for _, f := range t.Fields {
 		raw = encodeUint64(f.itemId)
 		data = append(data, raw...)
 	}
@@ -132,89 +76,68 @@ func (t *table) persist(txId uint64) (err error) {
 
 // field 内存结构
 //
-// +----------------+----------------+----------------+----------------+----------------+----------------+
-// |    fieldName   |    fieldType   |   fieldIndex   |   allowNull    |   primaryKey   |   defaultVal   |
-// +----------------+----------------+----------------+----------------+----------------+----------------+
-// |     string     |     string     |     uint64     |     bool       |      bool      |     string     |
-// +----------------+----------------+----------------+----------------+----------------+----------------+
-//
-// fieldName: 字段名
-// fieldType: 字段类型
-// fieldIndex: 字段索引Id
+// Name: 名称
+// Type: 类型
+// IndexId: 索引根节点 itemId
+// Default: 默认值
 // allowNull: 是否允许为空
 // primaryKey: 是否是主键
-// defaultVal: 为空时的默认值
 type field struct {
-	tbm Manage
-	idx index.Index
-
+	tbm    Manage
+	index  index.Index
 	itemId uint64
 
-	fieldName  string // 字段名
-	fieldType  string // 字段类型
-	fieldIndex uint64 // 字段索引Id
-
-	allowNull  bool   // 是否允许为空
-	primaryKey bool   // 是否是主键
-	defaultVal string // 为空时的默认值
+	Name       string // 名称
+	Type       string // 类型
+	IndexId    uint64 // 索引
+	AllowNull  bool   // 是否允许为空
+	DefaultVal string // 默认值
+	PrimaryKey bool   // 是否是主键
 }
 
-type newField struct {
-	txId uint64
-
-	fieldName  string
-	fieldType  string
-	fieldIndex bool
-
-	allowNull  bool
-	primaryKey bool
-	defaultVal string
-}
-
-func readField(tbm Manage, id uint64) *field {
-	data, exist, err := tbm.VerManage().Read(tx.Super, id)
+func readField(tbm Manage, itemId uint64) *field {
+	data, exist, err := tbm.VerManage().Read(tx.Super, itemId)
 	if err != nil || !exist {
 		panic(err)
 	}
 
 	f := &field{
-		tbm: tbm,
-
-		itemId: id,
+		tbm:    tbm,
+		itemId: itemId,
 	}
 	var (
 		pos   int
 		shift int
 	)
 
-	// fieldName
-	f.fieldName, shift = decodeString(data)
+	// name
+	f.Name, shift = decodeString(data)
 
-	// fieldType
+	// type
 	pos += shift
-	f.fieldType, shift = decodeString(data[pos:])
+	f.Type, shift = decodeString(data[pos:])
 
-	// defaultVal
+	// default
 	pos += shift
-	f.defaultVal, shift = decodeString(data[pos:])
+	f.DefaultVal, shift = decodeString(data[pos:])
 
 	// allowNull
 	pos += shift
-	f.allowNull = data[pos] == 1
+	f.AllowNull = data[pos] == 1
 
 	// primaryKey
 	pos++
-	f.primaryKey = data[pos] == 1
+	f.PrimaryKey = data[pos] == 1
 
-	// fieldIndex
+	// index
 	pos++
-	f.fieldIndex = decodeUint64(data[pos:])
+	f.IndexId = decodeUint64(data[pos:])
 
 	// 读取索引
-	if f.fieldIndex != 0 {
-		f.idx, err = index.NewIndex(tbm.DataManage(), &db.Option{
+	if f.IndexId != 0 {
+		f.index, err = index.NewIndex(tbm.DataManage(), &db.Option{
 			Open:   true,
-			RootId: f.fieldIndex,
+			RootId: f.IndexId,
 		})
 		if err != nil {
 			panic(err)
@@ -223,65 +146,39 @@ func readField(tbm Manage, id uint64) *field {
 	return f
 }
 
-func createField(tbm Manage, info *newField) (*field, error) {
-	f := &field{
-		tbm: tbm,
-
-		fieldName:  info.fieldName,
-		fieldType:  info.fieldType,
-		fieldIndex: 0,
-
-		allowNull:  info.allowNull,
-		primaryKey: info.primaryKey,
-		defaultVal: info.defaultVal,
-	}
-
-	if info.fieldIndex {
-		idx, err := index.NewIndex(tbm.DataManage(), &db.Option{
-			Open: false,
-		})
-		if err != nil {
-			return nil, err
-		}
-		f.idx = idx
-		f.fieldIndex = idx.GetBootId()
-	}
-	return f, f.persist(info.txId)
-}
-
 // persist 将该field持久化
 //
 // +----------------+----------------+----------------+----------------+----------------+----------------+
-// |	fieldName   |	fieldType    |	 defaultVal   |	   allowNull   |	primaryKey  |	fieldIndex   |
+// |	  name      |	  type       |	   default    |	   allowNull   |	primaryKey  |	  index      |
 // +----------------+----------------+----------------+----------------+----------------+----------------+
 // |	 string     |	 string      |	   string     |	     bool      |	  bool      |	  uint64     |
 // +----------------+----------------+----------------+----------------+----------------+----------------+
 func (f *field) persist(txId uint64) (err error) {
-	// fieldName
-	data := encodeString(f.fieldName)
+	// name
+	data := encodeString(f.Name)
 
-	// fieldType
-	data = append(data, encodeString(f.fieldType)...)
+	// type
+	data = append(data, encodeString(f.Type)...)
 
-	// defaultVal
-	data = append(data, encodeString(f.defaultVal)...)
+	// default
+	data = append(data, encodeString(f.DefaultVal)...)
 
 	// allowNull
-	if f.allowNull {
+	if f.AllowNull {
 		data = append(data, 1)
 	} else {
 		data = append(data, 0)
 	}
 
 	// primaryKey
-	if f.primaryKey {
+	if f.PrimaryKey {
 		data = append(data, 1)
 	} else {
 		data = append(data, 0)
 	}
 
-	// fieldIndex
-	data = append(data, encodeUint64(f.fieldIndex)...)
+	// index
+	data = append(data, encodeUint64(f.IndexId)...)
 
 	// 保存到磁盘
 	f.itemId, err = f.tbm.VerManage().Write(txId, data)
@@ -289,5 +186,5 @@ func (f *field) persist(txId uint64) (err error) {
 }
 
 func (f *field) isIndex() bool {
-	return f.fieldIndex != 0
+	return f.IndexId != 0
 }
