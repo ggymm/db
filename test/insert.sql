@@ -1,2 +1,2 @@
 INSERT INTO user ('user_id', 'username', 'nickname', 'email', 'phone_number', 'account', 'password', 'status', 'extras', 'create_time', 'create_id', 'update_time', 'update_id', 'del_flag')
-    VALUE ('1', '名称1', '昵称1', '邮箱1', '手机号1', '账号1', '密码1', '1', '额外信息1', '创建时间1', '1', '更新时间1', '1', '1');
+    VALUE ('%s', '名称%s', '昵称%s', '邮箱%s', '手机号%s', '账号%s', '密码%s', '%s', '额外信息%s', '创建时间%s', '%s', '更新时间%s', '%s', '1');

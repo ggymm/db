@@ -224,7 +224,7 @@ type SelectField struct {
 
 type SelectWhere interface {
 	Negate()
-	Prepare(fieldMapping map[string]int) error
+	Prepare(mapping map[string]int) error
 	Filter(row *[]string) bool
 }
 
@@ -237,9 +237,9 @@ func (w *SelectWhereExpr) Negate() {
 	w.Negation = !w.Negation
 }
 
-func (w *SelectWhereExpr) Prepare(fieldMapping map[string]int) error {
+func (w *SelectWhereExpr) Prepare(mapping map[string]int) error {
 	for _, be := range w.Cnf {
-		err := be.Prepare(fieldMapping)
+		err := be.Prepare(mapping)
 		if err != nil {
 			return err
 		}
@@ -270,8 +270,8 @@ func (w *SelectWhereField) Negate() {
 	w.Operate.Negate()
 }
 
-func (w *SelectWhereField) Prepare(fieldMapping map[string]int) error {
-	pos, exist := fieldMapping[w.Field]
+func (w *SelectWhereField) Prepare(mapping map[string]int) error {
+	pos, exist := mapping[w.Field]
 	if !exist {
 		_, err := strconv.Atoi(w.Field)
 		if err != nil {
@@ -294,17 +294,17 @@ func (w *SelectWhereField) Filter(row *[]string) bool {
 
 	switch w.Operate {
 	case EQ:
-		return w.Value == val
+		return val == w.Value
 	case NE:
-		return w.Value != val
+		return val != w.Value
 	case LT:
-		return w.Value < val
+		return val < w.Value
 	case GT:
-		return w.Value > val
+		return val > w.Value
 	case LE:
-		return w.Value <= val
+		return val <= w.Value
 	case GE:
-		return w.Value >= val
+		return val >= w.Value
 	}
 	return false
 }

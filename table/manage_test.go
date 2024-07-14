@@ -73,15 +73,72 @@ func TestTableManage_Create(t *testing.T) {
 func TestTableManage_Insert(t *testing.T) {
 	tbm := openTbm()
 
+	// 插入 10 条数据
+	for i := 1; i <= 10; i++ {
+		s := make([]any, 0)
+		for n := 0; n < 13; n++ {
+			s = append(s, fmt.Sprintf("%d", i))
+		}
+		insert := fmt.Sprintf(test.InsertSQL, s...)
+
+		// 解析创建表语句
+		stmt, err := sql.ParseSQL(insert)
+		if err != nil {
+			t.Fatalf("%+v", err)
+		}
+
+		// 插入数据
+		txId := tbm.Begin(0)
+		err = tbm.Insert(txId, stmt.(*sql.InsertStmt))
+		if err != nil {
+			t.Fatalf("%+v", err)
+		}
+		err = tbm.Commit(txId)
+		if err != nil {
+			t.Fatalf("%+v", err)
+		}
+	}
+
+	// 释放资源
+	closeTbm()
+}
+
+func TestTableManage_Update(t *testing.T) {
+	tbm := openTbm()
+
 	// 解析创建表语句
-	stmt, err := sql.ParseSQL(test.InsertSQL)
+	stmt, err := sql.ParseSQL(test.UpdateSQL)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 
 	// 插入数据
 	txId := tbm.Begin(0)
-	err = tbm.Insert(txId, stmt.(*sql.InsertStmt))
+	err = tbm.Update(txId, stmt.(*sql.UpdateStmt))
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+	err = tbm.Commit(txId)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	// 释放资源
+	closeTbm()
+}
+
+func TestTableManage_Delete(t *testing.T) {
+	tbm := openTbm()
+
+	// 解析创建表语句
+	stmt, err := sql.ParseSQL(test.DeleteSQL)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	// 插入数据
+	txId := tbm.Begin(0)
+	err = tbm.Delete(txId, stmt.(*sql.DeleteStmt))
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -98,7 +155,7 @@ func TestTableManage_Select(t *testing.T) {
 	tbm := openTbm()
 
 	// 解析查询表语句
-	stmt, err := sql.ParseSQL(test.SelectAllSQL)
+	stmt, err := sql.ParseSQL(test.SelectSQL)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}

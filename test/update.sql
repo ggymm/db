@@ -1,0 +1,1 @@
+UPDATE device SET device_id   = 1, device_name = 'pname \t\<>12' WHERE device_id = 1;
