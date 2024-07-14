@@ -1,4 +1,4 @@
-package table
+package table_test
 
 import (
 	"fmt"
@@ -8,26 +8,32 @@ import (
 	"github.com/ggymm/db/boot"
 	"github.com/ggymm/db/data"
 	"github.com/ggymm/db/pkg/sql"
+	"github.com/ggymm/db/table"
 	"github.com/ggymm/db/test"
 	"github.com/ggymm/db/tx"
 	"github.com/ggymm/db/ver"
 )
 
-func openTbm() Manage {
+var (
+	tm tx.Manage
+	dm data.Manage
+)
+
+func openTbm() table.Manage {
 	abs := db.RunPath()
 	opt := db.NewOption(abs, "temp/table")
 	opt.Memory = (1 << 20) * 64
 
 	b := boot.New(opt)
-	tm := tx.NewManager(opt)
-	dm := data.NewManage(tm, opt)
-	return NewManage(b, ver.NewManage(tm, dm), dm)
+	tm = tx.NewManager(opt)
+	dm = data.NewManage(tm, opt)
+	return table.NewManage(b, ver.NewManage(tm, dm), dm)
 }
 
 // 同步数据到磁盘
-func closeTbm(tbm Manage) {
-	tbm.DataManage().TxManage().Close()
-	tbm.DataManage().Close()
+func closeTbm() {
+	tm.Close()
+	dm.Close()
 }
 
 func TestTableManage_Show(t *testing.T) {
@@ -38,14 +44,7 @@ func TestTableManage_Show(t *testing.T) {
 }
 
 func TestTableManage_Create(t *testing.T) {
-	abs := db.RunPath()
-	opt := db.NewOption(abs, "temp/table")
-	opt.Memory = (1 << 20) * 64
-
-	b := boot.New(opt)
-	tm := tx.NewManager(opt)
-	dm := data.NewManage(tm, opt)
-	tbm := NewManage(b, ver.NewManage(tm, dm), dm)
+	tbm := openTbm()
 
 	// 解析创建表语句
 	stmt, err := sql.ParseSQL(test.CreateSQL)
@@ -68,7 +67,7 @@ func TestTableManage_Create(t *testing.T) {
 	fmt.Println(tbm.ShowField(stmt.TableName()))
 
 	// 释放资源
-	closeTbm(tbm)
+	closeTbm()
 }
 
 func TestTableManage_Insert(t *testing.T) {
@@ -92,7 +91,7 @@ func TestTableManage_Insert(t *testing.T) {
 	}
 
 	// 释放资源
-	closeTbm(tbm)
+	closeTbm()
 }
 
 func TestTableManage_Select(t *testing.T) {
@@ -118,5 +117,5 @@ func TestTableManage_Select(t *testing.T) {
 	fmt.Println(tbm.ShowResult(stmt.TableName(), entries))
 
 	// 释放资源
-	closeTbm(tbm)
+	closeTbm()
 }

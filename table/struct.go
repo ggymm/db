@@ -49,15 +49,17 @@ func readTable(tbm Manage, itemId uint64) *table {
 	pos += shift
 	t.Next, shift = decodeUint64(data[pos:])
 
+	pos += shift
 	t.Fields = make([]*field, 0)
+
 	// 读取 fields
 	id := uint64(0)
 	for pos < len(data) {
-		pos += shift
-
 		// 读取 field
 		id, shift = decodeUint64(data[pos:])
 		t.Fields = append(t.Fields, readField(tbm, id))
+
+		pos += shift
 	}
 	return t
 }

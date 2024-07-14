@@ -41,8 +41,8 @@ func TestParseSQL_Create(t *testing.T) {
 	t.Logf("%s", s)
 }
 
-func TestParseSQL_Select(t *testing.T) {
-	stmt, err := ParseSQL(test.SelectAllSQL)
+func TestParseSQL_Insert(t *testing.T) {
+	stmt, err := ParseSQL(test.InsertSQL)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -50,8 +50,8 @@ func TestParseSQL_Select(t *testing.T) {
 	t.Logf("%s", s)
 }
 
-func TestParseSQL_Insert(t *testing.T) {
-	stmt, err := ParseSQL(test.InsertSQL)
+func TestParseSQL_Select(t *testing.T) {
+	stmt, err := ParseSQL(test.SelectAllSQL)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}

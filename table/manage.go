@@ -113,6 +113,7 @@ func (tbm *tableManage) Create(txId uint64, stmt *sql.CreateStmt) error {
 	// 读取 field
 	for _, tf := range stmt.Table.Field {
 		f := new(field)
+		f.tbm = tbm
 		f.Name = tf.Name
 		f.Type = tf.Type.String()
 		f.TreeId = 0
@@ -196,7 +197,7 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 		}
 
 		// 获取字段二进制值
-		raw = sql.FieldRaw(f.Type, val)
+		raw = append(raw, sql.FieldRaw(f.Type, val)...)
 	}
 
 	// 写入数据

@@ -64,10 +64,7 @@ func NewOption(p ...string) *Option {
 			open = false
 		}
 	}
-	return &Option{
-		Open: open,
-		Path: path,
-	}
+	return &Option{Open: open, Path: path}
 }
 
 func (o *Option) GetPath(name string) string {
