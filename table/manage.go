@@ -83,12 +83,12 @@ func (tbm *tableManage) Begin(level int) uint64 {
 	return tbm.verManage.Begin(level)
 }
 
-func (tbm *tableManage) Rollback(txId uint64) {
-	tbm.verManage.Rollback(txId)
-}
-
 func (tbm *tableManage) Commit(txId uint64) error {
 	return tbm.verManage.Commit(txId)
+}
+
+func (tbm *tableManage) Rollback(txId uint64) {
+	tbm.verManage.Rollback(txId)
 }
 
 func (tbm *tableManage) Create(txId uint64, stmt *sql.CreateStmt) error {
@@ -98,12 +98,11 @@ func (tbm *tableManage) Create(txId uint64, stmt *sql.CreateStmt) error {
 		return nil
 	}
 
-	t := &table{
-		tbm: tbm,
-
-		Name: stmt.Name,
-		Next: tbm.readTableId(), // 上一张表的 itemId
-	}
+	t := new(table)
+	t.tbm = tbm
+	t.Name = stmt.Name
+	t.Next = tbm.readTableId() // 上一张表的 itemId
+	t.Fields = make([]*field, 0)
 
 	// 读取 主键 和 索引
 	indexList := make([]string, 0)
@@ -116,33 +115,33 @@ func (tbm *tableManage) Create(txId uint64, stmt *sql.CreateStmt) error {
 		f := new(field)
 		f.Name = tf.Name
 		f.Type = tf.Type.String()
-		f.IndexId = 0
-		f.AllowNull = tf.AllowNull
-		f.DefaultVal = tf.DefaultVal
+		f.TreeId = 0
+		f.Default = tf.Default
+		f.Nullable = tf.Nullable
 
 		indexed := false
 		if slices.Contains(indexList, tf.Name) {
 			indexed = true
-			f.AllowNull = false
+			f.Nullable = false
 		}
 
 		// 如果是主键
 		// 则不允许为空，且是索引
 		if stmt.Table.Pk.Field == tf.Name {
 			indexed = true
-			f.AllowNull = false
+			f.Nullable = false
 			f.PrimaryKey = true
 		}
 
 		if indexed {
-			idx, err := index.NewIndex(tbm.DataManage(), &db.Option{
+			i, err := index.NewIndex(tbm.DataManage(), &db.Option{
 				Open: false,
 			})
 			if err != nil {
 				return err
 			}
-			f.index = idx
-			f.IndexId = idx.GetBootId()
+			f.index = i
+			f.TreeId = i.GetBootId()
 		}
 
 		// 保存字段信息
@@ -150,7 +149,6 @@ func (tbm *tableManage) Create(txId uint64, stmt *sql.CreateStmt) error {
 		if err != nil {
 			return err
 		}
-
 		t.Fields = append(t.Fields, f)
 	}
 
@@ -163,7 +161,7 @@ func (tbm *tableManage) Create(txId uint64, stmt *sql.CreateStmt) error {
 	// 更新表信息
 	tbm.tables.Set(t.Name, t)
 	tbm.updateTableId(t.itemId) // 更新为当前表的 itemId
-	return nil
+	return err
 }
 
 func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
@@ -190,9 +188,9 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 		// 获取字段值
 		val, exist := row[f.Name]
 		if !exist {
-			if len(f.DefaultVal) != 0 {
-				val = f.DefaultVal
-			} else if !f.AllowNull {
+			if len(f.Default) != 0 {
+				val = f.Default
+			} else if !f.Nullable {
 				return fmt.Errorf("field %s is not allowed to be null", f.Name)
 			}
 		}
@@ -339,16 +337,16 @@ func (tbm *tableManage) ShowField(table string) string {
 				indexed = "PRI"
 			}
 		}
-		allowNull := "NO"
-		if f.AllowNull {
-			allowNull = "YES"
+		nullable := "NO"
+		if f.Nullable {
+			nullable = "YES"
 		}
 		tbody = append(tbody, []string{
 			f.Name,
 			f.Type,
-			allowNull,
+			nullable,
 			indexed,
-			f.DefaultVal,
+			f.Default,
 		})
 	}
 

@@ -4,17 +4,6 @@ import (
 	"github.com/ggymm/db/pkg/bin"
 )
 
-func encode(value any) []byte {
-	switch v := value.(type) {
-	case uint64:
-		return encodeUint64(v)
-	case string:
-		return encodeString(v)
-	default:
-		panic("unsupported type")
-	}
-}
-
 func encodeUint64(v uint64) []byte {
 	return bin.Uint64Raw(v)
 }
@@ -33,25 +22,8 @@ func encodeString(v string) []byte {
 	return data
 }
 
-func decode[T any](data []byte) (T, int) {
-	var value T
-	switch any(value).(type) {
-	case uint64:
-		value = any(bin.Uint64(data)).(T)
-		return value, 8
-	case string:
-		l := int(data[0]) |
-			int(data[1])<<8 |
-			int(data[2])<<16 |
-			int(data[3])<<24
-		return any(string(data[4 : 4+l])).(T), 4 + l
-	default:
-		panic("unsupported type")
-	}
-}
-
-func decodeUint64(v []byte) uint64 {
-	return bin.Uint64(v)
+func decodeUint64(v []byte) (uint64, int) {
+	return bin.Uint64(v), 8
 }
 
 func decodeString(v []byte) (string, int) {

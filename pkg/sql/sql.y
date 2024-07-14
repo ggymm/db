@@ -91,8 +91,8 @@ import (
 %type <stmtList> StmtList
 
 // 语法定义（创建表）
-%type <str> DefaultVal
-%type <boolean> AllowNull
+%type <str> Default
+%type <boolean> Nullable
 %type <fieldType> FieldType
 
 %type <beginStmt> BeginStmt
@@ -206,20 +206,7 @@ StmtList:
 	}
 
 // 语法规则（创建表）
-AllowNull:
-	{
-		$$ = true
-	}
-	| "NULL"
-	{
-		$$ = true
-	}
-	| "NOT" "NULL"
-	{
-		$$ = false
-	}
-
-DefaultVal:
+Default:
 	{
 		$$ = ""
 	}
@@ -235,6 +222,19 @@ DefaultVal:
    	{
 	   	$$ = $2
    	}
+
+Nullable:
+	{
+		$$ = true
+	}
+	| "NULL"
+	{
+		$$ = true
+	}
+	| "NOT" "NULL"
+	{
+		$$ = false
+	}
 
 FieldType:
 	Expr
@@ -318,13 +318,13 @@ CreateTable:
 	}
 
 CreateField:
-	Expr FieldType AllowNull DefaultVal
+	Expr FieldType Nullable Default
 	{
 		$$ = &CreateField{
 			Name: $1,
 			Type: $2,
-			AllowNull: $3,
-			DefaultVal: $4,
+			Default: $4,
+			Nullable: $3,
 		}
 	}
 

@@ -1090,7 +1090,7 @@ state 113 // CREATE TABLE VARIABLE '(' PRIMARY KEY '(' VARIABLE ')' [')']
 
 state 114 // CREATE TABLE VARIABLE '(' VARIABLE [VARIABLE]
 
-   33 CreateField: Expr . FieldType AllowNull DefaultVal
+   33 CreateField: Expr . FieldType Nullable Default
 
     VARIABLE  shift, and goto state 20
 
@@ -1177,50 +1177,50 @@ state 125 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE [')']
 
 state 126 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE [')']
 
-   33 CreateField: Expr FieldType . AllowNull DefaultVal
-   15 AllowNull: .  [')', ',', DEFAULT]
+   33 CreateField: Expr FieldType . Nullable Default
+   19 Nullable: .  [')', ',', DEFAULT]
 
-    ')'      reduce using rule 15 (AllowNull)
-    ','      reduce using rule 15 (AllowNull)
-    DEFAULT  reduce using rule 15 (AllowNull)
+    ')'      reduce using rule 19 (Nullable)
+    ','      reduce using rule 19 (Nullable)
+    DEFAULT  reduce using rule 19 (Nullable)
     NOT      shift, and goto state 128
     NULL     shift, and goto state 127
 
-    AllowNull  goto state 129
+    Nullable  goto state 129
 
 state 127 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE NULL
 
-   16 AllowNull: NULL .  [')', ',', DEFAULT]
+   20 Nullable: NULL .  [')', ',', DEFAULT]
 
-    ')'      reduce using rule 16 (AllowNull)
-    ','      reduce using rule 16 (AllowNull)
-    DEFAULT  reduce using rule 16 (AllowNull)
+    ')'      reduce using rule 20 (Nullable)
+    ','      reduce using rule 20 (Nullable)
+    DEFAULT  reduce using rule 20 (Nullable)
 
 state 128 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE NOT
 
-   17 AllowNull: NOT . NULL
+   21 Nullable: NOT . NULL
 
     NULL  shift, and goto state 134
 
 state 129 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE [')']
 
-   33 CreateField: Expr FieldType AllowNull . DefaultVal
-   18 DefaultVal: .  [')', ',']
+   33 CreateField: Expr FieldType Nullable . Default
+   15 Default: .  [')', ',']
 
-    ')'      reduce using rule 18 (DefaultVal)
-    ','      reduce using rule 18 (DefaultVal)
+    ')'      reduce using rule 15 (Default)
+    ','      reduce using rule 15 (Default)
     DEFAULT  shift, and goto state 130
 
-    DefaultVal  goto state 131
+    Default  goto state 131
 
 state 130 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE DEFAULT
 
-   19 DefaultVal: DEFAULT .  [')', ',']
-   20 DefaultVal: DEFAULT . NULL
-   21 DefaultVal: DEFAULT . Expr
+   16 Default: DEFAULT .  [')', ',']
+   17 Default: DEFAULT . NULL
+   18 Default: DEFAULT . Expr
 
-    ')'       reduce using rule 19 (DefaultVal)
-    ','       reduce using rule 19 (DefaultVal)
+    ')'       reduce using rule 16 (Default)
+    ','       reduce using rule 16 (Default)
     NULL      shift, and goto state 132
     VARIABLE  shift, and goto state 20
 
@@ -1228,32 +1228,32 @@ state 130 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE DEFAULT
 
 state 131 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE [')']
 
-   33 CreateField: Expr FieldType AllowNull DefaultVal .  [')', ',']
+   33 CreateField: Expr FieldType Nullable Default .  [')', ',']
 
     ')'  reduce using rule 33 (CreateField)
     ','  reduce using rule 33 (CreateField)
 
 state 132 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE DEFAULT NULL
 
-   20 DefaultVal: DEFAULT NULL .  [')', ',']
+   17 Default: DEFAULT NULL .  [')', ',']
 
-    ')'  reduce using rule 20 (DefaultVal)
-    ','  reduce using rule 20 (DefaultVal)
+    ')'  reduce using rule 17 (Default)
+    ','  reduce using rule 17 (Default)
 
 state 133 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE DEFAULT VARIABLE [')']
 
-   21 DefaultVal: DEFAULT Expr .  [')', ',']
+   18 Default: DEFAULT Expr .  [')', ',']
 
-    ')'  reduce using rule 21 (DefaultVal)
-    ','  reduce using rule 21 (DefaultVal)
+    ')'  reduce using rule 18 (Default)
+    ','  reduce using rule 18 (Default)
 
 state 134 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE NOT NULL
 
-   17 AllowNull: NOT NULL .  [')', ',', DEFAULT]
+   21 Nullable: NOT NULL .  [')', ',', DEFAULT]
 
-    ')'      reduce using rule 17 (AllowNull)
-    ','      reduce using rule 17 (AllowNull)
-    DEFAULT  reduce using rule 17 (AllowNull)
+    ')'      reduce using rule 21 (Nullable)
+    ','      reduce using rule 21 (Nullable)
+    DEFAULT  reduce using rule 21 (Nullable)
 
 state 135 // CREATE TABLE VARIABLE '(' VARIABLE VARIABLE ')'
 

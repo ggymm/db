@@ -135,10 +135,10 @@ type CreateTable struct {
 }
 
 type CreateField struct {
-	Name       string
-	Type       FieldType
-	AllowNull  bool
-	DefaultVal string
+	Name     string
+	Type     FieldType
+	Default  string
+	Nullable bool
 }
 
 type CreateIndex struct {
