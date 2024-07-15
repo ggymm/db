@@ -53,30 +53,30 @@ func border(lens []int, chars []string) (string, string, string) {
 }
 
 type Table struct {
-	chars []string
+	head []string
+	body [][]string
 
-	thead []string
-	tbody [][]string
+	chars []string
 }
 
 func NewTable() *Table {
 	return &Table{
 		chars: singleLine,
 
-		thead: []string{},
-		tbody: [][]string{},
+		head: []string{},
+		body: [][]string{},
 	}
 }
 
 func (v *Table) calcLens() []int {
-	lens := make([]int, len(v.thead))
-	for i, h := range v.thead {
+	lens := make([]int, len(v.head))
+	for i, h := range v.head {
 		w := runeWidth(h)
 		if w > lens[i] {
 			lens[i] = w
 		}
 	}
-	for _, row := range v.tbody {
+	for _, row := range v.body {
 		for i, r := range row {
 			w := runeWidth(r)
 			if w > lens[i] {
@@ -95,22 +95,22 @@ func (v *Table) SetChars(chars []string) {
 	v.chars = chars
 }
 
-func (v *Table) SetHead(thead []string) {
-	v.thead = thead
+func (v *Table) SetHead(head []string) {
+	v.head = head
 }
 
-func (v *Table) SetBody(tbody [][]string) {
-	// 检查是否有 thead
-	if len(v.thead) == 0 {
+func (v *Table) SetBody(body [][]string) {
+	// 检查是否有 head
+	if len(v.head) == 0 {
 		panic("no head")
 	}
 	// 检查每条记录的长度是否和 header 一致
-	for _, row := range tbody {
-		if len(row) != len(v.thead) {
+	for _, row := range body {
+		if len(row) != len(v.head) {
 			panic("invalid body")
 		}
 	}
-	v.tbody = tbody
+	v.body = body
 }
 
 func (v *Table) String() string {
@@ -137,14 +137,14 @@ func (v *Table) String() string {
 	// 输出标题
 	res = append(res, top)
 	str = chars[10]
-	for i, h := range v.thead {
+	for i, h := range v.head {
 		str += left() + h + right(i, h)
 	}
 	res = append(res, str)
 
 	// 输出每条记录
 	res = append(res, middle)
-	for _, row := range v.tbody {
+	for _, row := range v.body {
 		str = chars[10]
 		for i, r := range row {
 			str += left() + r + right(i, r)

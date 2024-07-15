@@ -1,10 +1,10 @@
-package table
+package hash
 
 import (
 	"hash/fnv"
 )
 
-func hash(val any) uint64 {
+func Sum64(val any) uint64 {
 	switch val.(type) {
 	case uint32:
 		return uint64(val.(uint32))

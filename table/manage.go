@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ggymm/db"
 	"github.com/ggymm/db/index"
+	"github.com/ggymm/db/pkg/hash"
 	"math"
 	"slices"
 	"sync"
@@ -216,7 +217,7 @@ func (tbm *tableManage) Insert(txId uint64, stmt *sql.InsertStmt) error {
 
 			// 格式化索引字段
 			val := sql.FieldFormat(f.Type, v)
-			err = f.index.Insert(hash(val), itemId)
+			err = f.index.Insert(hash.Sum64(val), itemId)
 			if err != nil {
 				return err
 			}
@@ -242,6 +243,7 @@ func (tbm *tableManage) Delete(txId uint64, stmt *sql.DeleteStmt) error {
 	return nil
 }
 
+// Select 查询数据
 func (tbm *tableManage) Select(txId uint64, stmt *sql.SelectStmt) ([]entry, error) {
 	// 获取表对象
 	t, ok := tbm.tables.Get(stmt.Table)
@@ -274,6 +276,11 @@ func (tbm *tableManage) Select(txId uint64, stmt *sql.SelectStmt) ([]entry, erro
 			return nil, err
 		}
 	} else {
+		// 索引搜索条件
+		// 查询条件与其他条件为 and 关系
+		// 查询条件不能与其他字段条件混合
+		sql.FieldFormat("", "")
+
 		for _, cond := range stmt.Where {
 			fmt.Printf("cond: %+v\n", cond)
 		}
@@ -308,23 +315,23 @@ func (tbm *tableManage) Select(txId uint64, stmt *sql.SelectStmt) ([]entry, erro
 }
 
 func (tbm *tableManage) ShowTable() string {
-	thead := []string{"Tables"}
-	tbody := make([][]string, 0)
+	head := []string{"Tables"}
+	body := make([][]string, 0)
 
 	tbm.tables.IterCb(func(name string, _ *table) {
-		tbody = append(tbody, []string{name})
+		body = append(body, []string{name})
 	})
 
 	// 表格形式输出
 	vt := view.NewTable()
-	vt.SetHead(thead)
-	vt.SetBody(tbody)
+	vt.SetHead(head)
+	vt.SetBody(body)
 	return vt.String()
 }
 
 func (tbm *tableManage) ShowField(table string) string {
-	thead := []string{"Field", "Type", "Null", "Key", "Default"}
-	tbody := make([][]string, 0)
+	head := []string{"Field", "Type", "Null", "Key", "Default"}
+	body := make([][]string, 0)
 	t, exist := tbm.tables.Get(table)
 	if !exist {
 		return "no such table"
@@ -342,7 +349,7 @@ func (tbm *tableManage) ShowField(table string) string {
 		if f.Nullable {
 			nullable = "YES"
 		}
-		tbody = append(tbody, []string{
+		body = append(body, []string{
 			f.Name,
 			f.Type,
 			nullable,
@@ -353,8 +360,8 @@ func (tbm *tableManage) ShowField(table string) string {
 
 	// 表格形式输出
 	vt := view.NewTable()
-	vt.SetHead(thead)
-	vt.SetBody(tbody)
+	vt.SetHead(head)
+	vt.SetBody(body)
 	return vt.String()
 }
 
@@ -365,29 +372,29 @@ func (tbm *tableManage) ShowResult(table string, entries []entry) string {
 		return ""
 	}
 
-	thead := make([]string, 0)
-	tbody := make([][]string, 0)
+	head := make([]string, 0)
+	body := make([][]string, 0)
 
 	for _, f := range t.Fields {
-		thead = append(thead, f.Name)
+		head = append(head, f.Name)
 	}
 
 	for _, ent := range entries {
 		row := make([]string, 0)
-		for _, f := range thead {
+		for _, f := range head {
 			val, exist := ent[f]
 			if !exist {
 				val = ""
 			}
 			row = append(row, fmt.Sprintf("%v", val))
 		}
-		tbody = append(tbody, row)
+		body = append(body, row)
 	}
 
 	// 表格形式输出
 	vt := view.NewTable()
-	vt.SetHead(thead)
-	vt.SetBody(tbody)
+	vt.SetHead(head)
+	vt.SetBody(body)
 	return vt.String()
 }
 
