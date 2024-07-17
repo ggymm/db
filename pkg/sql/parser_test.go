@@ -102,18 +102,15 @@ func TestParseSQL_SelectWhere(t *testing.T) {
 
 	indexes := make([]int, 0)
 	selectStmt := stmt.(*SelectStmt)
-	for _, where := range selectStmt.Where {
-		t.Logf("%+v", where.Ranges("id", Int64.String()))
-	}
 
 	for i := 0; i < len(data); i++ {
 		exist := true
 		for _, where := range selectStmt.Where {
-			err = where.Prepare(fm)
+			err = where.Setup(fm)
 			if err != nil {
 				t.Fatalf("%+v", err)
 			}
-			if where.Filter(data[i]) && exist {
+			if where.Match(data[i]) && exist {
 				exist = true
 			} else {
 				exist = false

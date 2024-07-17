@@ -277,8 +277,8 @@ func (tbm *tableManage) Select(txId uint64, stmt *sql.SelectStmt) ([]entry, erro
 		}
 	} else {
 		// 索引搜索条件
-		// 查询条件与其他条件为 and 关系
-		// 查询条件不能与其他字段条件混合
+		// 索引条件与其他条件为 and 关系
+		// 索引条件中不能含有非当前索引字段的条件
 		sql.FieldFormat("", "")
 
 		for _, cond := range stmt.Where {

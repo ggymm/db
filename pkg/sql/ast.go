@@ -2,8 +2,6 @@ package sql
 
 import (
 	"fmt"
-	"github.com/ggymm/db/pkg/hash"
-	"math"
 	"strconv"
 )
 
@@ -225,11 +223,14 @@ type SelectField struct {
 }
 
 type SelectWhere interface {
+	// Negate 取反
 	Negate()
-	Prepare(pos map[string]int) error
 
-	Filter(r *[]string) bool
-	Ranges(f, t string) [][]uint64
+	// Setup 设置字段位置
+	Setup(pos map[string]int) error
+
+	// Match 判断是否符合条件
+	Match(row *[]string) bool
 }
 
 type SelectWhereExpr struct {
@@ -241,9 +242,9 @@ func (w *SelectWhereExpr) Negate() {
 	w.Negation = !w.Negation
 }
 
-func (w *SelectWhereExpr) Prepare(pos map[string]int) error {
+func (w *SelectWhereExpr) Setup(pos map[string]int) error {
 	for _, be := range w.Cnf {
-		err := be.Prepare(pos)
+		err := be.Setup(pos)
 		if err != nil {
 			return err
 		}
@@ -251,39 +252,16 @@ func (w *SelectWhereExpr) Prepare(pos map[string]int) error {
 	return nil
 }
 
-func (w *SelectWhereExpr) Filter(r *[]string) bool {
+func (w *SelectWhereExpr) Match(row *[]string) bool {
 	filter := true
 	for _, be := range w.Cnf {
-		filter = filter && be.Filter(r)
+		filter = filter && be.Match(row)
 	}
 
 	if w.Negation {
 		return !filter
 	}
 	return filter
-}
-
-func (w *SelectWhereExpr) Ranges(f, t string) [][]uint64 {
-	mix := func(l0, r0, l1, r1 uint64) (uint64, uint64) {
-		if l0 > r1 || l1 > r0 {
-			return 0, 0
-		}
-		return max(l0, l1), min(r0, r1)
-	}
-
-	l, r := uint64(0), uint64(math.MaxUint64)
-	for _, be := range w.Cnf {
-		rng := be.Ranges(f, t)
-		if rng == nil {
-			return nil
-		}
-		for _, v := range rng {
-			l, r = mix(l, r, v[0], v[1])
-		}
-	}
-	if w.Negation {
-	}
-	return nil
 }
 
 type SelectWhereField struct {
@@ -297,7 +275,7 @@ func (w *SelectWhereField) Negate() {
 	w.Operate.Negate()
 }
 
-func (w *SelectWhereField) Prepare(pos map[string]int) error {
+func (w *SelectWhereField) Setup(pos map[string]int) error {
 	p, ok := pos[w.Field]
 	if !ok {
 		_, err := strconv.Atoi(w.Field)
@@ -311,12 +289,12 @@ func (w *SelectWhereField) Prepare(pos map[string]int) error {
 	return nil
 }
 
-func (w *SelectWhereField) Filter(r *[]string) bool {
+func (w *SelectWhereField) Match(row *[]string) bool {
 	var val string
 	if w.Pos == -1 {
 		val = w.Field
 	} else {
-		val = (*r)[w.Pos]
+		val = (*row)[w.Pos]
 	}
 
 	switch w.Operate {
@@ -334,22 +312,6 @@ func (w *SelectWhereField) Filter(r *[]string) bool {
 		return val >= w.Value
 	}
 	return false
-}
-
-func (w *SelectWhereField) Ranges(f, t string) [][]uint64 {
-	if w.Field != f {
-		return nil
-	}
-	val := hash.Sum64(FieldFormat(t, w.Value))
-	switch w.Operate {
-	case EQ, NE:
-		return [][]uint64{{0, math.MaxUint64}}
-	case LT, LE:
-		return [][]uint64{{0, val}}
-	case GT, GE:
-		return [][]uint64{{val, math.MaxUint64}}
-	}
-	return [][]uint64{{0, math.MaxUint64}}
 }
 
 type SelectOrder struct {

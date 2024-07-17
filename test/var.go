@@ -1,6 +1,7 @@
 package test
 
 import (
+	"embed"
 	_ "embed"
 )
 
@@ -21,3 +22,6 @@ var SelectSQL string
 
 //go:embed select_where.sql
 var SelectWhereSQL string
+
+//go:embed index/*
+var SelectIndexSQL embed.FS
