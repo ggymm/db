@@ -16,6 +16,11 @@ var (
 	CondConflict = errors.New("cond conflict")
 )
 
+type Explain struct {
+	Field  *field
+	Wheres []sql.SelectWhere
+}
+
 type Interval struct {
 	Min uint64
 	Max uint64
@@ -25,56 +30,36 @@ func (i *Interval) String() string {
 	return fmt.Sprintf("[%d, %d]", i.Min, i.Max)
 }
 
-// fmtCond 格式化集合（排序，合并）
-func fmtCond(s []*Interval) []*Interval {
-	if len(s) == 0 || len(s) == 1 {
-		return s
-	}
-	// 排序
-	slices.SortFunc(s, func(x, y *Interval) int {
-		if x.Min == y.Min {
-			return cmp.Compare(x.Max, y.Max)
-		}
-		return cmp.Compare(x.Min, y.Min)
-	})
-
-	// 合并
-	dst := []*Interval{s[0]}
-	for _, item := range s {
-		n := len(dst) - 1
-		if item.Min <= dst[n].Max {
-			if item.Max > dst[n].Max {
-				dst[n].Max = item.Max
-			}
-		} else {
-			dst = append(dst, item)
-		}
-	}
-	return dst
+func NewExplain() *Explain {
+	return &Explain{}
 }
 
-// mixCond 取两个集合的交集
-func mixCond(s0, s1 []*Interval) []*Interval {
-	s0 = fmtCond(s0)
-	s1 = fmtCond(s1)
-
-	// 交集
+func (e *Explain) exec() ([]*Interval, error) {
 	dst := make([]*Interval, 0)
-	for _, x := range s0 {
-		for _, y := range s1 {
-			if x.Min > y.Max || y.Min > x.Max {
+	for _, w := range e.Wheres {
+		next, err := e.parse(w)
+		if err != nil {
+			if errors.Is(err, NotIndex) {
 				continue
 			}
-			dst = append(dst, &Interval{
-				Min: max(x.Min, y.Min),
-				Max: min(x.Max, y.Max),
-			})
+			return dst, err
 		}
+
+		if len(dst) == 0 {
+			dst = next
+			continue
+		}
+
+		// 合并条件
+		dst = e.compact(dst, next)
 	}
-	return dst
+	if len(dst) == 0 {
+		return dst, NotIndex
+	}
+	return dst, nil
 }
 
-func parseExpr(f *field, w sql.SelectWhere) ([]*Interval, error) {
+func (e *Explain) parse(w sql.SelectWhere) ([]*Interval, error) {
 	dst := make([]*Interval, 0)
 	switch w.(type) {
 	case *sql.SelectWhereExpr:
@@ -84,7 +69,7 @@ func parseExpr(f *field, w sql.SelectWhere) ([]*Interval, error) {
 		}
 
 		for _, c := range expr.Cnf {
-			next, err := parseExpr(f, c)
+			next, err := e.parse(c)
 			if err != nil {
 				return dst, err
 			}
@@ -95,7 +80,7 @@ func parseExpr(f *field, w sql.SelectWhere) ([]*Interval, error) {
 			}
 
 			// 合并条件
-			dst = mixCond(dst, next)
+			dst = e.compact(dst, next)
 			if len(dst) == 0 {
 				// 存在矛盾条件
 				return dst, CondConflict
@@ -134,11 +119,11 @@ func parseExpr(f *field, w sql.SelectWhere) ([]*Interval, error) {
 		}
 	case *sql.SelectWhereField:
 		cond := w.(*sql.SelectWhereField)
-		if f.Name != cond.Field {
+		if e.Field.Name != cond.Field {
 			return dst, NotIndex
 		}
 
-		val := hash.Sum64(sql.FieldFormat(f.Type, cond.Value))
+		val := hash.Sum64(sql.FieldFormat(e.Field.Type, cond.Value))
 		switch cond.Operate {
 		case sql.EQ:
 			dst = append(dst, &Interval{Min: val, Max: val})
@@ -163,27 +148,52 @@ func parseExpr(f *field, w sql.SelectWhere) ([]*Interval, error) {
 	return dst, nil
 }
 
-func parseWhere(f *field, ws []sql.SelectWhere) ([]*Interval, error) {
+// 格式化区间（排序，合并）
+func (e *Explain) format(i []*Interval) []*Interval {
+	if len(i) == 0 || len(i) == 1 {
+		return i
+	}
+
+	// 排序
+	slices.SortFunc(i, func(x, y *Interval) int {
+		if x.Min == y.Min {
+			return cmp.Compare(x.Max, y.Max)
+		}
+		return cmp.Compare(x.Min, y.Min)
+	})
+
+	// 合并
+	dst := []*Interval{i[0]}
+	for _, item := range i {
+		n := len(dst) - 1
+		if item.Min <= dst[n].Max {
+			if item.Max > dst[n].Max {
+				dst[n].Max = item.Max
+			}
+		} else {
+			dst = append(dst, item)
+		}
+	}
+	return dst
+}
+
+// 取两个区间的交集
+func (e *Explain) compact(i0, i1 []*Interval) []*Interval {
+	i0 = e.format(i0)
+	i1 = e.format(i1)
+
+	// 交集
 	dst := make([]*Interval, 0)
-	for _, w := range ws {
-		next, err := parseExpr(f, w)
-		if err != nil {
-			if errors.Is(err, NotIndex) {
+	for _, x := range i0 {
+		for _, y := range i1 {
+			if x.Min > y.Max || y.Min > x.Max {
 				continue
 			}
-			return dst, err
+			dst = append(dst, &Interval{
+				Min: max(x.Min, y.Min),
+				Max: min(x.Max, y.Max),
+			})
 		}
-
-		if len(dst) == 0 {
-			dst = next
-			continue
-		}
-
-		// 合并条件
-		dst = mixCond(dst, next)
 	}
-	if len(dst) == 0 {
-		return dst, NotIndex
-	}
-	return dst, nil
+	return dst
 }

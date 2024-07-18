@@ -15,7 +15,7 @@ func Test_fmtCond(t *testing.T) {
 		{Min: 20, Max: 30},
 		{Min: 20, Max: 50},
 	}
-	dst := fmtCond(src)
+	dst := NewExplain().format(src)
 	t.Logf("%+v", dst)
 }
 
@@ -26,7 +26,7 @@ func Test_mixCond(t *testing.T) {
 	s1 := []*Interval{
 		{Min: 30, Max: 40},
 	}
-	dst := mixCond(s0, s1)
+	dst := NewExplain().compact(s0, s1)
 	t.Logf("%+v", dst)
 }
 
@@ -35,8 +35,8 @@ func Test_SelectIndex(t *testing.T) {
 		//"index/select1.sql",
 		//"index/select2.sql",
 		//"index/select3.sql",
-		"index/select4.sql",
-		//"index/select5.sql",
+		//"index/select4.sql",
+		"index/select5.sql",
 	}
 	for _, item := range list {
 		b, err := test.SelectIndexSQL.ReadFile(item)
@@ -53,11 +53,13 @@ func Test_SelectIndex(t *testing.T) {
 
 		selectStmt := stmt.(*sql.SelectStmt)
 
-		index := &field{
+		e := NewExplain()
+		e.Field = &field{
 			Name: "id",
 			Type: sql.Int64.String(),
 		}
-		res, err := parseWhere(index, selectStmt.Where)
+		e.Wheres = selectStmt.Where
+		res, err := e.exec()
 
 		// 打印结果
 		t.Logf("%s %+v", string(b), err)
