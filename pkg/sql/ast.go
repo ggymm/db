@@ -1,8 +1,10 @@
 package sql
 
 import (
+	"cmp"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 type Type int
@@ -226,11 +228,8 @@ type SelectWhere interface {
 	// Negate 取反
 	Negate()
 
-	// Setup 设置字段位置
-	Setup(pos map[string]int) error
-
 	// Match 判断是否符合条件
-	Match(row *[]string) bool
+	Match(row map[string]any) bool
 }
 
 type SelectWhereExpr struct {
@@ -242,17 +241,7 @@ func (w *SelectWhereExpr) Negate() {
 	w.Negation = !w.Negation
 }
 
-func (w *SelectWhereExpr) Setup(pos map[string]int) error {
-	for _, be := range w.Cnf {
-		err := be.Setup(pos)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (w *SelectWhereExpr) Match(row *[]string) bool {
+func (w *SelectWhereExpr) Match(row map[string]any) bool {
 	filter := true
 	for _, be := range w.Cnf {
 		filter = filter && be.Match(row)
@@ -275,41 +264,44 @@ func (w *SelectWhereField) Negate() {
 	w.Operate.Negate()
 }
 
-func (w *SelectWhereField) Setup(pos map[string]int) error {
-	p, ok := pos[w.Field]
+func (w *SelectWhereField) Match(row map[string]any) bool {
+	val, ok := row[w.Field]
 	if !ok {
-		_, err := strconv.Atoi(w.Field)
+		return false
+	}
+
+	var r int
+	switch v := val.(type) {
+	case uint32:
+		dst, err := strconv.ParseUint(w.Value, 10, 32)
 		if err != nil {
-			return fmt.Errorf("查询列 %s 不存在", w.Field)
+			return false
 		}
-		w.Pos = -1
-		return nil
+		r = cmp.Compare(v, uint32(dst))
+	case uint64:
+		dst, err := strconv.ParseUint(w.Value, 10, 64)
+		if err != nil {
+			return false
+		}
+		r = cmp.Compare(v, dst)
+	case string:
+		r = strings.Compare(v, w.Value)
+	default:
+		return false
 	}
-	w.Pos = p
-	return nil
-}
-
-func (w *SelectWhereField) Match(row *[]string) bool {
-	var val string
-	if w.Pos == -1 {
-		val = w.Field
-	} else {
-		val = (*row)[w.Pos]
-	}
-
 	switch w.Operate {
 	case EQ:
-		return val == w.Value
+		return r == 0
 	case NE:
-		return val != w.Value
+		return r != 0
 	case LT:
-		return val < w.Value
+		return r < 0
 	case GT:
-		return val > w.Value
+		return r > 0
 	case LE:
-		return val <= w.Value
+		return r <= 0
 	case GE:
-		return val >= w.Value
+		return r >= 0
 	}
 	return false
 }

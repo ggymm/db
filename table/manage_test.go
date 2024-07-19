@@ -176,3 +176,55 @@ func TestTableManage_Select(t *testing.T) {
 	// 释放资源
 	closeTbm()
 }
+
+func TestTableManage_Select1(t *testing.T) {
+	tbm := openTbm()
+
+	// 解析查询表语句
+	stmt, err := sql.ParseSQL("select * from user where user_id < 5;")
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	txId := tbm.Begin(0)
+	entries, err := tbm.Select(txId, stmt.(*sql.SelectStmt))
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+	err = tbm.Commit(txId)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	// 展示字段
+	fmt.Println(tbm.ShowResult(stmt.TableName(), entries))
+
+	// 释放资源
+	closeTbm()
+}
+
+func TestTableManage_Select2(t *testing.T) {
+	tbm := openTbm()
+
+	// 解析查询表语句
+	stmt, err := sql.ParseSQL(`select * from user where user_id < 5 and username = "名称1";`)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	txId := tbm.Begin(0)
+	entries, err := tbm.Select(txId, stmt.(*sql.SelectStmt))
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+	err = tbm.Commit(txId)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	// 展示字段
+	fmt.Println(tbm.ShowResult(stmt.TableName(), entries))
+
+	// 释放资源
+	closeTbm()
+}

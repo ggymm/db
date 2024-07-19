@@ -52,14 +52,10 @@ func Test_SelectIndex(t *testing.T) {
 		t.Logf("%s", s)
 
 		selectStmt := stmt.(*sql.SelectStmt)
-
-		e := NewExplain()
-		e.Field = &field{
+		res, err := NewExplain().Execute(&field{
 			Name: "id",
 			Type: sql.Int64.String(),
-		}
-		e.Wheres = selectStmt.Where
-		res, err := e.exec()
+		}, selectStmt.Where)
 
 		// 打印结果
 		t.Logf("%s %+v", string(b), err)

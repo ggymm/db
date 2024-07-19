@@ -85,32 +85,24 @@ func TestParseSQL_SelectWhere(t *testing.T) {
 	s, _ := json.MarshalIndent(stmt, "", "  ")
 	t.Logf("%s", s)
 
-	fm := map[string]int{
-		"id":       0,
-		"username": 1,
-		"nickname": 2,
-		"email":    3,
-		"extras":   4,
-	}
-	data := []*[]string{
-		{"1", "名称1", "昵称1", "邮箱1", "1"},
-		{"2", "名称2", "昵称2", "邮箱2", "2"},
-		{"3", "名称3", "昵称3", "邮箱3", "3"},
-		{"4", "名称4", "昵称4", "邮箱4", "4"},
-		{"5", "名称5", "昵称5", "邮箱5", "5"},
+	entry := []map[string]any{
+		{"id": "1", "username": "名称1", "nickname": "昵称1", "email": "邮箱1", "extras": "1"},
+		{"id": "2", "username": "名称2", "nickname": "昵称2", "email": "邮箱2", "extras": "2"},
+		{"id": "3", "username": "名称3", "nickname": "昵称3", "email": "邮箱3", "extras": "3"},
+		{"id": "4", "username": "名称4", "nickname": "昵称4", "email": "邮箱4", "extras": "4"},
+		{"id": "5", "username": "名称5", "nickname": "昵称5", "email": "邮箱5", "extras": "5"},
 	}
 
 	indexes := make([]int, 0)
 	selectStmt := stmt.(*SelectStmt)
 
-	for i := 0; i < len(data); i++ {
+	for i := 0; i < len(entry); i++ {
 		exist := true
 		for _, where := range selectStmt.Where {
-			err = where.Setup(fm)
 			if err != nil {
 				t.Fatalf("%+v", err)
 			}
-			if where.Match(data[i]) && exist {
+			if where.Match(entry[i]) && exist {
 				exist = true
 			} else {
 				exist = false
