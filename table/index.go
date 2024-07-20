@@ -200,7 +200,7 @@ func (e *Explain) execute(f *field, ws []sql.SelectWhere) ([]*Interval, error) {
 	return dst, nil
 }
 
-func runResolve(t *table, ws []sql.SelectWhere) ([]uint64, error) {
+func resolveWhere(t *table, ws []sql.SelectWhere) ([]uint64, error) {
 	var err error
 	pk := func() ([]uint64, error) {
 		f := &field{}

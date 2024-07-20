@@ -225,7 +225,7 @@ func (tbm *tableManage) Update(tid uint64, stmt *sql.UpdateStmt) (err error) {
 	)
 
 	// 查询解析
-	rids, err = runResolve(t, stmt.Where)
+	rids, err = resolveWhere(t, stmt.Where)
 	if err != nil {
 		return err
 	}
@@ -297,7 +297,7 @@ func (tbm *tableManage) Delete(tid uint64, stmt *sql.DeleteStmt) (err error) {
 	}
 
 	// 查询解析
-	rids, err := runResolve(t, stmt.Where)
+	rids, err := resolveWhere(t, stmt.Where)
 	if err != nil {
 		return err
 	}
@@ -326,7 +326,7 @@ func (tbm *tableManage) Select(tid uint64, stmt *sql.SelectStmt) ([]entry, error
 	)
 
 	// 查询条件
-	rids, err = runResolve(t, stmt.Where)
+	rids, err = resolveWhere(t, stmt.Where)
 	if err != nil {
 		return nil, err
 	}
