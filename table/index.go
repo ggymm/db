@@ -11,6 +11,10 @@ import (
 	"github.com/ggymm/db/pkg/sql"
 )
 
+// 索引搜索条件
+// 索引条件与其他条件为 and 关系
+// 索引条件中不能含有非当前索引字段的条件
+
 var (
 	ErrNotIndex     = errors.New("not index")
 	ErrCondConflict = errors.New("cond conflict")
@@ -146,7 +150,7 @@ func (e *Explain) process(f *field, w sql.SelectWhere) ([]*Interval, error) {
 			return dst, ErrNotIndex
 		}
 
-		val := hash.Sum64(sql.FieldFormat(f.Type, cond.Value))
+		val := hash.Sum64(sql.FormatVal(f.Type, cond.Value))
 		switch cond.Operate {
 		case sql.EQ:
 			dst = append(dst, &Interval{Min: val, Max: val})

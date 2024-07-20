@@ -2,7 +2,6 @@ package test
 
 import (
 	"embed"
-	_ "embed"
 )
 
 //go:embed create.sql

@@ -3,25 +3,20 @@ package table
 import (
 	"errors"
 	"fmt"
-	"github.com/ggymm/db"
-	"github.com/ggymm/db/index"
-	"github.com/ggymm/db/pkg/hash"
 	"math"
 	"slices"
 	"sync"
 
+	"github.com/ggymm/db"
 	"github.com/ggymm/db/boot"
 	"github.com/ggymm/db/data"
+	"github.com/ggymm/db/index"
 	"github.com/ggymm/db/pkg/bin"
 	"github.com/ggymm/db/pkg/cmap"
+	"github.com/ggymm/db/pkg/hash"
 	"github.com/ggymm/db/pkg/sql"
 	"github.com/ggymm/db/pkg/view"
 	"github.com/ggymm/db/ver"
-)
-
-var (
-	ErrNoSuchTable  = errors.New("no such table")
-	ErrNoPrimaryKey = errors.New("no primary key")
 )
 
 type Manage interface {
@@ -29,10 +24,10 @@ type Manage interface {
 	Commit(tid uint64) error
 	Rollback(tid uint64)
 
-	Create(tid uint64, stmt *sql.CreateStmt) error
-	Insert(tid uint64, stmt *sql.InsertStmt) error
-	Update(tid uint64, stmt *sql.UpdateStmt) error
-	Delete(tid uint64, stmt *sql.DeleteStmt) error
+	Create(tid uint64, stmt *sql.CreateStmt) (err error)
+	Insert(tid uint64, stmt *sql.InsertStmt) (err error)
+	Update(tid uint64, stmt *sql.UpdateStmt) (err error)
+	Delete(tid uint64, stmt *sql.DeleteStmt) (err error)
 	Select(tid uint64, stmt *sql.SelectStmt) ([]entry, error)
 
 	ShowTable() string
@@ -92,11 +87,11 @@ func (tbm *tableManage) Rollback(tid uint64) {
 	tbm.verManage.Rollback(tid)
 }
 
-func (tbm *tableManage) Create(tid uint64, stmt *sql.CreateStmt) error {
+func (tbm *tableManage) Create(tid uint64, stmt *sql.CreateStmt) (err error) {
 	tbm.mu.Lock()
 	defer tbm.mu.Unlock()
 	if exist := tbm.tables.Has(stmt.Name); exist {
-		return nil
+		return
 	}
 
 	t := new(table)
@@ -147,7 +142,7 @@ func (tbm *tableManage) Create(tid uint64, stmt *sql.CreateStmt) error {
 		}
 
 		// 保存字段信息
-		err := f.persist(tid)
+		err = f.save(tid)
 		if err != nil {
 			return err
 		}
@@ -155,7 +150,7 @@ func (tbm *tableManage) Create(tid uint64, stmt *sql.CreateStmt) error {
 	}
 
 	// 保存表信息
-	err := t.persist(tid)
+	err = t.save(tid)
 	if err != nil {
 		return err
 	}
@@ -163,15 +158,10 @@ func (tbm *tableManage) Create(tid uint64, stmt *sql.CreateStmt) error {
 	// 更新表信息
 	tbm.tables.Set(t.Name, t)
 	tbm.updateTableId(t.itemId) // 更新为当前表的 itemId
-	return err
+	return
 }
 
-func (tbm *tableManage) Insert(tid uint64, stmt *sql.InsertStmt) error {
-	var (
-		err error
-		row map[string]string
-	)
-
+func (tbm *tableManage) Insert(tid uint64, stmt *sql.InsertStmt) (err error) {
 	// 获取表对象
 	t, ok := tbm.tables.Get(stmt.Table)
 	if !ok {
@@ -179,68 +169,156 @@ func (tbm *tableManage) Insert(tid uint64, stmt *sql.InsertStmt) error {
 	}
 
 	// 格式化插入数据
-	row, err = stmt.FormatData()
+	if len(stmt.Value) != len(stmt.Field) {
+		return ErrInsertNotMatch
+	}
+	row := make(map[string]any)
+	for _, f := range t.Fields {
+		i := slices.Index(stmt.Field, f.Name)
+		if i == -1 {
+			continue
+		}
+		row[f.Name] = sql.FormatVal(f.Type, stmt.Value[i])
+	}
+
+	// 构建数据
+	raw, err := t.wrapRaw(row)
 	if err != nil {
 		return err
 	}
 
-	// 构建数据
-	raw := make([]byte, 0)
-	for _, f := range t.Fields {
-		// 获取字段值
-		val, exist := row[f.Name]
-		if !exist {
-			if len(f.Default) != 0 {
-				val = f.Default
-			} else if !f.Nullable {
-				return fmt.Errorf("field %s is not allowed to be null", f.Name)
-			}
-		}
-
-		// 获取字段二进制值
-		raw = append(raw, sql.FieldRaw(f.Type, val)...)
-	}
-
 	// 写入数据
-	itemId, err1 := tbm.verManage.Write(tid, raw)
-	if err1 != nil {
-		return err1
+	rid, err := tbm.verManage.Write(tid, raw)
+	if err != nil {
+		return err
 	}
 
 	// 判断是否有字段需要索引
 	for _, f := range t.Fields {
-		if f.isIndex() { // 主键同时也是索引
+		if f.isIndex() {
 			v, exist := row[f.Name]
 			if !exist {
-				return errors.New("index is not allowed to be null")
+				return NewError(ErrNotAllowNull, f.Name)
 			}
 
 			// 格式化索引字段
-			val := sql.FieldFormat(f.Type, v)
-			err = f.index.Insert(hash.Sum64(val), itemId)
+			err = f.index.Insert(hash.Sum64(v), rid)
 			if err != nil {
 				return err
 			}
 		}
 	}
-	return nil
+	return
 }
 
-func (tbm *tableManage) Update(tid uint64, stmt *sql.UpdateStmt) error {
-	_, ok := tbm.tables.Get(stmt.Table)
-	if !ok {
-		return ErrNoSuchTable
-	}
-	return nil
-}
-
-func (tbm *tableManage) Delete(tid uint64, stmt *sql.DeleteStmt) error {
-	_, ok := tbm.tables.Get(stmt.Table)
+func (tbm *tableManage) Update(tid uint64, stmt *sql.UpdateStmt) (err error) {
+	t, ok := tbm.tables.Get(stmt.Table)
 	if !ok {
 		return ErrNoSuchTable
 	}
 
-	return nil
+	if len(stmt.Where) == 0 {
+		return ErrMustHaveCondition
+	}
+
+	var (
+		f  = &field{}
+		rs = make([]*Interval, 0)
+
+		raw  = make([]byte, 0)
+		rids = make([]uint64, 0)
+	)
+
+	// 查询解析
+	for _, f = range t.Fields {
+		if !f.isIndex() {
+			continue
+		}
+		rs, err = NewExplain().Execute(f, stmt.Where)
+		if err != nil {
+			if errors.Is(err, ErrNotIndex) {
+				continue
+			}
+			return err
+		}
+		if len(rs) != 0 {
+			break
+		}
+	}
+	if len(rs) == 0 {
+		return ErrMustHaveCondition
+	}
+
+	// 查询索引
+	tmp := make([]uint64, 0)
+	for _, r := range rs {
+		tmp, err = f.index.SearchRange(r.Min, r.Max)
+		if err != nil {
+			return err
+		}
+		rids = append(rids, tmp...)
+	}
+
+	// 读取数据
+	for _, rid := range rids {
+		raw, ok, err = tbm.verManage.Read(tid, rid)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			continue
+		}
+
+		// 解析数据
+		row := t.wrapEntry(raw, stmt.Where)
+		if row == nil {
+			continue
+		}
+
+		// 删除数据
+		_, err = tbm.verManage.Delete(tid, rid)
+		if err != nil {
+			return err
+		}
+
+		// 更新数据
+		for k, v := range stmt.Value {
+			if _, ok = row[k]; ok {
+				row[k] = v
+			}
+		}
+		raw, _ = t.wrapRaw(row)
+		rid, err = tbm.verManage.Write(tid, raw)
+		if err != nil {
+			return err
+		}
+
+		// 更新索引
+		for _, f = range t.Fields {
+			if f.isIndex() {
+				v, exist := row[f.Name]
+				if !exist {
+					return NewError(ErrNotAllowNull, f.Name)
+				}
+
+				// 格式化索引字段
+				err = f.index.Insert(hash.Sum64(v), rid)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return
+}
+
+func (tbm *tableManage) Delete(tid uint64, stmt *sql.DeleteStmt) (err error) {
+	_, ok := tbm.tables.Get(stmt.Table)
+	if !ok {
+		return ErrNoSuchTable
+	}
+
+	return
 }
 
 // Select 查询数据
@@ -250,6 +328,13 @@ func (tbm *tableManage) Select(tid uint64, stmt *sql.SelectStmt) ([]entry, error
 	if !ok {
 		return nil, ErrNoSuchTable
 	}
+
+	var (
+		err  error
+		raw  = make([]byte, 0)
+		rows = make([]entry, 0)
+		rids = make([]uint64, 0)
+	)
 
 	// 遍历条件，没有查询条件则查询全部数据
 	if len(stmt.Where) == 0 {
@@ -265,16 +350,14 @@ func (tbm *tableManage) Select(tid uint64, stmt *sql.SelectStmt) ([]entry, error
 		}
 
 		// 查询数据
-		ids, err := f.index.SearchRange(0, math.MaxUint64)
+		rids, err = f.index.SearchRange(0, math.MaxUint64)
 		if err != nil {
 			return nil, err
 		}
 
 		// 读取数据
-		raw := make([]byte, 0)
-		rows := make([]entry, 0)
-		for _, itemId := range ids {
-			raw, ok, err = tbm.verManage.Read(tid, itemId)
+		for _, rid := range rids {
+			raw, ok, err = tbm.verManage.Read(tid, rid)
 			if err != nil {
 				return nil, err
 			}
@@ -283,24 +366,10 @@ func (tbm *tableManage) Select(tid uint64, stmt *sql.SelectStmt) ([]entry, error
 			}
 
 			// 解析数据
-			pos := 0
-			row := make(entry)
-			for _, item := range t.Fields {
-				val, shift := sql.FieldParse(item.Type, raw[pos:])
-				if err != nil {
-					return nil, err
-				}
-				row[item.Name] = val
-				pos += shift
-			}
-			rows = append(rows, row)
+			rows = append(rows, t.wrapEntry(raw, nil))
 		}
 		return rows, nil
 	} else {
-		// 索引搜索条件
-		// 索引条件与其他条件为 and 关系
-		// 索引条件中不能含有非当前索引字段的条件
-
 		// 查询解析
 		f := &field{}
 		rs := make([]*Interval, 0)
@@ -308,52 +377,46 @@ func (tbm *tableManage) Select(tid uint64, stmt *sql.SelectStmt) ([]entry, error
 			if !f.isIndex() {
 				continue
 			}
-			cond, err := NewExplain().Execute(f, stmt.Where)
+			rs, err = NewExplain().Execute(f, stmt.Where)
 			if err != nil {
 				if errors.Is(err, ErrNotIndex) {
 					continue
 				}
 				return nil, err
 			}
-			if len(cond) != 0 {
-				rs = cond
+			if len(rs) != 0 {
 				break
 			}
 		}
 
 		// 查询数据
-		ids := make([]uint64, 0)
+		tmp := make([]uint64, 0)
 		if len(rs) > 0 {
-			// 按照索引字段扫描
+			// 查询索引
 			for _, r := range rs {
-				tmp, err := f.index.SearchRange(r.Min, r.Max)
+				tmp, err = f.index.SearchRange(r.Min, r.Max)
 				if err != nil {
 					return nil, err
 				}
-				ids = append(ids, tmp...)
+				rids = append(rids, tmp...)
 			}
 		} else {
-			// 按照主键字段扫描全表
+			// 查询主键索引
 			for _, f = range t.Fields {
 				if f.PrimaryKey {
 					break
 				}
 			}
-			tmp, err := f.index.SearchRange(0, math.MaxUint64)
+			tmp, err = f.index.SearchRange(0, math.MaxUint64)
 			if err != nil {
 				return nil, err
 			}
-			ids = tmp
+			rids = tmp
 		}
 
 		// 读取数据
-		var (
-			err  error
-			raw  = make([]byte, 0)
-			rows = make([]entry, 0)
-		)
-		for _, itemId := range ids {
-			raw, ok, err = tbm.verManage.Read(tid, itemId)
+		for _, rid := range rids {
+			raw, ok, err = tbm.verManage.Read(tid, rid)
 			if err != nil {
 				return nil, err
 			}
@@ -362,27 +425,8 @@ func (tbm *tableManage) Select(tid uint64, stmt *sql.SelectStmt) ([]entry, error
 			}
 
 			// 解析数据
-			pos := 0
-			row := make(entry)
-			for _, item := range t.Fields {
-				val, shift := sql.FieldParse(item.Type, raw[pos:])
-				if err != nil {
-					return nil, err
-				}
-				row[item.Name] = val
-				pos += shift
-			}
-
-			// 过滤条件
-			match := true
-			for _, where := range stmt.Where {
-				if where.Match(row) && match {
-					match = true
-				} else {
-					match = false
-				}
-			}
-			if match {
+			row := t.wrapEntry(raw, stmt.Where)
+			if row != nil {
 				rows = append(rows, row)
 			}
 		}

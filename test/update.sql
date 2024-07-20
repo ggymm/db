@@ -1,1 +1,1 @@
-UPDATE device SET device_id   = 1, device_name = 'pname \t\<>12' WHERE device_id = 1;
+UPDATE user SET username = "名称1-修改" WHERE user_id = 1;

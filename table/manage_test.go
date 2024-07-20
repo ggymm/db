@@ -155,7 +155,7 @@ func TestTableManage_Select(t *testing.T) {
 	tbm := openTbm()
 
 	// 解析查询表语句
-	stmt, err := sql.ParseSQL(test.SelectSQL)
+	stmt, err := sql.ParseSQL(`select * from user;`)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}

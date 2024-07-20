@@ -3,7 +3,15 @@ package table
 import (
 	"github.com/ggymm/db"
 	"github.com/ggymm/db/index"
+	"github.com/ggymm/db/pkg/bin"
+	"github.com/ggymm/db/pkg/sql"
 	"github.com/ggymm/db/tx"
+	"slices"
+)
+
+const (
+	Null byte = iota
+	NotNull
 )
 
 type entry map[string]any
@@ -64,7 +72,7 @@ func readTable(tbm Manage, itemId uint64) *table {
 	return t
 }
 
-func (t *table) persist(txId uint64) (err error) {
+func (t *table) save(txId uint64) (err error) {
 	// name
 	data := encodeString(t.Name)
 
@@ -81,6 +89,55 @@ func (t *table) persist(txId uint64) (err error) {
 	// 持久化
 	t.itemId, err = t.tbm.VerManage().Write(txId, data)
 	return
+}
+
+func (t *table) wrapRaw(row entry) ([]byte, error) {
+	raw := make([]byte, 0)
+	for _, f := range t.Fields {
+		// 获取字段值
+		v, exist := row[f.Name]
+		if !exist || v == "" {
+			if len(f.Default) != 0 {
+				v = f.Default
+				continue
+			}
+			if !f.Nullable {
+				return nil, NewError(ErrNotAllowNull, f.Name)
+			}
+		}
+
+		// 获取字段二进制值
+		raw = append(raw, f.wrapRaw(v)...)
+	}
+	return raw, nil
+}
+
+func (t *table) wrapEntry(raw []byte, where []sql.SelectWhere) entry {
+	pos := 0
+	row := make(entry)
+	for _, f := range t.Fields {
+		val, shift := f.parseRaw(raw[pos:])
+		row[f.Name] = val
+		pos += shift
+	}
+
+	if where == nil || len(where) == 0 {
+		return row
+	}
+
+	// 过滤条件
+	match := true
+	for _, w := range where {
+		if w.Match(row) && match {
+			match = true
+		} else {
+			match = false
+		}
+	}
+	if !match {
+		return nil
+	}
+	return row
 }
 
 // field 字段信息
@@ -161,8 +218,7 @@ func readField(tbm Manage, itemId uint64) *field {
 	return f
 }
 
-// persist 将该field持久化
-func (f *field) persist(txId uint64) (err error) {
+func (f *field) save(txId uint64) (err error) {
 	// name
 	data := encodeString(f.Name)
 
@@ -192,6 +248,58 @@ func (f *field) persist(txId uint64) (err error) {
 	// 保存到磁盘
 	f.itemId, err = f.tbm.VerManage().Write(txId, data)
 	return
+}
+
+func (f *field) wrapRaw(v any) []byte {
+	if v == nil {
+		return []byte{Null}
+	}
+
+	var raw []byte
+	switch f.Type {
+	case "INT32":
+		raw = bin.Uint32Raw(v.(uint32))
+	case "INT64":
+		raw = bin.Uint64Raw(v.(uint64))
+	case "VARCHAR":
+		l := len(v.(string))
+		raw = make([]byte, 4+l)
+
+		// length
+		raw[0] = byte(l)
+		raw[1] = byte(l >> 8)
+		raw[2] = byte(l >> 16)
+		raw[3] = byte(l >> 24)
+
+		// string
+		copy(raw[4:], v.(string))
+	}
+	return slices.Insert(raw, 0, NotNull)
+}
+
+func (f *field) parseRaw(raw []byte) (any, int) {
+	if raw[0] == Null {
+		return nil, 1
+	}
+	var v any
+	var shift int
+	raw = raw[1:]
+	switch f.Type {
+	case "INT32":
+		v = bin.Uint32(raw)
+		shift = 4
+	case "INT64":
+		v = bin.Uint64(raw)
+		shift = 8
+	case "VARCHAR":
+		l := int(raw[0]) |
+			int(raw[1])<<8 |
+			int(raw[2])<<16 |
+			int(raw[3])<<24
+		v = string(raw[4 : 4+l])
+		shift = l + 4
+	}
+	return v, shift + 1
 }
 
 func (f *field) isIndex() bool {

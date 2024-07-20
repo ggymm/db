@@ -2,7 +2,6 @@ package sql
 
 import (
 	"cmp"
-	"fmt"
 	"strconv"
 	"strings"
 )
@@ -163,17 +162,6 @@ func (*InsertStmt) StmtType() Type {
 
 func (s *InsertStmt) TableName() string {
 	return s.Table
-}
-
-func (s *InsertStmt) FormatData() (map[string]string, error) {
-	if len(s.Value) != len(s.Field) {
-		return nil, fmt.Errorf("插入列数与值数不匹配")
-	}
-	row := make(map[string]string)
-	for i, v := range s.Value {
-		row[s.Field[i]] = v
-	}
-	return row, nil
 }
 
 type UpdateStmt struct {
