@@ -15,7 +15,7 @@ func Test_fmtCond(t *testing.T) {
 		{Min: 20, Max: 30},
 		{Min: 20, Max: 50},
 	}
-	dst := NewExplain().format(src)
+	dst := newExplain().format(src)
 	t.Logf("%+v", dst)
 }
 
@@ -26,7 +26,7 @@ func Test_mixCond(t *testing.T) {
 	s1 := []*Interval{
 		{Min: 30, Max: 40},
 	}
-	dst := NewExplain().compact(s0, s1)
+	dst := newExplain().compact(s0, s1)
 	t.Logf("%+v", dst)
 }
 
@@ -52,7 +52,7 @@ func Test_SelectIndex(t *testing.T) {
 		t.Logf("%s", s)
 
 		selectStmt := stmt.(*sql.SelectStmt)
-		res, err := NewExplain().Execute(&field{
+		res, err := newExplain().execute(&field{
 			Name: "id",
 			Type: sql.Int64.String(),
 		}, selectStmt.Where)

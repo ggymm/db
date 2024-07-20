@@ -32,7 +32,7 @@ func (i *Interval) String() string {
 	return fmt.Sprintf("[%d, %d]", i.Min, i.Max)
 }
 
-func NewExplain() *Explain {
+func newExplain() *Explain {
 	return &Explain{}
 }
 
@@ -175,7 +175,7 @@ func (e *Explain) process(f *field, w sql.SelectWhere) ([]*Interval, error) {
 	return dst, nil
 }
 
-func (e *Explain) Execute(f *field, ws []sql.SelectWhere) ([]*Interval, error) {
+func (e *Explain) execute(f *field, ws []sql.SelectWhere) ([]*Interval, error) {
 	dst := make([]*Interval, 0)
 	for _, w := range ws {
 		next, err := e.process(f, w)
@@ -198,4 +198,68 @@ func (e *Explain) Execute(f *field, ws []sql.SelectWhere) ([]*Interval, error) {
 		return dst, ErrNotIndex
 	}
 	return dst, nil
+}
+
+func runResolve(t *table, ws []sql.SelectWhere) ([]uint64, error) {
+	var err error
+	pk := func() ([]uint64, error) {
+		f := &field{}
+		for _, f = range t.Fields {
+			if f.PrimaryKey {
+				break
+			}
+		}
+		if f == nil {
+			return nil, ErrNoPrimaryKey
+		}
+
+		// 查询索引
+		return f.index.SearchRange(0, math.MaxUint64)
+	}
+
+	// 查询条件
+	if len(ws) == 0 {
+		return pk()
+	} else {
+		var (
+			f  = &field{}
+			rs = make([]*Interval, 0)
+		)
+
+		// 条件解析
+		for _, f = range t.Fields {
+			if f.TreeId == 0 {
+				continue
+			}
+			rs, err = newExplain().execute(f, ws)
+			if err != nil {
+				if errors.Is(err, ErrNotIndex) {
+					continue
+				}
+				return nil, err
+			}
+			if len(rs) != 0 {
+				break
+			}
+		}
+
+		// 查询索引
+		if len(rs) == 0 {
+			return pk()
+		} else {
+			var (
+				tmp  = make([]uint64, 0)
+				rids = make([]uint64, 0)
+			)
+
+			for _, r := range rs {
+				tmp, err = f.index.SearchRange(r.Min, r.Max)
+				if err != nil {
+					return nil, err
+				}
+				rids = append(rids, tmp...)
+			}
+			return rids, err
+		}
+	}
 }

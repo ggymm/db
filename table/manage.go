@@ -1,9 +1,7 @@
 package table
 
 import (
-	"errors"
 	"fmt"
-	"math"
 	"slices"
 	"sync"
 
@@ -101,9 +99,9 @@ func (tbm *tableManage) Create(tid uint64, stmt *sql.CreateStmt) (err error) {
 	t.Fields = make([]*field, 0)
 
 	// 读取 主键 和 索引
-	indexList := make([]string, 0)
+	indexes := make([]string, 0)
 	for _, i := range stmt.Table.Index {
-		indexList = append(indexList, i.Field)
+		indexes = append(indexes, i.Field)
 	}
 
 	// 读取 field
@@ -117,7 +115,7 @@ func (tbm *tableManage) Create(tid uint64, stmt *sql.CreateStmt) (err error) {
 		f.Nullable = tf.Nullable
 
 		indexed := false
-		if slices.Contains(indexList, tf.Name) {
+		if slices.Contains(indexes, tf.Name) {
 			indexed = true
 			f.Nullable = false
 		}
@@ -131,11 +129,11 @@ func (tbm *tableManage) Create(tid uint64, stmt *sql.CreateStmt) (err error) {
 		}
 
 		if indexed {
-			i, err := index.NewIndex(tbm.DataManage(), &db.Option{
+			i, err1 := index.NewIndex(tbm.DataManage(), &db.Option{
 				Open: false,
 			})
-			if err != nil {
-				return err
+			if err1 != nil {
+				return err1
 			}
 			f.index = i
 			f.TreeId = i.GetBootId()
@@ -195,7 +193,7 @@ func (tbm *tableManage) Insert(tid uint64, stmt *sql.InsertStmt) (err error) {
 
 	// 判断是否有字段需要索引
 	for _, f := range t.Fields {
-		if f.isIndex() {
+		if f.TreeId != 0 {
 			v, exist := row[f.Name]
 			if !exist {
 				return NewError(ErrNotAllowNull, f.Name)
@@ -222,41 +220,14 @@ func (tbm *tableManage) Update(tid uint64, stmt *sql.UpdateStmt) (err error) {
 	}
 
 	var (
-		f  = &field{}
-		rs = make([]*Interval, 0)
-
 		raw  = make([]byte, 0)
 		rids = make([]uint64, 0)
 	)
 
 	// 查询解析
-	for _, f = range t.Fields {
-		if !f.isIndex() {
-			continue
-		}
-		rs, err = NewExplain().Execute(f, stmt.Where)
-		if err != nil {
-			if errors.Is(err, ErrNotIndex) {
-				continue
-			}
-			return err
-		}
-		if len(rs) != 0 {
-			break
-		}
-	}
-	if len(rs) == 0 {
-		return ErrMustHaveCondition
-	}
-
-	// 查询索引
-	tmp := make([]uint64, 0)
-	for _, r := range rs {
-		tmp, err = f.index.SearchRange(r.Min, r.Max)
-		if err != nil {
-			return err
-		}
-		rids = append(rids, tmp...)
+	rids, err = runResolve(t, stmt.Where)
+	if err != nil {
+		return err
 	}
 
 	// 读取数据
@@ -287,15 +258,18 @@ func (tbm *tableManage) Update(tid uint64, stmt *sql.UpdateStmt) (err error) {
 				row[k] = v
 			}
 		}
-		raw, _ = t.wrapRaw(row)
+		raw, err = t.wrapRaw(row)
+		if err != nil {
+			return err
+		}
 		rid, err = tbm.verManage.Write(tid, raw)
 		if err != nil {
 			return err
 		}
 
 		// 更新索引
-		for _, f = range t.Fields {
-			if f.isIndex() {
+		for _, f := range t.Fields {
+			if f.TreeId != 0 {
 				v, exist := row[f.Name]
 				if !exist {
 					return NewError(ErrNotAllowNull, f.Name)
@@ -313,11 +287,28 @@ func (tbm *tableManage) Update(tid uint64, stmt *sql.UpdateStmt) (err error) {
 }
 
 func (tbm *tableManage) Delete(tid uint64, stmt *sql.DeleteStmt) (err error) {
-	_, ok := tbm.tables.Get(stmt.Table)
+	t, ok := tbm.tables.Get(stmt.Table)
 	if !ok {
 		return ErrNoSuchTable
 	}
 
+	if len(stmt.Where) == 0 {
+		return ErrMustHaveCondition
+	}
+
+	// 查询解析
+	rids, err := runResolve(t, stmt.Where)
+	if err != nil {
+		return err
+	}
+
+	// 读取数据
+	for _, rid := range rids {
+		_, err = tbm.verManage.Delete(tid, rid)
+		if err != nil {
+			return err
+		}
+	}
 	return
 }
 
@@ -331,107 +322,37 @@ func (tbm *tableManage) Select(tid uint64, stmt *sql.SelectStmt) ([]entry, error
 
 	var (
 		err  error
-		raw  = make([]byte, 0)
-		rows = make([]entry, 0)
 		rids = make([]uint64, 0)
 	)
 
-	// 遍历条件，没有查询条件则查询全部数据
-	if len(stmt.Where) == 0 {
-		// 找到主键索引字段
-		f := &field{}
-		for _, f = range t.Fields {
-			if f.PrimaryKey {
-				break
-			}
-		}
-		if f == nil {
-			return nil, ErrNoPrimaryKey
-		}
+	// 查询条件
+	rids, err = runResolve(t, stmt.Where)
+	if err != nil {
+		return nil, err
+	}
 
-		// 查询数据
-		rids, err = f.index.SearchRange(0, math.MaxUint64)
+	var (
+		raw  = make([]byte, 0)
+		rows = make([]entry, 0)
+	)
+
+	// 读取数据
+	for _, rid := range rids {
+		raw, ok, err = tbm.verManage.Read(tid, rid)
 		if err != nil {
 			return nil, err
 		}
-
-		// 读取数据
-		for _, rid := range rids {
-			raw, ok, err = tbm.verManage.Read(tid, rid)
-			if err != nil {
-				return nil, err
-			}
-			if !ok {
-				continue
-			}
-
-			// 解析数据
-			rows = append(rows, t.wrapEntry(raw, nil))
-		}
-		return rows, nil
-	} else {
-		// 查询解析
-		f := &field{}
-		rs := make([]*Interval, 0)
-		for _, f = range t.Fields {
-			if !f.isIndex() {
-				continue
-			}
-			rs, err = NewExplain().Execute(f, stmt.Where)
-			if err != nil {
-				if errors.Is(err, ErrNotIndex) {
-					continue
-				}
-				return nil, err
-			}
-			if len(rs) != 0 {
-				break
-			}
+		if !ok {
+			continue
 		}
 
-		// 查询数据
-		tmp := make([]uint64, 0)
-		if len(rs) > 0 {
-			// 查询索引
-			for _, r := range rs {
-				tmp, err = f.index.SearchRange(r.Min, r.Max)
-				if err != nil {
-					return nil, err
-				}
-				rids = append(rids, tmp...)
-			}
-		} else {
-			// 查询主键索引
-			for _, f = range t.Fields {
-				if f.PrimaryKey {
-					break
-				}
-			}
-			tmp, err = f.index.SearchRange(0, math.MaxUint64)
-			if err != nil {
-				return nil, err
-			}
-			rids = tmp
+		// 解析数据
+		row := t.wrapEntry(raw, stmt.Where)
+		if row != nil {
+			rows = append(rows, row)
 		}
-
-		// 读取数据
-		for _, rid := range rids {
-			raw, ok, err = tbm.verManage.Read(tid, rid)
-			if err != nil {
-				return nil, err
-			}
-			if !ok {
-				continue
-			}
-
-			// 解析数据
-			row := t.wrapEntry(raw, stmt.Where)
-			if row != nil {
-				rows = append(rows, row)
-			}
-		}
-		return rows, nil
 	}
+	return rows, nil
 }
 
 func (tbm *tableManage) ShowTable() string {
@@ -459,7 +380,7 @@ func (tbm *tableManage) ShowField(table string) string {
 
 	for _, f := range t.Fields {
 		indexed := ""
-		if f.isIndex() {
+		if f.TreeId != 0 {
 			indexed = "YES"
 			if f.PrimaryKey {
 				indexed = "PRI"

@@ -301,7 +301,3 @@ func (f *field) parseRaw(raw []byte) (any, int) {
 	}
 	return v, shift + 1
 }
-
-func (f *field) isIndex() bool {
-	return f.TreeId != 0
-}
