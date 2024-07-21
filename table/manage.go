@@ -24,8 +24,8 @@ type Manage interface {
 
 	Create(tid uint64, stmt *sql.CreateStmt) (err error)
 	Insert(tid uint64, stmt *sql.InsertStmt) (err error)
-	Update(tid uint64, stmt *sql.UpdateStmt) (err error)
 	Delete(tid uint64, stmt *sql.DeleteStmt) (err error)
+	Update(tid uint64, stmt *sql.UpdateStmt) (err error)
 	Select(tid uint64, stmt *sql.SelectStmt) ([]entry, error)
 
 	ShowTable() string
@@ -209,6 +209,32 @@ func (tbm *tableManage) Insert(tid uint64, stmt *sql.InsertStmt) (err error) {
 	return
 }
 
+func (tbm *tableManage) Delete(tid uint64, stmt *sql.DeleteStmt) (err error) {
+	t, ok := tbm.tables.Get(stmt.Table)
+	if !ok {
+		return ErrNoSuchTable
+	}
+
+	if len(stmt.Where) == 0 {
+		return ErrMustHaveCondition
+	}
+
+	// 查询解析
+	rids, err := t.parseWhere(stmt.Where)
+	if err != nil {
+		return err
+	}
+
+	// 读取数据
+	for _, rid := range rids {
+		_, err = tbm.verManage.Delete(tid, rid)
+		if err != nil {
+			return err
+		}
+	}
+	return
+}
+
 func (tbm *tableManage) Update(tid uint64, stmt *sql.UpdateStmt) (err error) {
 	t, ok := tbm.tables.Get(stmt.Table)
 	if !ok {
@@ -225,7 +251,7 @@ func (tbm *tableManage) Update(tid uint64, stmt *sql.UpdateStmt) (err error) {
 	)
 
 	// 查询解析
-	rids, err = resolveWhere(t, stmt.Where)
+	rids, err = t.parseWhere(stmt.Where)
 	if err != nil {
 		return err
 	}
@@ -286,32 +312,6 @@ func (tbm *tableManage) Update(tid uint64, stmt *sql.UpdateStmt) (err error) {
 	return
 }
 
-func (tbm *tableManage) Delete(tid uint64, stmt *sql.DeleteStmt) (err error) {
-	t, ok := tbm.tables.Get(stmt.Table)
-	if !ok {
-		return ErrNoSuchTable
-	}
-
-	if len(stmt.Where) == 0 {
-		return ErrMustHaveCondition
-	}
-
-	// 查询解析
-	rids, err := resolveWhere(t, stmt.Where)
-	if err != nil {
-		return err
-	}
-
-	// 读取数据
-	for _, rid := range rids {
-		_, err = tbm.verManage.Delete(tid, rid)
-		if err != nil {
-			return err
-		}
-	}
-	return
-}
-
 // Select 查询数据
 func (tbm *tableManage) Select(tid uint64, stmt *sql.SelectStmt) ([]entry, error) {
 	// 获取表对象
@@ -326,7 +326,7 @@ func (tbm *tableManage) Select(tid uint64, stmt *sql.SelectStmt) ([]entry, error
 	)
 
 	// 查询条件
-	rids, err = resolveWhere(t, stmt.Where)
+	rids, err = t.parseWhere(stmt.Where)
 	if err != nil {
 		return nil, err
 	}

@@ -1,11 +1,13 @@
 package table
 
 import (
+	"errors"
 	"github.com/ggymm/db"
 	"github.com/ggymm/db/index"
 	"github.com/ggymm/db/pkg/bin"
 	"github.com/ggymm/db/pkg/sql"
 	"github.com/ggymm/db/tx"
+	"math"
 	"slices"
 )
 
@@ -138,6 +140,70 @@ func (t *table) wrapEntry(raw []byte, where []sql.SelectWhere) entry {
 		return nil
 	}
 	return row
+}
+
+func (t *table) parseWhere(where []sql.SelectWhere) ([]uint64, error) {
+	var err error
+	pk := func() ([]uint64, error) {
+		f := &field{}
+		for _, f = range t.Fields {
+			if f.PrimaryKey {
+				break
+			}
+		}
+		if f == nil {
+			return nil, ErrNoPrimaryKey
+		}
+
+		// 查询索引
+		return f.index.SearchRange(0, math.MaxUint64)
+	}
+
+	// 查询条件
+	if len(where) == 0 {
+		return pk()
+	} else {
+		var (
+			f  = &field{}
+			rs = make([]*Interval, 0)
+		)
+
+		// 条件解析
+		for _, f = range t.Fields {
+			if f.TreeId == 0 {
+				continue
+			}
+			rs, err = newExplain().execute(f, where)
+			if err != nil {
+				if errors.Is(err, ErrNotIndex) {
+					continue
+				}
+				return nil, err
+			}
+			if len(rs) != 0 {
+				break
+			}
+		}
+
+		// 查询索引
+		if len(rs) == 0 {
+			return pk()
+		} else {
+			var (
+				tmp  = make([]uint64, 0)
+				rids = make([]uint64, 0)
+			)
+
+			for _, r := range rs {
+				tmp, err = f.index.SearchRange(r.Min, r.Max)
+				if err != nil {
+					return nil, err
+				}
+				rids = append(rids, tmp...)
+			}
+			return rids, err
+		}
+	}
 }
 
 // field 字段信息

@@ -1,1 +1,0 @@
-UPDATE user SET username = "名称1-修改" WHERE user_id = 1;

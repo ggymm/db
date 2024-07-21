@@ -103,18 +103,18 @@ func TestTableManage_Insert(t *testing.T) {
 	closeTbm()
 }
 
-func TestTableManage_Update(t *testing.T) {
+func TestTableManage_Delete(t *testing.T) {
 	tbm := openTbm()
 
 	// 解析创建表语句
-	stmt, err := sql.ParseSQL(test.UpdateSQL)
+	stmt, err := sql.ParseSQL("delete from user where user_id = 8;")
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 
 	// 插入数据
 	txId := tbm.Begin(0)
-	err = tbm.Update(txId, stmt.(*sql.UpdateStmt))
+	err = tbm.Delete(txId, stmt.(*sql.DeleteStmt))
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -127,18 +127,18 @@ func TestTableManage_Update(t *testing.T) {
 	closeTbm()
 }
 
-func TestTableManage_Delete(t *testing.T) {
+func TestTableManage_Update(t *testing.T) {
 	tbm := openTbm()
 
 	// 解析创建表语句
-	stmt, err := sql.ParseSQL(test.DeleteSQL)
+	stmt, err := sql.ParseSQL(`update user set username = "名称1-修改" where user_id = 1;`)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
 
 	// 插入数据
 	txId := tbm.Begin(0)
-	err = tbm.Delete(txId, stmt.(*sql.DeleteStmt))
+	err = tbm.Update(txId, stmt.(*sql.UpdateStmt))
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}

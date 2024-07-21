@@ -51,7 +51,7 @@ func TestParseSQL_Insert(t *testing.T) {
 }
 
 func TestParseSQL_Update(t *testing.T) {
-	stmt, err := ParseSQL(test.UpdateSQL)
+	stmt, err := ParseSQL(`update user set username = "名称1-修改" where user_id = 1;`)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -60,7 +60,7 @@ func TestParseSQL_Update(t *testing.T) {
 }
 
 func TestParseSQL_Delete(t *testing.T) {
-	stmt, err := ParseSQL(test.DeleteSQL)
+	stmt, err := ParseSQL(`delete from user where user_id = 1;`)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -69,7 +69,7 @@ func TestParseSQL_Delete(t *testing.T) {
 }
 
 func TestParseSQL_Select(t *testing.T) {
-	stmt, err := ParseSQL(test.SelectSQL)
+	stmt, err := ParseSQL(`select * from user;`)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -78,7 +78,7 @@ func TestParseSQL_Select(t *testing.T) {
 }
 
 func TestParseSQL_SelectWhere(t *testing.T) {
-	stmt, err := ParseSQL(test.SelectWhereSQL)
+	stmt, err := ParseSQL(test.SelectSQL)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
