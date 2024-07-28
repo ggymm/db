@@ -6,13 +6,11 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/ggymm/db"
 	"github.com/ggymm/db/boot"
 	"github.com/ggymm/db/data"
-	"github.com/ggymm/db/pkg/file"
 	"github.com/ggymm/db/pkg/sql"
 	"github.com/ggymm/db/table"
 	"github.com/ggymm/db/tx"
@@ -25,38 +23,10 @@ var (
 	tbm table.Manage
 )
 
-//go:embed sample_data.sql
-var sampleData string
-
-//go:embed sample_struct.sql
-var sampleStruct string
-
-// 初始化目录
 // 创建基础数据库
 func init() {
-	// 创建基础数据库
-	name := "sample"
-	base := db.RunPath()
-	path := filepath.Join(base, name)
-
-	if !file.IsExist(path) {
-		err := os.MkdirAll(path, os.ModePerm)
-		if err != nil {
-			panic(err)
-		}
-	}
-
-	opt := &db.Option{
-		Path:   path,
-		Memory: (1 << 20) * 64,
-	}
-
-	// 判断目录是否为空
-	if !file.IsEmpty(path) {
-		opt.Open = true
-	} else {
-		opt.Open = false
-	}
+	opt := db.NewOption("temp")
+	opt.Memory = (1 << 20) * 64
 
 	tm = tx.NewManager(opt)
 	dm = data.NewManage(tm, opt)
@@ -72,25 +42,14 @@ func exit() {
 	os.Exit(0)
 }
 
-func output(s ...string) {
-	fmt.Println(s)
-}
-
 func main() {
 	reader := bufio.NewReader(os.Stdin)
 
-	var (
-		err error
-
-		in   string
-		stmt sql.Statement
-	)
-
 	for {
-		output("db> ")
-		in, err = reader.ReadString(';')
+		fmt.Print("db> ")
+		in, err := reader.ReadString(';')
 		if err != nil {
-			output("Error reading input:", err.Error())
+			fmt.Println("Error reading input:", err.Error())
 			continue
 		}
 
@@ -99,17 +58,48 @@ func main() {
 			exit()
 		}
 
-		// 解析 sql 语句
-		stmt, err = sql.ParseSQL(in)
-		if err != nil {
-			output("Error parsing input sql:", err.Error())
+		in = strings.Replace(in, "\r", " ", -1)
+		in = strings.Replace(in, "\n", " ", -1)
+
+		if in == "show tables;" {
+			fmt.Println(tbm.ShowTable())
 			continue
 		}
 
+		// 解析 sql 语句
+		stmt, err := sql.ParseSQL(in)
+		if err != nil {
+			fmt.Println("Error parsing input sql:", err.Error())
+			continue
+		}
+
+		tid := tbm.Begin(1) // 可重复读
 		switch stmt.StmtType() {
+		case sql.Create:
+			err = tbm.Create(tid, stmt.(*sql.CreateStmt))
+		case sql.Insert:
+			err = tbm.Insert(tid, stmt.(*sql.InsertStmt))
+		case sql.Update:
+			err = tbm.Update(tid, stmt.(*sql.UpdateStmt))
+		case sql.Delete:
+			err = tbm.Delete(tid, stmt.(*sql.DeleteStmt))
 		case sql.Select:
+			var entries []table.Entry
+			entries, err = tbm.Select(tid, stmt.(*sql.SelectStmt))
+			fmt.Println(tbm.ShowResult(stmt.TableName(), entries))
 		default:
 			println("Error Unsupported stmt type:", stmt.StmtType())
 		}
+		if err != nil {
+			tbm.Rollback(tid)
+			fmt.Println("Error exec sql:", err.Error())
+			continue
+		}
+		err = tbm.Commit(tid)
+		if err != nil {
+			fmt.Println("Error exec sql:", err.Error())
+			continue
+		}
+		fmt.Println("ok")
 	}
 }

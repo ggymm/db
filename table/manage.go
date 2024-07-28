@@ -26,11 +26,11 @@ type Manage interface {
 	Insert(tid uint64, stmt *sql.InsertStmt) (err error)
 	Delete(tid uint64, stmt *sql.DeleteStmt) (err error)
 	Update(tid uint64, stmt *sql.UpdateStmt) (err error)
-	Select(tid uint64, stmt *sql.SelectStmt) ([]entry, error)
+	Select(tid uint64, stmt *sql.SelectStmt) ([]Entry, error)
 
 	ShowTable() string
 	ShowField(table string) string
-	ShowResult(table string, entries []entry) string
+	ShowResult(table string, entries []Entry) string
 
 	VerManage() ver.Manage
 	DataManage() data.Manage
@@ -313,7 +313,7 @@ func (tbm *tableManage) Update(tid uint64, stmt *sql.UpdateStmt) (err error) {
 }
 
 // Select 查询数据
-func (tbm *tableManage) Select(tid uint64, stmt *sql.SelectStmt) ([]entry, error) {
+func (tbm *tableManage) Select(tid uint64, stmt *sql.SelectStmt) ([]Entry, error) {
 	// 获取表对象
 	t, ok := tbm.tables.Get(stmt.Table)
 	if !ok {
@@ -333,7 +333,7 @@ func (tbm *tableManage) Select(tid uint64, stmt *sql.SelectStmt) ([]entry, error
 
 	var (
 		raw  = make([]byte, 0)
-		rows = make([]entry, 0)
+		rows = make([]Entry, 0)
 	)
 
 	// 读取数据
@@ -406,7 +406,7 @@ func (tbm *tableManage) ShowField(table string) string {
 	return vt.String()
 }
 
-func (tbm *tableManage) ShowResult(table string, entries []entry) string {
+func (tbm *tableManage) ShowResult(table string, entries []Entry) string {
 	// 获取表对象
 	t, ok := tbm.tables.Get(table)
 	if !ok {

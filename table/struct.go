@@ -16,7 +16,7 @@ const (
 	NotNull
 )
 
-type entry map[string]any
+type Entry map[string]any
 
 // table 结构
 //
@@ -93,7 +93,7 @@ func (t *table) save(txId uint64) (err error) {
 	return
 }
 
-func (t *table) wrapRaw(row entry) ([]byte, error) {
+func (t *table) wrapRaw(row Entry) ([]byte, error) {
 	raw := make([]byte, 0)
 	for _, f := range t.Fields {
 		// 获取字段值
@@ -114,9 +114,9 @@ func (t *table) wrapRaw(row entry) ([]byte, error) {
 	return raw, nil
 }
 
-func (t *table) wrapEntry(raw []byte, where []sql.SelectWhere) entry {
+func (t *table) wrapEntry(raw []byte, where []sql.SelectWhere) Entry {
 	pos := 0
-	row := make(entry)
+	row := make(Entry)
 	for _, f := range t.Fields {
 		val, shift := f.parseRaw(raw[pos:])
 		row[f.Name] = val

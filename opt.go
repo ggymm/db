@@ -26,10 +26,10 @@ func RunPath() string {
 }
 
 type Option struct {
-	Open   bool
-	Path   string
-	Memory int64
+	Open bool
+	Path string
 
+	Memory int64
 	RootId uint64 // 索引根节点的 id
 }
 
