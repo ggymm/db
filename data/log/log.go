@@ -50,7 +50,7 @@ type Log interface {
 }
 
 type logger struct {
-	mu sync.Mutex
+	sync.Mutex
 
 	pos      int64    // 迭代器的指针位置
 	file     *os.File // 文件句柄
@@ -242,8 +242,8 @@ func (l *logger) Close() {
 // 首先包装日志数据，然后写入文件
 // 最后更新 checksum，并且同步文件内容到磁盘
 func (l *logger) Log(data []byte) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+	l.Lock()
+	defer l.Unlock()
 
 	// 包装日志数据
 	log := make([]byte, offData+len(data))
@@ -267,8 +267,8 @@ func (l *logger) Log(data []byte) {
 // 使用迭代器模式，每次读取一条日志
 // 注意，返回的日志数据不包含 size 和 checksum
 func (l *logger) Next() ([]byte, bool) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+	l.Lock()
+	defer l.Unlock()
 
 	log, next, err := l.next()
 	if err != nil {

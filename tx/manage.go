@@ -58,7 +58,7 @@ type Manage interface {
 }
 
 type txManager struct {
-	mu sync.Mutex
+	sync.Mutex
 
 	seq  uint64   // 当前事务Id
 	file *os.File // 文件句柄
@@ -188,8 +188,8 @@ func (m *txManager) Close() {
 }
 
 func (m *txManager) Begin() uint64 {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.Lock()
+	defer m.Unlock()
 
 	tid := m.seq
 	m.inc()

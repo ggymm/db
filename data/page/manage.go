@@ -36,7 +36,7 @@ type Manage interface {
 }
 
 type pageManage struct {
-	mu sync.Mutex
+	sync.Mutex
 
 	num   uint32      // page 总数
 	file  *os.File    // 文件句柄
@@ -111,8 +111,8 @@ func NewManage(opt *db.Option) Manage {
 
 // 将页内容刷新到磁盘
 func (m *pageManage) flush(p Page) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.Lock()
+	defer m.Unlock()
 
 	// 写入数据
 	_, err := m.file.WriteAt(p.Data(), pos(p.No()))
@@ -130,8 +130,8 @@ func (m *pageManage) flush(p Page) {
 // obtainForCache 需要支持并发
 // 缓存中不存在时，从磁盘中获取，并且包装成 Page 对象
 func (m *pageManage) obtainForCache(key uint64) (any, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	m.Lock()
+	defer m.Unlock()
 
 	no := uint32(key)
 

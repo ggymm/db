@@ -31,7 +31,7 @@ type Manage interface {
 }
 
 type verManage struct {
-	mu    sync.Mutex
+	sync.Mutex
 	cache cache.Cache
 
 	txManage   tx.Manage
@@ -64,12 +64,12 @@ func NewManage(tm tx.Manage, dm data.Manage) Manage {
 // 手动回滚：
 // 自动回滚：
 func (vm *verManage) rollback(tid uint64, manual bool) {
-	vm.mu.Lock()
+	vm.Lock()
 	t := vm.txCache[tid]
 	if manual {
 		delete(vm.txCache, tid)
 	}
-	vm.mu.Unlock()
+	vm.Unlock()
 
 	if t.AutoRollback {
 		return
@@ -104,8 +104,8 @@ func (vm *verManage) releaseForCache(data any) {
 //
 // 保存当前处于激活状态的事务
 func (vm *verManage) Begin(level int) uint64 {
-	vm.mu.Lock()
-	defer vm.mu.Unlock()
+	vm.Lock()
+	defer vm.Unlock()
 
 	// 开启一个事务，并且缓存当前处于激活状态该的事务
 	tid := vm.txManage.Begin()
@@ -115,17 +115,17 @@ func (vm *verManage) Begin(level int) uint64 {
 
 // Commit 提交一个事务
 func (vm *verManage) Commit(tid uint64) error {
-	vm.mu.Lock()
+	vm.Lock()
 	t := vm.txCache[tid]
-	vm.mu.Unlock()
+	vm.Unlock()
 
 	if t.Err != nil {
 		return t.Err
 	}
 
-	vm.mu.Lock()
+	vm.Lock()
 	delete(vm.txCache, tid)
-	vm.mu.Unlock()
+	vm.Unlock()
 
 	vm.txLock.Remove(tid)
 	vm.txManage.Commit(tid)
@@ -138,9 +138,9 @@ func (vm *verManage) Rollback(tid uint64) {
 }
 
 func (vm *verManage) Read(tid uint64, key uint64) ([]byte, bool, error) {
-	vm.mu.Lock()
+	vm.Lock()
 	t := vm.txCache[tid]
-	vm.mu.Unlock()
+	vm.Unlock()
 
 	if t.Err != nil {
 		return nil, false, t.Err
@@ -164,9 +164,9 @@ func (vm *verManage) Read(tid uint64, key uint64) ([]byte, bool, error) {
 }
 
 func (vm *verManage) Write(tid uint64, data []byte) (uint64, error) {
-	vm.mu.Lock()
+	vm.Lock()
 	t := vm.txCache[tid]
-	vm.mu.Unlock()
+	vm.Unlock()
 
 	if t.Err != nil {
 		return 0, t.Err
@@ -180,9 +180,9 @@ func (vm *verManage) Write(tid uint64, data []byte) (uint64, error) {
 }
 
 func (vm *verManage) Delete(tid uint64, key uint64) (bool, error) {
-	vm.mu.Lock()
+	vm.Lock()
 	t := vm.txCache[tid]
-	vm.mu.Unlock()
+	vm.Unlock()
 
 	if t.Err != nil {
 		return false, t.Err

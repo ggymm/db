@@ -20,7 +20,7 @@ type Index interface {
 }
 
 type tree struct {
-	mu sync.Mutex
+	sync.Mutex
 
 	bootId   uint64
 	bootItem data.Item
@@ -69,15 +69,15 @@ func NewIndex(dm data.Manage, opt *db.Option) (Index, error) {
 }
 
 func (t *tree) rootId() uint64 {
-	t.mu.Lock()
-	defer t.mu.Unlock()
+	t.Lock()
+	defer t.Unlock()
 
 	return bin.Uint64(t.bootItem.DataBody())
 }
 
 func (t *tree) updateRootId(key, prev, next uint64) error {
-	t.mu.Lock()
-	defer t.mu.Unlock()
+	t.Lock()
+	defer t.Unlock()
 
 	// 插入根节点
 	root := createRoot(key, prev, next)

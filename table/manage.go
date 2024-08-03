@@ -37,7 +37,7 @@ type Manage interface {
 }
 
 type tableManage struct {
-	mu     sync.Mutex
+	sync.Mutex
 	tables cmap.CMap[string, *table]
 
 	boot       boot.Boot
@@ -86,8 +86,8 @@ func (tbm *tableManage) Rollback(tid uint64) {
 }
 
 func (tbm *tableManage) Create(tid uint64, stmt *sql.CreateStmt) (err error) {
-	tbm.mu.Lock()
-	defer tbm.mu.Unlock()
+	tbm.Lock()
+	defer tbm.Unlock()
 	if exist := tbm.tables.Has(stmt.Name); exist {
 		return
 	}
