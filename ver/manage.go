@@ -31,19 +31,24 @@ type Manage interface {
 }
 
 type verManage struct {
-	mu sync.Mutex
+	mu    sync.Mutex
+	cache cache.Cache
 
 	txManage   tx.Manage
 	dataManage data.Manage
 
 	txLock  lock.Lock
 	txCache map[uint64]*transaction
-
-	cache cache.Cache
 }
 
 func NewManage(tm tx.Manage, dm data.Manage) Manage {
 	vm := new(verManage)
+
+	vm.cache = cache.NewCache(&cache.Option{
+		Obtain:   vm.obtainForCache,
+		Release:  vm.releaseForCache,
+		MaxCount: 0,
+	})
 
 	vm.txManage = tm
 	vm.dataManage = dm
@@ -51,12 +56,6 @@ func NewManage(tm tx.Manage, dm data.Manage) Manage {
 	vm.txLock = lock.NewLock()
 	vm.txCache = make(map[uint64]*transaction)
 	vm.txCache[tx.Super] = newTransaction(tx.Super, 0, nil)
-
-	vm.cache = cache.NewCache(&cache.Option{
-		Obtain:   vm.obtainForCache,
-		Release:  vm.releaseForCache,
-		MaxCount: 0,
-	})
 	return vm
 }
 

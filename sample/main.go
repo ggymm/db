@@ -4,7 +4,6 @@ import (
 	_ "embed"
 
 	"bufio"
-	"fmt"
 	"os"
 	"strings"
 
@@ -46,10 +45,10 @@ func main() {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
-		fmt.Print("db> ")
+		print("db> ")
 		in, err := reader.ReadString(';')
 		if err != nil {
-			fmt.Println("Error reading input:", err.Error())
+			println("Error reading input:", err.Error())
 			continue
 		}
 
@@ -62,18 +61,20 @@ func main() {
 		in = strings.Replace(in, "\n", " ", -1)
 
 		if in == "show tables;" {
-			fmt.Println(tbm.ShowTable())
+			println(tbm.ShowTable())
 			continue
 		}
 
 		// 解析 sql 语句
 		stmt, err := sql.ParseSQL(in)
 		if err != nil {
-			fmt.Println("Error parsing input sql:", err.Error())
+			println("Error parsing input sql:", err.Error())
 			continue
 		}
 
-		tid := tbm.Begin(1) // 可重复读
+		// 默认事务
+		// 可重复读
+		tid := tbm.Begin(1)
 		switch stmt.StmtType() {
 		case sql.Create:
 			err = tbm.Create(tid, stmt.(*sql.CreateStmt))
@@ -86,20 +87,20 @@ func main() {
 		case sql.Select:
 			var entries []table.Entry
 			entries, err = tbm.Select(tid, stmt.(*sql.SelectStmt))
-			fmt.Println(tbm.ShowResult(stmt.TableName(), entries))
+			println(tbm.ShowResult(stmt.TableName(), entries))
 		default:
 			println("Error Unsupported stmt type:", stmt.StmtType())
 		}
 		if err != nil {
 			tbm.Rollback(tid)
-			fmt.Println("Error exec sql:", err.Error())
+			println("Error exec sql:", err.Error())
 			continue
 		}
 		err = tbm.Commit(tid)
 		if err != nil {
-			fmt.Println("Error exec sql:", err.Error())
+			println("Error exec sql:", err.Error())
 			continue
 		}
-		fmt.Println("ok")
+		println("OK")
 	}
 }
