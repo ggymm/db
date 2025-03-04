@@ -2,13 +2,14 @@ package table
 
 import (
 	"errors"
+	"math"
+	"slices"
+
 	"github.com/ggymm/db"
 	"github.com/ggymm/db/index"
 	"github.com/ggymm/db/pkg/bin"
 	"github.com/ggymm/db/pkg/sql"
 	"github.com/ggymm/db/tx"
-	"math"
-	"slices"
 )
 
 const (

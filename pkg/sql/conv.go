@@ -1,6 +1,8 @@
 package sql
 
-import "strconv"
+import (
+	"strconv"
+)
 
 func FormatVal(t string, v string) any {
 	switch typeMapping[t] {
